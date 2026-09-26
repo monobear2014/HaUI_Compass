@@ -134,6 +134,20 @@ StudentState (snapshot_id, student_id, computed_at, version)
 
 Snapshots are persisted so each `Recommendation` and `RiskSignal` can reference the `snapshot_id` it was computed from (reproducibility). Students can view and correct fields; a correction is a fact with source `STATED` that the engine respects.
 
+#### StudentState v0 (IMPLEMENTED)
+
+**StudentState v0 is a derived snapshot of the student's current academic execution state.** It is a typed, immutable result computed by a pure engine from explicit facts. Code: `domain/students/state.py` (types) and `engines/student_state/derive.py` (`derive_student_state(student_id, tasks, available_capacity, now)`).
+
+| Part | Contents |
+|---|---|
+| Identity and time | `student_id`, `as_of` (timezone-aware, UTC), `schema_version` (shape version, currently 1; not a snapshot id) |
+| `capacity` | `available` and `committed` (estimated effort of tasks not completed); derived `remaining` and `overcommitted_by`, so over-commitment is reported, never clamped away |
+| `progress` | counts of tasks not started / in progress / completed; derived `total`, `remaining`, and `completion_ratio` (`None` when there are no tasks) |
+
+Scope in v0: the engine describes exactly the tasks and capacity it is given; choosing the tasks and the period is the caller's job until planning exists. Tasks in progress count at their full estimate because partial progress is not recorded yet.
+
+It is **not** yet: a database record design (persistence, snapshot ids), a behavioural or ML profile, reflection memory, or a risk prediction. The illustrative `behaviour`, `learning`, `preferences`, `corrections`, and `risk_summary` sections above are still PLANNED and will be added as their slices arrive.
+
 ### Where does the Risk Engine live?
 
 A pure `risk` engine in the domain/engines package, called by application use cases. MVP rules are explicit and tabled, e.g. `required_minutes_before_deadline` vs `available_minutes_before_deadline` (after calibration), days to deadline, not-started status, dependency blocking. Output: `RiskSignal(level, reason_codes, evidence, thresholds_version)`. Thresholds live in one versioned config object with tests at each boundary. Simulation-based risk (IntelliPlan `risk.py`) is a later option once calibrated data exists.

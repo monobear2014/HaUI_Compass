@@ -7,6 +7,7 @@ from haui_compass.domain.shared.validation import (
     require_aware_utc,
     require_non_blank,
     require_non_negative,
+    require_non_negative_int,
 )
 
 
@@ -45,3 +46,13 @@ def test_negative_duration_is_rejected() -> None:
 def test_zero_and_positive_durations_are_accepted() -> None:
     assert require_non_negative(timedelta(0), "duration") == timedelta(0)
     assert require_non_negative(timedelta(minutes=30), "duration") == timedelta(minutes=30)
+
+
+def test_negative_int_is_rejected() -> None:
+    with pytest.raises(DomainValidationError, match="must not be negative"):
+        require_non_negative_int(-1, "count")
+
+
+def test_zero_and_positive_ints_are_accepted() -> None:
+    assert require_non_negative_int(0, "count") == 0
+    assert require_non_negative_int(7, "count") == 7
