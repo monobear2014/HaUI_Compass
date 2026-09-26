@@ -3,6 +3,7 @@
 - **Status:** PROPOSED — not an ADR, not accepted, nothing here is implemented.
 - **Date:** 2026-09-27
 - **Inputs:** [`docs/PROJECT.md`](../PROJECT.md) (source of truth), [`docs/research/intelliplan-audit.md`](../research/intelliplan-audit.md)
+- **Update 2026-09-27:** [ADR-0001](../decisions/0001-python-package-and-domain-boundaries.md) is accepted and supersedes this proposal's package layout, scaffold mapping (§5), and open items 1–2 in §13. Where they differ, the ADR wins; the rest of this document remains a proposal.
 - **Implementation status:** Every component below is **PLANNED**. The repository currently contains documentation and an empty scaffold only.
 
 This proposal describes how HaUI Compass could be structured after studying IntelliPlan. It keeps PROJECT.md's direction (Next.js + FastAPI modular monolith, PostgreSQL, provider-independent AI and LMS) and adds concrete boundaries. Decisions that deserve an ADR are listed in §13.
@@ -180,7 +181,7 @@ EmbeddingClient (port)
   embed(texts) -> vectors, model_id
 ```
 
-Adapters per vendor live in `ai/providers`. Cross-cutting concerns wrap the port: budget/rate limits, kill switch, timeouts, retries/fallback chain, usage recording, redaction. Each AI use (explain, decompose, reflect, answer) is a function that builds a bounded input, calls the port, **validates** the output against a schema/allow-list, and falls back deterministically where a fallback exists.
+Adapters per vendor live in `infrastructure/llm` (ports in `ai/ports.py`, per ADR-0001). Cross-cutting concerns wrap the port: budget/rate limits, kill switch, timeouts, retries/fallback chain, usage recording, redaction. Each AI use (explain, decompose, reflect, answer) is a function that builds a bounded input, calls the port, **validates** the output against a schema/allow-list, and falls back deterministically where a fallback exists.
 
 ### Where does RAG fit?
 
@@ -229,23 +230,7 @@ Infrastructure
 
 ### Mapping onto the current scaffold
 
-| Scaffold directory | Proposed role |
-|---|---|
-| `apps/web` | Next.js app |
-| `apps/api` | FastAPI app, routers, dependency wiring |
-| `domain/{students,courses,assignments,tasks,plans,reflections,recommendations}` | Domain entities + pure engines per area |
-| `ai/providers` | LLM/embedding adapters |
-| `ai/retrieval` | Retrieval pipeline |
-| `ai/reflection` | Reflection summarisation / candidate-signal prompts |
-| `ai/guardrails` | Integrity policy + classifiers |
-| `ai/memory` | See open question below |
-| `ai/planning`, `ai/risk` | **Conflict:** PROJECT.md requires planning and risk to be deterministic. Proposal: deterministic planning/risk engines live under `domain/`; `ai/planning` holds only LLM decomposition assistance; `ai/risk` holds only risk *explanation* phrasing (or is removed). Needs a decision before Slice 1. |
-| `ai/orchestration` | Not needed until a stateful multi-step workflow is demonstrated |
-| `integrations/lms/{base,mock}` | `LMSProvider` port + `MockLMSProvider` |
-| `packages/shared` | Generated API types or shared constants only |
-| `evals/*` | Datasets and eval runners per slice |
-
-**Packaging open question:** the top-level `domain/`, `ai/`, and `integrations/` directories must be importable by `apps/api`. Options: (a) one Python package (e.g. `compass`) installed in editable mode from the repository root with `domain/`, `ai/`, `integrations/` as subpackages; (b) move backend code under `apps/api/src/compass/...` and keep top-level folders for docs only. This affects every import and deserves an ADR in Slice 1.
+**Superseded by ADR-0001.** Backend code lives in a single package under `apps/api/src/haui_compass/`; deterministic engines live in `engines/`, not `ai/`; `ai/planning`, `ai/risk`, `ai/memory`, and `ai/orchestration` are removed and `ai/providers` is split into ports and infrastructure adapters. See the ADR's *Target Package Structure* and *Migration plan*. The scaffold folders themselves have not been moved yet.
 
 ---
 
@@ -332,8 +317,8 @@ Next.js page: "Today" — one recommended action with Why now / Risk if deferred
 
 ## 13. Decisions needing ADRs (not yet made)
 
-1. Python packaging layout (§5 packaging open question).
-2. Whether `ai/planning` and `ai/risk` scaffold folders are repurposed or removed.
+1. ~~Python packaging layout~~ — decided in ADR-0001.
+2. ~~`ai/planning` and `ai/risk` placement~~ — decided in ADR-0001 (removed; deterministic engines live in `engines/`).
 3. Authentication approach for the MVP (dev-only seeded user vs real auth in Slice 1).
 4. Session cookie vs bearer token between Next.js and FastAPI.
 5. Risk Engine v0 thresholds and their versioning.

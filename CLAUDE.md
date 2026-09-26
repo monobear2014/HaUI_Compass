@@ -29,6 +29,28 @@ Before coding:
 - Keep generated files, local caches, editor state, and operating-system artifacts out of version control.
 - `.references/` contains external reference implementations (see `docs/research/`). Treat them as read-only research sources. Never edit, stage, commit, vendor, or copy code from them into HaUI Compass unless the user explicitly requests reuse after license review.
 
+## Git workflow
+
+```text
+feat/* fix/* refactor/* test/* docs/* chore/*
+   ↓  atomic commits, tests/checks
+  dev          (integration/testing branch)
+   ↓  integration verification
+ main          (stable milestones only)
+```
+
+- `main` is the stable milestone branch. Never experiment or implement features on it, never merge incomplete work into it, never rewrite its history, never force push it. It receives only tested integration milestones from `dev`.
+- `dev` is the integration branch. Normally do not implement features directly on it; it receives feature branches and is tested before being merged into `main`.
+- Every implementation task gets its own short-lived branch, created from the latest `dev`.
+
+**Branch names** are short and descriptive: `feat/<name>`, `fix/<name>`, `refactor/<name>`, `test/<name>`, `docs/<name>`, `chore/<name>` (e.g. `feat/risk-engine`, `fix/risk-boundary`, `docs/architecture`). Avoid long names such as `feature/implement-the-entire-student-state-system`.
+
+**Before starting an implementation task:** read `CLAUDE.md` and `docs/PROJECT.md`; inspect `git status`; confirm the current branch; sync `dev` when appropriate; create the branch from `dev`.
+
+**Commits:** one task may and should contain several commits. Keep them small, logically coherent, independently understandable, and easy to revert (e.g. `feat: add student state domain model`, `test: add student state capacity tests`). Use Conventional Commit prefixes (`feat:`, `fix:`, `refactor:`, `test:`, `docs:`, `chore:`). No meaningless messages (`update`, `changes`, `wip`, `final`). Do not force a task into one giant commit, and do not commit every tiny edit.
+
+**Merging into `dev`:** working tree clean; relevant tests pass; lint/type checks pass when available; changed behavior has tests where appropriate; documentation updated when needed. Preserve useful feature history; do not automatically squash a feature into one commit. Never merge feature branches directly into `main`.
+
 ## Product and architecture rules
 
 - Preserve the central question: **“What should this student do next, and why?”**

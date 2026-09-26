@@ -36,17 +36,29 @@ This direction is intentionally revisable. Material decisions will be recorded a
 
 ## Repository structure
 
+Package layout and dependency rules are defined in [ADR-0001](docs/decisions/0001-python-package-and-domain-boundaries.md). Everything below is an **empty scaffold**: only placeholder files exist, and no application code has been implemented.
+
 ```text
-apps/             Planned deployable web and API applications
-packages/shared/  Planned explicitly shared contracts or utilities
-domain/           Planned core academic and learning domain modules
-ai/               Planned AI capability boundaries and provider adapters
-integrations/lms/ Planned LMS interface and provider implementations
-evals/            Planned AI and product evaluation assets
-tests/            Cross-module and integration tests
-docs/             Product source of truth, architecture, ADRs, and research
-scripts/          Repository automation
-infra/            Infrastructure definitions when justified
+apps/
+  api/                          Planned FastAPI backend
+    src/haui_compass/           Planned single Python package
+      domain/                   Entities, value objects, invariants (no framework or vendor imports)
+      engines/                  Deterministic decision algorithms: student state, risk, planning,
+                                next best action, replanning (no AI)
+      application/              Use cases and the ports they consume (repositories, LMS, clock)
+      ai/                       Only model-requiring capabilities: decomposition, explanation,
+                                reflection, retrieval/citations, guardrails
+      infrastructure/           Adapters: persistence, LMS providers, LLM providers, retrieval, telemetry
+      api/v1/                   HTTP layer
+      config/                   Settings
+    tests/                      Backend unit and integration tests
+  web/                          Planned Next.js web application
+packages/shared/                Planned generated or shared contracts
+evals/                          Planned AI and product evaluation assets (not unit tests)
+tests/                          Reserved for cross-app end-to-end tests
+docs/                           Product source of truth, architecture, ADRs, and research
+scripts/                        Repository automation
+infra/                          Infrastructure definitions when justified
 ```
 
 Start with [docs/PROJECT.md](docs/PROJECT.md) for product scope and architecture, then read [CLAUDE.md](CLAUDE.md) before making changes.
