@@ -181,7 +181,7 @@ EmbeddingClient (port)
   embed(texts) -> vectors, model_id
 ```
 
-Adapters per vendor live in `ai/providers`. Cross-cutting concerns wrap the port: budget/rate limits, kill switch, timeouts, retries/fallback chain, usage recording, redaction. Each AI use (explain, decompose, reflect, answer) is a function that builds a bounded input, calls the port, **validates** the output against a schema/allow-list, and falls back deterministically where a fallback exists.
+Adapters per vendor live in `infrastructure/llm` (ports in `ai/ports.py`, per ADR-0001). Cross-cutting concerns wrap the port: budget/rate limits, kill switch, timeouts, retries/fallback chain, usage recording, redaction. Each AI use (explain, decompose, reflect, answer) is a function that builds a bounded input, calls the port, **validates** the output against a schema/allow-list, and falls back deterministically where a fallback exists.
 
 ### Where does RAG fit?
 
