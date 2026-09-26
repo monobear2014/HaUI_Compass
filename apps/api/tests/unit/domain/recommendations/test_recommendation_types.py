@@ -147,3 +147,9 @@ class TestNoRecommendation:
                 reason=NoRecommendationReason.NO_ACTIONABLE_TASKS,
                 engine_version=1,
             )
+
+    def test_engine_version_must_be_positive(self) -> None:
+        with pytest.raises(DomainValidationError, match="engine_version"):
+            NoRecommendation(
+                as_of=NOW, reason=NoRecommendationReason.NO_ACTIONABLE_TASKS, engine_version=0
+            )
