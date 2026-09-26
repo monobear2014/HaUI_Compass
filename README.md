@@ -8,9 +8,9 @@ HaUI Compass is a planned adaptive AI learning companion for students at Hanoi U
 
 **Current phase: Project foundation / architecture design.**
 
-**IMPLEMENTED:** repository foundation, source-of-truth documentation, working protocol, and initial directory structure.
+**IMPLEMENTED:** repository foundation, source-of-truth documentation, working protocol, directory structure, and the backend Python package foundation (core domain types `Course`/`Assignment`/`Task`, typed identifiers, `Clock`/`SystemClock`, tests, and an import-boundary check).
 
-**PLANNED:** the web and API applications, domain behavior, AI workflows, grounded RAG, risk engine, next-best-action recommendations, reflections, LMS providers, dashboards, and evaluation suites.
+**PLANNED:** the web application, FastAPI service, further domain behavior, AI workflows, grounded RAG, risk engine, next-best-action recommendations, reflections, LMS providers, dashboards, and evaluation suites.
 
 No product feature is claimed to be operational yet.
 
@@ -40,8 +40,8 @@ Package layout and dependency rules are defined in [ADR-0001](docs/decisions/000
 
 ```text
 apps/
-  api/                          Planned FastAPI backend
-    src/haui_compass/           Planned single Python package
+  api/                          Backend (FastAPI itself is still planned)
+    src/haui_compass/           Single Python package; only `domain` (core types) and the Clock port/adapter exist so far
       domain/                   Entities, value objects, invariants (no framework or vendor imports)
       engines/                  Deterministic decision algorithms: student state, risk, planning,
                                 next best action, replanning (no AI)
@@ -63,6 +63,25 @@ infra/                          Infrastructure definitions when justified
 
 Start with [docs/PROJECT.md](docs/PROJECT.md) for product scope and architecture, then read [CLAUDE.md](CLAUDE.md) before making changes.
 
+## Backend development
+
+The backend package foundation lives in `apps/api` and currently depends on nothing at runtime. There is no web server yet, so there is nothing to start.
+
+Requires Python 3.12 or newer (developed on 3.12; [uv](https://docs.astral.sh/uv/) is convenient but optional).
+
+```bash
+cd apps/api
+uv venv --python 3.12 .venv                   # or: python3.12 -m venv .venv
+uv pip install --python .venv/bin/python -e ".[dev]"   # or: .venv/bin/pip install -e ".[dev]"
+
+.venv/bin/python -m pytest                    # tests (includes the import-boundary check)
+.venv/bin/ruff check . && .venv/bin/ruff format --check .   # lint and formatting
+.venv/bin/mypy                                # strict type checking
+.venv/bin/python -m pytest --cov              # optional coverage report
+```
+
+Dependency direction between layers is enforced by `apps/api/tests/unit/test_import_boundaries.py` (see ADR-0001).
+
 ## Development status
 
-The repository currently contains documentation and an empty architectural scaffold only. Dependencies, runtime projects, database schemas, and business logic will be introduced incrementally in future tasks.
+The repository contains documentation, the empty architectural scaffold, and a small tested backend foundation (domain primitives and a clock abstraction). The web and API applications, database schemas, AI capabilities, and all product behavior such as student state, risk, and recommendations remain planned and will be introduced incrementally in future tasks.
