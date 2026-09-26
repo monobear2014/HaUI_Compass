@@ -103,3 +103,21 @@ The engine ranks **heterogeneous actions** (`ActionKind`: start/continue task, s
 ## Source modules inspected
 
 `intelliplan/intelligence/nba.py`, `intelliplan/domain/student.py`, `intelliplan/services/next_action.py`, `intelliplan/intelligence/reasoning.py`, `intelliplan/intelligence/priority.py`, `intelliplan/intelligence/risk.py`, `intelliplan/intelligence/rescheduling.py` (interaction check), `tests/intelliplan/test_nba.py`.
+
+## Comparison with the implemented HaUI Compass NBA v0
+
+Added after implementation. Details: [`initial-architecture.md`](../architecture/initial-architecture.md), *Next Best Action v0*.
+
+| | IntelliPlan | HaUI Compass v0 |
+|---|---|---|
+| Ranks | heterogeneous actions from dict rows (plan blocks, assignment rows, concepts, break) | typed tasks |
+| Method | weighted linear score over ten components | ordered comparison: risk tier, deadline, status, stable id |
+| Risk | does not use a risk report; deadline pressure is a step table | consumes our own `RiskSignal`; unknown risk is an explicit policy tier |
+| Behaviour data | fitted `BehaviorModel` or population priors | none |
+| Ties | stable sort, so input order decides | assignment id then task id, independent of input order |
+| Explanation | reason codes, a label table, an optional validated LLM narrator | reason codes and typed evidence only (no text, no LLM) |
+| Runner-ups, dismissals, break/defer | yes | not in v0 |
+| `risk_if_deferred` | no equivalent | deliberately not implemented |
+
+**Why they differ.** IntelliPlan's score sums quantities whose weights and curves have no evidence behind them for HaUI, and a sum hides why one item beat another. HaUI Compass has no execution history, so v0 uses the smallest ordering that is explainable and reproducible, and it reuses the risk engine already built instead of a second, unrelated notion of urgency. The intent is not to be more capable than IntelliPlan, but to be appropriate to our data maturity and easy to audit. Runner-ups and dismissal handling are worth adopting later. No IntelliPlan code, weights, curves, or priors were used.
+

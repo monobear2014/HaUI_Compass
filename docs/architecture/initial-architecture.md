@@ -177,7 +177,31 @@ A pure `risk` engine in the domain/engines package, called by application use ca
 
 ### Where does Next Best Action live?
 
+> **Superseded in part by the implemented v0 (below).** v0 uses an ordered comparison instead of the weighted objective described here, ranks only tasks (no break or review candidates), and does not implement `risk_if_deferred`. The paragraph below is the original proposal.
+
 A pure `nba` engine: **generate** candidates (next task of highest-risk assignment, continue in-progress task, short task fitting the available gap, review a difficult topic, break) → **score** with a documented weighted objective (each component returned) → **rank** → attach `reasons` (top reason codes), `deferral_risk` (the risk level/change if skipped today, computed by re-running `risk` with the candidate deferred), and `evidence` (snapshot id, component values). The application persists the `Recommendation` and the student's response (accepted / dismissed / completed).
+
+#### Next Best Action v0 (IMPLEMENTED)
+
+**NextBestActionEngine v0 chooses the single task a student should do next using an ordered comparison, not a score.** It is deterministic and rule-ordered: no weighted numeric score, no learned ranking, no calibrated behaviour model, and no LLM. Code: `domain/recommendations/` (`ActionCandidate`, `RecommendationPolicy`, `Recommendation`, `NoRecommendation`) and `engines/next_best_action/recommend.py` (`recommend_next_action(candidates, now, policy)`).
+
+- **Input:** explicit `ActionCandidate`s (a `Task`, its `Assignment`, and that assignment's `RiskSignal`) plus `now`. The engine fetches nothing and does not re-assess risk. It does not consume `StudentState`: with this ordering nothing in it affects the choice, and capacity already reaches the ranking through the risk signal.
+- **Eligibility:** completed tasks are never recommended. No eligible task gives a typed `NoRecommendation(NO_ACTIONABLE_TASKS)`, not an error.
+- **Ranking order** (each step matters only when all earlier steps tie):
+
+| # | Step | Rule |
+|---|---|---|
+| 1 | Assignment risk tier | HIGH, then MEDIUM, then LOW |
+| 2 | Deadline | earlier assignment deadline first (overdue is simply earliest) |
+| 3 | Status | in-progress before not-started |
+| 4 | Stable tie-break | lower assignment id, then lower task id |
+
+- **`UNKNOWN` risk** (not enough evidence to assess) is never ranked as safe. For ordering only, it takes the tier named in `RecommendationPolicy.unknown_risk_treated_as` (default MEDIUM: it ranks with MEDIUM, so the deadline decides between them, and below known HIGH). The recommendation still reports the risk as `UNKNOWN`.
+- **Output:** a `Recommendation` with typed `reason_codes` (`HIGH/MEDIUM/UNKNOWN_ASSIGNMENT_RISK`, `EARLIEST_DEADLINE`, `CONTINUE_IN_PROGRESS_TASK`, `ONLY_ACTIONABLE_TASK`, `STABLE_TIE_BREAK`), typed `evidence` (deadline, time until deadline, estimated duration, task status, the risk level and reasons, eligible-candidate count, and the `deciding_dimension` that separated it from the runner-up), `as_of`, and `engine_version`. Any explanation text is derived from these and must not alter them.
+- **Determinism:** the result never depends on input order; ties end in the id tie-break.
+- **Unvalidated heuristics.** The ordering itself, and putting risk before deadline, are initial product-engineering choices, not evidence-based. Known consequence: a HIGH-risk assignment due far in the future outranks a nearer-deadline MEDIUM or LOW one. Evaluation is required before any claim that the recommendations are useful (PROJECT.md, *Evaluation Strategy*). Changing the ordering or policy values requires a new `engine_version`.
+- **Limitation: `risk_if_deferred` is NOT implemented.** The product vision includes it, but the RiskEngine needs `available_capacity_until_deadline`, and the capacity remaining after a deferral cannot be known without a scheduling model. Inferring it would be fabrication, so `Recommendation` has no such field. It is expected to return with planning, as an explicit deferral scenario supplying the changed capacity.
+- **Not included:** runner-up alternatives, dismissal handling, task sequencing within an assignment (only in-progress-first plus the id tie-break), and any presentation text.
 
 ### Where does Reflection feed back into planning?
 
