@@ -34,3 +34,10 @@ def require_non_negative(value: timedelta, name: str) -> timedelta:
     if value < timedelta(0):
         raise DomainValidationError(f"{name} must not be negative")
     return value
+
+
+def require_non_negative_int(value: int, name: str) -> int:
+    """Reject negative integers (counts). Zero is allowed."""
+    if value < 0:
+        raise DomainValidationError(f"{name} must not be negative")
+    return value
