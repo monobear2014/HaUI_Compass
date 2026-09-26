@@ -1,0 +1,55 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "haui-compass"
+version = "0.0.0"
+description = "HaUI Compass backend (modular monolith). See docs/decisions/0001."
+requires-python = ">=3.12"
+# The domain layer is standard-library only (ADR-0001). Runtime dependencies are
+# added deliberately, one at a time, when a branch actually needs them.
+dependencies = []
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8",
+    "pytest-cov>=5",
+    "ruff>=0.8",
+    "mypy>=1.13",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+haui_compass = ["py.typed"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# importlib mode: test files may share basenames across directories without __init__.py.
+addopts = "-ra --strict-markers --import-mode=importlib"
+# Lets tests import shared fakes as `from support.clocks import FixedClock`.
+pythonpath = ["tests"]
+
+[tool.coverage.run]
+source = ["haui_compass"]
+branch = true
+
+[tool.coverage.report]
+show_missing = true
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+mypy_path = ["src", "tests"]
+explicit_package_bases = true
+files = ["src", "tests"]
