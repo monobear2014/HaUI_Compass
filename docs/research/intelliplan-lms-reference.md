@@ -92,3 +92,22 @@ IntelliPlan has **two parallel integration styles**, not one:
 ## Source modules inspected
 
 `intelliplan/integrations/lms/base.py`, `intelliplan/integrations/lms/registry.py`, `intelliplan/integrations/lms/moodle.py`, `intelliplan/api/lms_sync.py`, `canvas_helper.py`, `studentvue_helper.py`, `schoology_helper.py`, `intelliplan/repositories/assignments.py`, `intelliplan/domain/assignment.py`, `docs/scheduler-audit.md`.
+
+## Comparison with the implemented HaUI Compass boundary
+
+Added after implementation. Details: [`initial-architecture.md`](../architecture/initial-architecture.md), *LMSProvider boundary and MockLMSProvider*.
+
+| | IntelliPlan | HaUI Compass |
+|---|---|---|
+| Integration styles | typed providers plus legacy dict helpers, only one on the data path | one port, one path |
+| Credentials | in method signatures and provider environment variables | none in the port; adapter construction only |
+| Records | frozen dataclasses (typed) or untyped dicts (legacy); `meta={"raw": ...}` in Moodle | frozen typed records; no raw or `meta` field |
+| Dates | `datetime` (typed) or a date string (legacy) | timezone-aware UTC only; naive rejected |
+| Effort and priority | computed inside legacy adapters | never computed at ingestion; mock supplies synthetic effort, real providers return `None` |
+| Errors | swallowed into empty lists | typed `LMSNotFoundError` |
+| Submission state | field defined but not populated by typed providers | small enum with explicit `UNKNOWN` |
+| Identity | provider-namespaced string ids in records | `ExternalRef(provider, id)`, derived domain ids, source returned alongside domain objects |
+| Tests | provider tests per integration | one reusable contract suite |
+
+No IntelliPlan code, provider constants, endpoints, or field names were used.
+

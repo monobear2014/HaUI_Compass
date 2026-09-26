@@ -231,6 +231,27 @@ LMSProvider (port)
 
 Records are normalised and immutable with `provider`, `external_id`, and `fetched_at`. A `SyncAcademicData` use case upserts them into HaUI tables with sync provenance. `MockLMSProvider` reads fixture data; `HaUILMSProvider`, `CanvasProvider`, `MoodleProvider` are later adapters. Credentials/OAuth live in the adapter, not in the port (unlike IntelliPlan's `LMSProvider`).
 
+#### LMSProvider boundary and MockLMSProvider (IMPLEMENTED)
+
+Code: `application/ports/lms.py` (port, records, `ExternalRef`, `LMSNotFoundError`), `application/lms_mapping.py` (records to domain), `infrastructure/lms/mock.py` and `mock_data.py` (`MockLMSProvider`). The signature sketch above is the original proposal; the implemented port is a refinement, student-scoped like a real LMS view and credential-free:
+
+```text
+LMSProvider (port, read-only)
+  get_courses(student)                                  -> tuple[LMSCourseRecord, ...]
+  get_assignments(student, *, courses=None)             -> tuple[LMSAssignmentRecord, ...]
+  get_submission_statuses(student, *, assignments=None) -> tuple[LMSSubmissionRecord, ...]
+```
+
+- **Records are boundary types, not domain entities.** They have no raw-payload or `meta` field and no `dict[str, Any]`. Deadlines and submission times are normalised to timezone-aware UTC on construction; naive datetimes are rejected.
+- **Identity:** `ExternalRef(provider, id)`. External ids are never assumed to equal domain ids. Domain ids are derived deterministically (`uuid5`) in `lms_mapping`, a stateless v0 strategy that a stored mapping can replace later. This is not an identity-resolution system.
+- **Mapping is explicit and honest.** `Course` and `Assignment` are built outside the domain. An assignment with no deadline is reported as *skipped* (`NO_DEADLINE`), never given a made-up one; effort is passed through unchanged, so `None` stays unknown (the RiskEngine then says `UNKNOWN`). Submission state and course codes are not mapped, since the domain has no place for them yet.
+- **LMS assignments are not Tasks.** Turning an assignment into action-sized tasks is decomposition/planning, a separate concern. Nothing here generates tasks.
+- **Errors:** one `LMSNotFoundError` (unknown student, course, or assignment). Failures are never disguised as empty results.
+- **`estimated_effort` is optional planning data that most real LMSs do not provide.** `MockLMSProvider` supplies **synthetic** values so later slices can exercise the risk engine; a real provider returns `None`.
+- **`MockLMSProvider` is development and test infrastructure, not a production integration.** It is in-memory and deterministic (no network, files, randomness, or clock) and serves one canonical fictional scenario (two students; three courses, eight assignments across overdue, imminent, mid and far deadlines, unknown effort, an undated assignment, and every submission status), with deadlines relative to an explicit anchor.
+- **Contract tests:** `tests/support/lms_contract.py` is provider-agnostic and any provider must pass it.
+- **Status of the providers:** `HaUILMSProvider` (PLANNED), `CanvasProvider` (PLANNED), `MoodleProvider` (PLANNED). No real LMS integration, credentials, HTTP layer, or persistence exists.
+
 ### How are LLM providers abstracted?
 
 A small port expressing *capabilities*, not vendors:
