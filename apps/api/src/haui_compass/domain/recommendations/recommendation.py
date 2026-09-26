@@ -27,6 +27,7 @@ class RecommendationReasonCode(StrEnum):
     EARLIEST_DEADLINE = "earliest_deadline"
     CONTINUE_IN_PROGRESS_TASK = "continue_in_progress_task"
     ONLY_ACTIONABLE_TASK = "only_actionable_task"
+    STABLE_TIE_BREAK = "stable_tie_break"
 
 
 class RankingDimension(StrEnum):
