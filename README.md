@@ -8,9 +8,9 @@ HaUI Compass is a planned adaptive AI learning companion for students at Hanoi U
 
 **Current phase: Project foundation / architecture design.**
 
-**IMPLEMENTED:** repository foundation, source-of-truth documentation, working protocol, directory structure, and the backend Python package foundation (core domain types `Course`/`Assignment`/`Task`, typed identifiers, `Clock`/`SystemClock`, `StudentState` v0 with its pure derivation engine, tests, and an import-boundary check).
+**IMPLEMENTED:** repository foundation, source-of-truth documentation, working protocol, directory structure, and the backend Python package foundation (core domain types `Course`/`Assignment`/`Task`, typed identifiers, `Clock`/`SystemClock`, `StudentState` v0 with its pure derivation engine, a deterministic rule-based `RiskEngine` v0 (not a probability; thresholds are unvalidated MVP heuristics), tests, and an import-boundary check).
 
-**PLANNED:** the web application, FastAPI service, further domain behavior, AI workflows, grounded RAG, risk engine, next-best-action recommendations, reflections, LMS providers, dashboards, and evaluation suites.
+**PLANNED:** the web application, FastAPI service, further domain behavior, AI workflows, grounded RAG, behaviour-aware risk, next-best-action recommendations, reflections, LMS providers, dashboards, and evaluation suites.
 
 No product feature is claimed to be operational yet.
 
@@ -41,7 +41,7 @@ Package layout and dependency rules are defined in [ADR-0001](docs/decisions/000
 ```text
 apps/
   api/                          Backend (FastAPI itself is still planned)
-    src/haui_compass/           Single Python package; only `domain` (core types, `StudentState` v0), `engines/student_state`, and the Clock port/adapter exist so far
+    src/haui_compass/           Single Python package; only `domain` (core types, `StudentState` v0, risk types), `engines/student_state`, `engines/risk`, and the Clock port/adapter exist so far
       domain/                   Entities, value objects, invariants (no framework or vendor imports)
       engines/                  Deterministic decision algorithms: student state, risk, planning,
                                 next best action, replanning (no AI)
@@ -84,4 +84,4 @@ Dependency direction between layers is enforced by `apps/api/tests/unit/test_imp
 
 ## Development status
 
-The repository contains documentation, the empty architectural scaffold, and a small tested backend foundation (domain primitives, a clock abstraction, and `StudentState` v0). The web and API applications, database schemas, AI capabilities, and all product behavior such as risk and recommendations remain planned and will be introduced incrementally in future tasks.
+The repository contains documentation, the empty architectural scaffold, and a small tested backend foundation (domain primitives, a clock abstraction, `StudentState` v0, and a rule-based Risk Engine v0). The web and API applications, database schemas, AI capabilities, and all other product behavior such as recommendations remains planned and will be introduced incrementally in future tasks.

@@ -107,3 +107,22 @@ Work is then settled earliest-deadline-first against the remaining slack; late w
 ## Source modules inspected
 
 `intelliplan/intelligence/risk.py`, `intelliplan/intelligence/robust.py`, `intelliplan/intelligence/predictions.py`, `intelliplan/intelligence/health.py`, `intelliplan/intelligence/nba.py` (`_deadline_pressure`), `intelliplan/intelligence/priority.py`, `intelliplan/services/scheduling.py` (`assessor`), `intelliplan/intelligence/rescheduling.py` (consumption of `assess`), `tests/intelliplan/test_risk_and_robust.py`.
+
+## Comparison with the implemented HaUI Compass Risk v0
+
+Added after implementation. Details: [`initial-architecture.md`](../architecture/initial-architecture.md), *Risk Engine v0*.
+
+| | IntelliPlan | HaUI Compass Risk v0 |
+|---|---|---|
+| Object assessed | a finished plan (`risk.simulate`) | one assignment, before any plan exists |
+| Method | seeded Monte Carlo over durations, follow-through, lost days, catch-up | deterministic slack rules over remaining effort and capacity before the deadline |
+| Output | on-time probability and percent, expected late minutes, `status`, `main_risk` | level (`LOW`/`MEDIUM`/`HIGH`/`UNKNOWN`), typed reason codes, typed evidence, engine version |
+| Behavioural inputs | fitted follow-through and estimate-spread models plus population priors | none |
+| Unknown data | falls back to population defaults | explicit `UNKNOWN` |
+| Time granularity | days (`date`) | timezone-aware UTC instants |
+| Constants | `RiskConfig` and model priors | one named, versioned `RiskPolicy` threshold, labelled unvalidated |
+
+**Why they differ.** IntelliPlan's risk is only as good as its priors and fitted models, which need history that HaUI Compass does not have and priors that were not tuned for HaUI students. Reporting "N% on time" from unvalidated constants would be a fake precision. HaUI Compass therefore starts with what can be stated and audited today (does the estimated work fit in the time available, and how tightly) and says `UNKNOWN` when it cannot tell. The intent is not to be "better" than IntelliPlan; it is to be appropriate to our current data maturity. A behaviour-aware risk layer remains a later version, conditional on real execution data and an evaluation plan.
+
+Concepts carried over as our own tests: same input gives same output; more remaining work or less capacity never lowers risk; undated or finished work is handled explicitly. No IntelliPlan code, constants, or priors were used.
+

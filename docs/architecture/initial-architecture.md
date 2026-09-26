@@ -152,6 +152,29 @@ It is **not** yet: a database record design (persistence, snapshot ids), a behav
 
 A pure `risk` engine in the domain/engines package, called by application use cases. MVP rules are explicit and tabled, e.g. `required_minutes_before_deadline` vs `available_minutes_before_deadline` (after calibration), days to deadline, not-started status, dependency blocking. Output: `RiskSignal(level, reason_codes, evidence, thresholds_version)`. Thresholds live in one versioned config object with tests at each boundary. Simulation-based risk (IntelliPlan `risk.py`) is a later option once calibrated data exists.
 
+#### Risk Engine v0 (IMPLEMENTED)
+
+**Risk Engine v0 is a deterministic, rule-based assessment of how constrained one assignment is.** Question answered: *given the work remaining and the capacity available before this deadline, how constrained is this assignment?* Code: `domain/risk/` (`AssignmentRiskContext`, `RiskPolicy`, `RiskSignal`, `RiskEvidence`) and `engines/risk/assess.py` (`assess_assignment_risk(context, policy)`).
+
+- **Input:** an explicit `AssignmentRiskContext`: `now`, `deadline`, open task count, remaining effort (`None` = not estimated), and `available_capacity_until_deadline` (`None` = unknown). That capacity must be computed for *this deadline's* window; it is not `StudentState.capacity`, which covers a different horizon. The engine fetches nothing.
+- **Output:** a `RiskSignal` with a `level` (`LOW` / `MEDIUM` / `HIGH` / `UNKNOWN`), typed `reason_codes`, typed `evidence` (deadline, time until deadline, open tasks, effort, capacity, slack, slack ratio), `as_of`, and `engine_version`. It does not modify `StudentState`.
+- **Rules (first match wins):**
+
+| # | Condition | Level | Reason code |
+|---|---|---|---|
+| 1 | no open tasks | LOW | `NO_REMAINING_WORK` |
+| 2 | deadline ≤ now (nothing to do with the time left) | HIGH | `DEADLINE_PASSED` |
+| 3 | effort and/or capacity unknown | UNKNOWN | `MISSING_EFFORT_ESTIMATE` / `MISSING_CAPACITY` |
+| 4 | capacity is zero, effort > 0 | HIGH | `NO_CAPACITY_BEFORE_DEADLINE` |
+| 5 | effort > capacity (slack < 0) | HIGH | `EFFORT_EXCEEDS_CAPACITY` |
+| 6 | 0 ≤ slack < 25% of effort | MEDIUM | `LOW_SLACK` |
+| 7 | otherwise | LOW | `SUFFICIENT_SLACK` |
+
+  `slack = capacity − effort`. An estimate of zero effort with open tasks is taken literally (LOW).
+- **What it is not:** not an ML model, not a calibrated probability of a late submission (no percentages are produced), and not behaviour-aware (it ignores the student's history).
+- **Thresholds are unvalidated MVP heuristics.** The 25% slack threshold is an initial engineering policy in `RiskPolicy` (`DEFAULT_RISK_POLICY`, `engine_version` 1), chosen for explainability, not fitted to HaUI data. Validation against real outcomes is required before any accuracy claim (PROJECT.md, *Evaluation Strategy*). Change a threshold only together with a new `engine_version`.
+- **Consumption:** `NextBestActionEngine` (PLANNED) will take `RiskSignal`s as input; nothing consumes them yet. An LLM may later phrase a signal but must not change it.
+
 ### Where does Next Best Action live?
 
 A pure `nba` engine: **generate** candidates (next task of highest-risk assignment, continue in-progress task, short task fitting the available gap, review a difficult topic, break) → **score** with a documented weighted objective (each component returned) → **rank** → attach `reasons` (top reason codes), `deferral_risk` (the risk level/change if skipped today, computed by re-running `risk` with the candidate deferred), and `evidence` (snapshot id, component values). The application persists the `Recommendation` and the student's response (accepted / dismissed / completed).
