@@ -215,7 +215,7 @@ Reflection answers (structured form)
    → planning / replanning read StudentState, not raw reflection text
 ```
 
-Raw reflection text stays private to the student. Only confirmed, typed signals influence planning; each planning change they cause is surfaced as an explanation ("sessions capped at 45 min — from your reflection on 2026-10-05").
+Raw reflection text stays private to the student. Only confirmed, typed signals influence planning; each planning change they cause is surfaced as an explanation ("sessions capped at 45 min — from your reflection on 2026-10-05"). The deterministic left half of this diagram (structured submission through student confirmation) is now implemented without any LLM — see *Structured Reflection v0* below; the `[optional LLM]` summary step and the `state engine → StudentState` consumption step remain PLANNED.
 
 ### How is the LMS abstracted?
 
@@ -416,6 +416,32 @@ StudentState reflects the new progress and committed effort
 - **Execution history is factual input for future Reflection and Adaptive Planning** (PROJECT.md). This branch does not implement either: no calibration coefficient, no procrastination or productivity inference, no behavioural model is computed from these facts yet — see `docs/research/intelliplan-execution-reference.md` for why that is deferred.
 - **StudentState was not changed.** Its progress already derives from `Task` status, so the new loop closes through the existing `derive_student_state`, not a new field.
 
+#### Structured Reflection v0 (IMPLEMENTED, domain layer only)
+
+**The purpose is not a chatbot; it is turning a student's answers into validated, confirmable facts.** Code: `domain/reflections/{reflection,signals}.py` (`Reflection`, `ReflectionPeriod`, `ReflectionResponses`, `WorkloadFeedback`, the four `ReflectionSignal` variants, `CandidateReflectionSignals`, `ConfirmedReflectionSignals`), `engines/reflection/{candidates,confirm}.py`, `application/use_cases/{submit_reflection,confirm_reflection_signals}.py`.
+
+```text
+Execution history (TaskExecutionSummary, reused — not re-aggregated)
+        +
+Student answers (ReflectionResponses: reflected/deferred task ids, workload feedback, topics)
+   ↓ SubmitReflection (Clock read once: submitted_at)
+Reflection
+   ↓ engines/reflection/candidates.generate_candidate_signals (pure)
+CandidateReflectionSignals (proposals only)
+   ↓ student picks which ones are true
+   ↓ ConfirmReflectionSignals (Clock read once: confirmed_at)
+   ↓ engines/reflection/confirm.confirm_reflection_signals (pure)
+ConfirmedReflectionSignals (student-approved facts; the only reflection output later slices may use)
+```
+
+- **Candidate and confirmed are different types, not a flag.** `CandidateReflectionSignals` is a proposal; only `confirm_reflection_signals` can produce a `ConfirmedReflectionSignals`, and only from signals the candidate actually proposed (checked by multiset, so over-selecting the same signal is rejected, not silently accepted). Nothing auto-confirms a model-generated or self-reported conclusion.
+- **Facts vs self-report are different signal types, not different values of one field.** `EstimationFeedbackSignal` (a task's own estimate next to the actual duration observed for it, both kept, never collapsed into a ratio) is derived from execution facts already aggregated by `engines/execution/summary.summarize_task_executions` — reused, not duplicated. `WorkloadFeedbackSignal`, `DifficultTopicSignal`, and `DeferredTaskSignal` are self-report only, taken verbatim from `ReflectionResponses`; none of them is inferred from execution history (`docs/research/intelliplan-reflection-reference.md`, which also documents that IntelliPlan has no structured reflection subsystem to draw on here).
+- **A closed, small v0 signal set.** No personality profiles, motivation/productivity scores, opaque behavioural scores, or knowledge graphs. `DeferredTaskSignal` is named after the factual student statement ("I put this off"), deliberately not a psychological label like "procrastination", which is never inferred automatically from a late timestamp.
+- **Determinism.** `ReflectionResponses` deduplicates and sorts its task-id and topic fields on construction (case-insensitively for topics), so `generate_candidate_signals` produces the same candidate signals regardless of input order or of the iteration order of the task/summary mappings supplied to it.
+- **`submitted_at`/`confirmed_at` come from the Clock, read once per use case** — unlike `TaskExecution`'s timestamps, a submission or a confirmation genuinely is "now", not an observed historical interval.
+- **Proven end to end:** an integration test builds execution history for a task, submits a reflection referencing it plus self-reported topics and a deferred task, and confirms only some of the resulting candidates — proving the rejected proposal never reaches `ConfirmedReflectionSignals`.
+- **Not implemented in this branch:** `StudentState` is unchanged — no reflection field was added to it, and `ConfirmedReflectionSignals` is not yet consumed anywhere. Free-text reflection, an LLM summarizer that proposes candidate signals from prose, and adaptive replanning are all PLANNED (`ai/reflection`, slice 5 below).
+
 
 ---
 
@@ -451,7 +477,7 @@ Next.js page: "Today" — one recommended action with Why now / Risk if deferred
 |---|---|---|
 | 2. Weekly planning | Weekly goal, availability windows, greedy capacity-aware planner (EDF by risk), feasibility verifier, template decomposition; AI decomposition suggestions optional | Plans are feasible or report overload explicitly |
 | 3. Execution tracking | `TaskExecution` fact record and transitions **IMPLEMENTED** (this document, above); `StudySession` persistence, plan-vs-actual reporting, and calibration ratio remain PLANNED | Actual execution changes state (proved); risk/calibration integration is a later step |
-| 4. Structured reflection | Weekly form, typed `ReflectionSignal`s, optional LLM summary with validation, student confirmation | Signals are bounded, attributable, private |
+| 4. Structured reflection | `Reflection`, typed `ReflectionSignal`s, candidate/confirmed split, and the `SubmitReflection`/`ConfirmReflectionSignals` use cases **IMPLEMENTED** (this document, above); a weekly UI form, free-text reflection, and an LLM summary that proposes candidate signals from prose remain PLANNED | Signals are bounded, attributable, private (proved for the deterministic path; LLM path not built) |
 | 5. Adaptive replanning | Next plan uses execution + confirmed reflection signals; stability cost; change explanations | Plan changes are explained, no silent churn |
 | 6. Course RAG + citations | Ingestion, chunking, pgvector, authz filters, validated citations, abstention; integrity guardrails | Citation correctness and abstention measured |
 | 7. Lecturer risk dashboard | Course aggregates, minimum group size, intervention signals | No private content exposed |
