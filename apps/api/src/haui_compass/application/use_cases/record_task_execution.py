@@ -5,8 +5,9 @@ Clock: an execution describes an actually observed interval (a future timer UI w
 and using the wall clock here would silently mean "now", which is not what happened. All
 calculation is delegated to engines/execution/transitions.py.
 
-No TaskRepository yet: the caller holds the Task and receives the updated one back. Persisting it
-is a later concern.
+This explicit-input use case remains persistence-independent: the caller receives the updated task
+and execution. Persistence Foundation v0 provides separate application repository ports for a
+workflow that chooses to store those results.
 """
 
 from dataclasses import dataclass
