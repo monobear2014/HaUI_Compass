@@ -8,7 +8,7 @@ HaUI Compass is a planned adaptive AI learning companion for students at Hanoi U
 
 **Current phase: Project foundation / architecture design.**
 
-**IMPLEMENTED:** repository foundation, source-of-truth documentation, working protocol, directory structure, and the backend Python package foundation (core domain types `Course`/`Assignment`/`Task`, typed identifiers, `Clock`/`SystemClock`, `StudentState` v0 with its pure derivation engine, a deterministic rule-based `RiskEngine` v0 (not a probability; thresholds are unvalidated MVP heuristics), a deterministic `NextBestActionEngine` v0 (ordered comparison, no score, no LLM; no `risk_if_deferred` yet), the `LMSProvider` port with a deterministic `MockLMSProvider` (development/test infrastructure only) and record-to-domain mapping, tests, and an import-boundary check).
+**IMPLEMENTED:** repository foundation, source-of-truth documentation, working protocol, directory structure, and the backend Python package foundation (core domain types `Course`/`Assignment`/`Task`, typed identifiers, `Clock`/`SystemClock`, `StudentState` v0 with its pure derivation engine, a deterministic rule-based `RiskEngine` v0 (not a probability; thresholds are unvalidated MVP heuristics), a deterministic `NextBestActionEngine` v0 (ordered comparison, no score, no LLM; no `risk_if_deferred` yet), the `LMSProvider` port with a deterministic `MockLMSProvider` (development/test infrastructure only) and record-to-domain mapping, and the first end-to-end use case `GenerateDailyRecommendation` (LMS + explicit tasks/capacity -> StudentState -> Risk -> NextBestAction, no FastAPI/database/UI yet), tests, and an import-boundary check).
 
 **PLANNED:** the web application, FastAPI service, further domain behavior, AI workflows, grounded RAG, behaviour-aware risk, `risk_if_deferred`, weekly planning, reflections, real LMS providers (HaUI, Canvas, Moodle), dashboards, and evaluation suites.
 
@@ -41,7 +41,7 @@ Package layout and dependency rules are defined in [ADR-0001](docs/decisions/000
 ```text
 apps/
   api/                          Backend (FastAPI itself is still planned)
-    src/haui_compass/           Single Python package; only `domain` (core types, `StudentState` v0, risk types), `engines/student_state`, `engines/risk`, `engines/next_best_action`, the Clock and LMS ports with their mock/system adapters, and record mapping exist so far
+    src/haui_compass/           Single Python package; only `domain` (core types, `StudentState` v0, risk types), `engines/student_state`, `engines/risk`, `engines/next_best_action`, the Clock and LMS ports with their mock/system adapters, record mapping, and the `application/use_cases` layer's first use case exist so far
       domain/                   Entities, value objects, invariants (no framework or vendor imports)
       engines/                  Deterministic decision algorithms: student state, risk, planning,
                                 next best action, replanning (no AI)
