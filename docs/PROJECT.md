@@ -130,6 +130,14 @@ An LLM may explain an existing risk result in natural language, but it should no
 
 The ranking should initially combine deterministic constraints and transparent scoring. AI can help decompose work or explain the recommendation, while the system preserves the inputs and reasoning needed to reproduce the choice.
 
+## Weekly Planning
+
+**IMPLEMENTED at the domain/application foundation level:** Weekly Planner v0 creates an immutable, deterministic `StudyPlan` from explicit `Task` and `Assignment` facts, an explicit UTC `PlanPeriod`, and explicit UTC `StudyWindow`s. It schedules only open tasks, uses each task's stated estimate unchanged, permits effort to span multiple `StudyBlock`s, enforces assignment deadlines, and returns typed remaining `UnplannedTask` effort when capacity is insufficient.
+
+The v0 ordering is transparent: earliest assignment deadline, then `IN_PROGRESS` before `NOT_STARTED` when deadlines tie, then stable assignment/task identifiers. Overlapping or touching input windows are merged before allocation so capacity is never counted twice. The planner uses no LLM, RiskSignal, StudentState, execution history, reflection signal, persistence, LMS access, or wall clock.
+
+**PLANNED:** weekly goals and product UI, persistence, independent post-plan feasibility reporting, reflection-aware planning, estimate calibration, and adaptive replanning of an existing plan.
+
 ## Reflection
 
 **PLANNED:** Weekly reflection will capture structured answers about estimate errors, postponed tasks, difficult topics, workload realism, and desired changes. The experience should favor a few actionable questions over an open-ended transcript.
