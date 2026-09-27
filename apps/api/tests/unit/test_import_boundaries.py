@@ -23,8 +23,10 @@ ALLOWED_LAYERS: dict[str, frozenset[str]] = {
 }
 # Layers that may use only the standard library (plus their allowed internal layers).
 STDLIB_ONLY_LAYERS = frozenset({"domain", "engines"})
-# The single api module allowed to import infrastructure (composition root).
-COMPOSITION_ROOT = "haui_compass.api.dependencies"
+# Composition roots allowed to wire infrastructure into application/API callers.
+COMPOSITION_ROOTS = frozenset(
+    {"haui_compass.api.dependencies", "haui_compass.api.postgres_dependencies"}
+)
 
 
 def module_name(path: Path) -> str:
@@ -63,7 +65,7 @@ def find_violations(module: str, source: str, *, is_package: bool = False) -> li
             target_layer = target.split(".")[1] if "." in target else None
             if target_layer is None or target_layer in allowed:
                 continue
-            if layer == "api" and target_layer == "infrastructure" and module == COMPOSITION_ROOT:
+            if layer == "api" and target_layer == "infrastructure" and module in COMPOSITION_ROOTS:
                 continue
             violations.append(f"{module} imports {target} (layer '{layer}' -> '{target_layer}')")
         elif layer in STDLIB_ONLY_LAYERS and top not in sys.stdlib_module_names:

@@ -25,6 +25,9 @@ from haui_compass.infrastructure.persistence.memory.reflections import (
 )
 from haui_compass.infrastructure.persistence.memory.study_plans import InMemoryStudyPlanRepository
 from haui_compass.infrastructure.persistence.memory.tasks import InMemoryTaskRepository
+from haui_compass.infrastructure.persistence.memory.transactions import (
+    InMemoryPersistenceTransactionManager,
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -69,5 +72,8 @@ def build_container(
             clock=resolved_clock,
             task_repository=resolved_tasks,
             execution_repository=resolved_executions,
+            transaction_manager=InMemoryPersistenceTransactionManager(
+                resolved_tasks, resolved_executions
+            ),
         ),
     )
