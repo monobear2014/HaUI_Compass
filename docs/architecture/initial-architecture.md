@@ -355,9 +355,46 @@ From Slice 1: structured logs with request id, per-use-case latency, error count
 
 ---
 
-## 11. First vertical slice (PLANNED — not implemented)
+## 11. First vertical slice
 
-**Goal:** prove the domain architecture end to end without any LLM.
+#### GenerateDailyRecommendation (IMPLEMENTED, domain layer only)
+
+**The core decision pipeline now runs end to end, without FastAPI, a database, or a UI.** Code: `application/use_cases/daily_recommendation.py` (request/result/errors) and `generate_daily_recommendation.py` (`GenerateDailyRecommendation(lms, clock, risk_policy?, recommendation_policy?).execute(request)`).
+
+```text
+LMSProvider.get_assignments(student)
+   ↓ application/lms_mapping (existing; undated assignments are reported skipped, not invented)
+Assignment (mapped; identity via ExternalRef)
+   +
+explicit Task tuple (supplied by the caller; NOT generated from assignments)
+   +
+explicit capacity: general available_capacity, and per-assignment available_until_deadline
+   ↓
+StudentState            (engines/student_state, unchanged)
+   ↓
+RiskSignal per assignment that has ≥1 supplied task  (engines/risk, unchanged; capacity not
+                                                        supplied for an assignment ⇒ UNKNOWN,
+                                                        never borrowed from general capacity)
+   ↓
+ActionCandidate per open (non-completed) task
+   ↓
+Recommendation | NoRecommendation  (engines/next_best_action, unchanged)
+   ↓
+DailyRecommendationResult (as_of, StudentState, per-assignment RiskSignals, the recommendation,
+                            skipped LMS assignments)
+```
+
+- **Clock discipline:** the use case reads the clock exactly once; that single instant becomes `as_of` and is passed to every engine call, so `DailyRecommendationResult` enforces one shared snapshot instant across `StudentState`, every `RiskSignal`, and the recommendation.
+- **Tasks stay explicit input.** Task planning and decomposition do not exist yet, so nothing infers "work on this assignment" tasks from an `Assignment`. A caller (a future planner, a task repository, or a person) supplies `tuple[Task, ...]`; each task must reference an assignment the LMS actually reports for this student, and non-existent, undated, or duplicated references are rejected with a coded `DailyRecommendationInputError`, never silently dropped.
+- **Two capacities, never conflated:** `available_capacity` (general, feeds `StudentState`) and `AssignmentCapacity.available_until_deadline` (per assignment, feeds that assignment's `RiskEngine` call). An assignment with tasks but no matching `AssignmentCapacity` gets `UNKNOWN` risk; general capacity is never substituted.
+- **LMS submission status is not used in v0.** The domain has no `Submission` entity yet, and whether a submitted assignment's remaining tasks still matter is the task supplier's decision, not this use case's. This is a stated limitation, not an oversight.
+- **Port independence:** the use case depends only on `application.ports.lms.LMSProvider` and `application.ports.clock.Clock`; it never imports `haui_compass.infrastructure` or `MockLMSProvider` (checked by a source-text test, in addition to the existing import-boundary tests).
+- **No duplicated logic:** risk rules live only in `engines/risk`, ranking only in `engines/next_best_action`; the use case calls them and does not reimplement either.
+- **Not yet:** FastAPI routes, persistence, a `TaskRepository`, planning, reflection, RAG, real LMS providers, or natural-language explanation. Those remain the later slices below.
+
+---
+
+**Original proposal (superseded in the ways noted above):** prove the domain architecture end to end without any LLM.
 
 ```text
 MockLMSProvider (fixture: 2–3 courses, ~8 assignments, varied deadlines/estimates)
