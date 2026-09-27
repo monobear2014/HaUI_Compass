@@ -108,7 +108,7 @@ For future blocks, preserve a block only when its task remains open, its assignm
 
 Unknown remaining effort should fail validation for an open task. This is more honest than preserving an arbitrary amount while claiming the result represents current work. Completed tasks require zero or no remaining-effort entry and receive no future blocks.
 
-Reflection action should be deliberately narrow. A confirmed `DeferredTaskSignal` may be used only as a tie-break among otherwise equal affected tasks sent for new allocation. It must not displace a valid preserved block or outrank an earlier deadline. Estimation, workload, and difficult-topic signals remain informational because v0 lacks a justified mapping from them to effort, windows, or tasks.
+Reflection action should be deliberately narrow. In v0, all confirmed signal kinds—including `DeferredTaskSignal`—remain informational because there is not yet an independently justified mapping from any signal to effort, windows, deadlines, or ordering. The result reports which kinds were supplied, making non-action explicit rather than silently accepting and ignoring the input. A future tie-break or other action requires a separately specified and tested policy.
 
 The output should contain the revised full-period plan, `effective_at`, a version, typed modification events, ignored/non-actionable reflection signal kinds, and an objective churn summary. It need not duplicate the baseline plan: the caller already supplied it, and typed changes plus the revised plan are enough to audit the transition.
 

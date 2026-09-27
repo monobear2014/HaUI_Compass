@@ -90,7 +90,7 @@ Stateless functions over domain types, `now` injected:
 | `risk` | `StudentState`, assignments/tasks, `now` | `RiskSignal` per assignment (level, reason codes, evidence) |
 | `planning` v0 **IMPLEMENTED** | explicit tasks + assignments, UTC plan period, UTC study windows, generation time | deterministic `StudyPlan` + typed unplanned effort |
 | `nba` | state, risk, plan, available minutes, dismissals, `now` | ranked `Recommendation`s with components, reasons, deferral risk |
-| `replanning` | previous plan, execution, confirmed reflection signals | new plan + change explanations |
+| `replanning` v0 **IMPLEMENTED** | baseline plan, current tasks/assignments/windows, explicit remaining effort, optional execution/reflection context, `effective_at` | revised plan + typed changes + objective churn facts |
 
 ### Infrastructure
 
@@ -440,7 +440,7 @@ ConfirmedReflectionSignals (student-approved facts; the only reflection output l
 - **Determinism.** `ReflectionResponses` deduplicates and sorts its task-id and topic fields on construction (case-insensitively for topics), so `generate_candidate_signals` produces the same candidate signals regardless of input order or of the iteration order of the task/summary mappings supplied to it.
 - **`submitted_at`/`confirmed_at` come from the Clock, read once per use case** — unlike `TaskExecution`'s timestamps, a submission or a confirmation genuinely is "now", not an observed historical interval.
 - **Proven end to end:** an integration test builds execution history for a task, submits a reflection referencing it plus self-reported topics and a deferred task, and confirms only some of the resulting candidates — proving the rejected proposal never reaches `ConfirmedReflectionSignals`.
-- **Not implemented in this branch:** `StudentState` is unchanged — no reflection field was added to it, and `ConfirmedReflectionSignals` is not yet consumed anywhere. Free-text reflection, an LLM summarizer that proposes candidate signals from prose, and adaptive replanning are all PLANNED (`ai/reflection`, slice 5 below).
+- **Bounded downstream consumption:** `StudentState` remains unchanged and no reflection field was added to it. Adaptive Replanning v0 accepts only `ConfirmedReflectionSignals`, validates their student/time context, and reports their kinds as informational; none changes effort, ordering, or placement. Free-text reflection, an LLM summarizer that proposes candidate signals from prose, and evidence-backed reflection actions remain PLANNED.
 
 #### Weekly Planner v0 (IMPLEMENTED, domain/application layer only)
 
@@ -465,7 +465,15 @@ StudyPlan(blocks, unplanned_tasks, planner_version, generated_at)
 - **Baseline isolation:** RiskSignal does not influence ordering because capacity-before-deadline and allocation are coupled; feeding risk back into the allocator would create circular semantics. StudentState, execution history, and confirmed reflection signals are not consumed. Estimates are not calibrated.
 - **Purity:** no I/O, clock reads, infrastructure, AI, LMS access, persistence, or randomness. Generation time and all facts are explicit inputs.
 - **Proven invariants:** adding capacity and moving a deadline later do not reduce scheduled effort; completing a task removes it; blocks remain inside supplied windows and deadlines; planned effort never exceeds estimates; requested effort is accounted for as planned plus unplanned; input permutations yield the same plan.
-- **PLANNED:** Adaptive Replanning, reflection-aware planning, estimate calibration, risk-after-deferral scenarios, persistence, and UI/API delivery.
+- **PLANNED:** evidence-backed reflection effects, estimate calibration, risk-after-deferral scenarios, persistence, and UI/API delivery.
+
+#### Adaptive Replanning v0 (IMPLEMENTED, domain/application layer only)
+
+`ReplanStudyPlan` delegates explicit facts to a pure deterministic engine. The engine treats the existing `StudyPlan` as a first-class baseline, freezes blocks ending at or before `effective_at`, and freezes a block crossing that instant in full. For each open task, callers must supply `TaskRemainingEffort`; execution time is audit context and is never subtracted from an estimate.
+
+Future blocks remain byte-for-byte stable when the task is open, the block fits a current window and deadline, and the task's explicit remaining-effort budget can still cover it. Earlier baseline blocks are preserved first. Frozen/preserved blocks are subtracted from current windows, and only residual effort uses the existing Weekly Planner allocator. Completed tasks receive no future work; capacity shortfalls remain explicit `UnplannedTask`s.
+
+The output contains one typed `PlanChange` only for each actually modified task, typed factual reasons, before/after future blocks and unplanned effort, and a `ReplanningSummary` of preserved/removed/added blocks, moved duration, newly unplanned duration, frozen history, and execution-context count. There is no weighted stability score, behavioral model, probability, LLM, database, FastAPI route, persistence, or autonomous trigger. Confirmed reflection signals—including `DeferredTaskSignal`—are validated and explicitly reported as informational only in v0.
 
 
 ---
@@ -503,7 +511,7 @@ Next.js page: "Today" — one recommended action with Why now / Risk if deferred
 | 2. Weekly planning | Baseline `StudyPlan`, explicit windows, deterministic deadline-first allocator, splitting, and typed unplanned effort **IMPLEMENTED**; weekly goal, persistence/UI, independent feasibility report, and decomposition remain PLANNED | Planned and unplanned effort are explicit; deadline/window invariants are tested |
 | 3. Execution tracking | `TaskExecution` fact record and transitions **IMPLEMENTED** (this document, above); `StudySession` persistence, plan-vs-actual reporting, and calibration ratio remain PLANNED | Actual execution changes state (proved); risk/calibration integration is a later step |
 | 4. Structured reflection | `Reflection`, typed `ReflectionSignal`s, candidate/confirmed split, and the `SubmitReflection`/`ConfirmReflectionSignals` use cases **IMPLEMENTED** (this document, above); a weekly UI form, free-text reflection, and an LLM summary that proposes candidate signals from prose remain PLANNED | Signals are bounded, attributable, private (proved for the deterministic path; LLM path not built) |
-| 5. Adaptive replanning | Next plan uses execution + confirmed reflection signals; stability cost; change explanations | Plan changes are explained, no silent churn |
+| 5. Adaptive replanning | Explicit baseline/current facts, strict preservation, residual Weekly Planner reuse, typed changes, and objective churn facts **IMPLEMENTED**; persistence/UI, manual overrides, calibrated estimates, behavioral adaptation, and actionable reflection policy remain PLANNED | No-change, conservation, history, deadline/window, completion, shortfall, reflection, and determinism invariants are tested |
 | 6. Course RAG + citations | Ingestion, chunking, pgvector, authz filters, validated citations, abstention; integrity guardrails | Citation correctness and abstention measured |
 | 7. Lecturer risk dashboard | Course aggregates, minimum group size, intervention signals | No private content exposed |
 | 8. Evaluation + observability | Datasets and baselines for planning, NBA usefulness, RAG, guardrails; latency/cost dashboards | Metrics defined and reproducible |
