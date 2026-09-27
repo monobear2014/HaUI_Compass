@@ -26,6 +26,7 @@ from haui_compass.domain.plans.planning import (
 from haui_compass.domain.shared.errors import DomainValidationError
 from haui_compass.domain.students.ids import StudentId
 from haui_compass.domain.tasks.task import TaskId, TaskStatus
+from haui_compass.engines.planning.availability import normalize_study_windows
 
 
 @dataclass(slots=True)
@@ -55,7 +56,7 @@ def generate_weekly_plan(
     """
     candidate_list = list(candidates)
     _require_unique_task_ids(candidate_list)
-    normalized_windows = _normalize_windows(study_windows, period)
+    normalized_windows = normalize_study_windows(study_windows, period)
     slots = [_AvailableSlot(window.starts_at, window.ends_at) for window in normalized_windows]
 
     blocks: list[StudyBlock] = []
@@ -129,27 +130,6 @@ def _require_unique_task_ids(candidates: list[PlanningCandidate]) -> None:
     task_ids = [candidate.task.id for candidate in candidates]
     if len(set(task_ids)) != len(task_ids):
         raise DomainValidationError("duplicate task ids among planning candidates")
-
-
-def _normalize_windows(
-    study_windows: Iterable[StudyWindow], period: PlanPeriod
-) -> tuple[StudyWindow, ...]:
-    ordered = sorted(study_windows, key=lambda window: (window.starts_at, window.ends_at))
-    for window in ordered:
-        if window.starts_at < period.start or window.ends_at > period.end:
-            raise DomainValidationError("StudyWindow must lie inside the planning period")
-
-    merged: list[StudyWindow] = []
-    for window in ordered:
-        if not merged or window.starts_at > merged[-1].ends_at:
-            merged.append(window)
-            continue
-        previous = merged[-1]
-        merged[-1] = StudyWindow(
-            starts_at=previous.starts_at,
-            ends_at=max(previous.ends_at, window.ends_at),
-        )
-    return tuple(merged)
 
 
 def _allocate(
