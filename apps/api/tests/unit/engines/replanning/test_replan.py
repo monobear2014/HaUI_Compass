@@ -165,6 +165,26 @@ def test_no_change_baseline_emits_no_change_event() -> None:
     assert result.summary.removed_future_block_count == 0
 
 
+def test_reduced_remaining_effort_preserves_earliest_baseline_blocks_first() -> None:
+    earlier = block(1, day=2, hour=19)
+    later = block(1, day=3, hour=19)
+    result = replan_study_plan(
+        baseline_plan=baseline(blocks=(earlier, later)),
+        tasks=(make_task(1, 1, minutes=120),),
+        assignments=(make_assignment(1, deadline=at(day=5)),),
+        study_windows=(window(day=2, hour=19), window(day=3, hour=19)),
+        remaining_efforts=(remaining(1, 60),),
+        execution_summaries=(),
+        confirmed_reflections=(),
+        effective_at=EFFECTIVE,
+    )
+    assert result.revised_plan.blocks == (earlier,)
+    assert result.changes[0].reasons == (PlanChangeReason.REMAINING_EFFORT_CHANGED,)
+    assert result.summary.preserved_future_block_count == 1
+    assert result.summary.removed_future_block_count == 1
+    assert result.summary.added_future_block_count == 0
+
+
 def test_crossing_block_is_frozen_whole_and_reserves_full_duration() -> None:
     effective = at(day=1, hour=19, minute=30)
     crossing = block(1, day=1, hour=19)
