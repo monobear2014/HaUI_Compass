@@ -88,13 +88,13 @@ Stateless functions over domain types, `now` injected:
 |---|---|---|
 | `state` | assignments, tasks, sessions, availability, confirmed reflection signals, previous state | `StudentState` snapshot |
 | `risk` | `StudentState`, assignments/tasks, `now` | `RiskSignal` per assignment (level, reason codes, evidence) |
-| `planning` | tasks, capacity, risk, constraints from state | `StudyPlan` + deferrals + feasibility report |
+| `planning` v0 **IMPLEMENTED** | explicit tasks + assignments, UTC plan period, UTC study windows, generation time | deterministic `StudyPlan` + typed unplanned effort |
 | `nba` | state, risk, plan, available minutes, dismissals, `now` | ranked `Recommendation`s with components, reasons, deferral risk |
-| `replanning` | previous plan, execution, confirmed reflection signals | new plan + change explanations |
+| `replanning` v0 **IMPLEMENTED** | baseline plan, current tasks/assignments/windows, explicit remaining effort, optional execution/reflection context, `effective_at` | revised plan + typed changes + objective churn facts |
 
 ### Infrastructure
 
-PostgreSQL repositories (SQLAlchemy + Alembic migrations), LLM provider adapters, LMS provider adapters, retrieval store (pgvector when introduced), clock, telemetry.
+Deterministic in-memory persistence adapters **IMPLEMENTED** for repository-contract development and tests. PostgreSQL repositories (SQLAlchemy + Alembic migrations), LLM provider adapters, retrieval store (pgvector when introduced), and telemetry remain planned; LMS and clock adapters already have initial implementations.
 
 ---
 
@@ -250,7 +250,7 @@ LMSProvider (port, read-only)
 - **`estimated_effort` is optional planning data that most real LMSs do not provide.** `MockLMSProvider` supplies **synthetic** values so later slices can exercise the risk engine; a real provider returns `None`.
 - **`MockLMSProvider` is development and test infrastructure, not a production integration.** It is in-memory and deterministic (no network, files, randomness, or clock) and serves one canonical fictional scenario (two students; three courses, eight assignments across overdue, imminent, mid and far deadlines, unknown effort, an undated assignment, and every submission status), with deadlines relative to an explicit anchor.
 - **Contract tests:** `tests/support/lms_contract.py` is provider-agnostic and any provider must pass it.
-- **Status of the providers:** `HaUILMSProvider` (PLANNED), `CanvasProvider` (PLANNED), `MoodleProvider` (PLANNED). No real LMS integration, credentials, HTTP layer, or persistence exists.
+- **Status of the providers:** `HaUILMSProvider` (PLANNED), `CanvasProvider` (PLANNED), `MoodleProvider` (PLANNED). No real LMS integration, credentials, HTTP layer, or LMS cache/sync persistence exists. Student-owned in-memory persistence is a separate implemented foundation.
 
 ### How are LLM providers abstracted?
 
@@ -390,7 +390,7 @@ DailyRecommendationResult (as_of, StudentState, per-assignment RiskSignals, the 
 - **LMS submission status is not used in v0.** The domain has no `Submission` entity yet, and whether a submitted assignment's remaining tasks still matter is the task supplier's decision, not this use case's. This is a stated limitation, not an oversight.
 - **Port independence:** the use case depends only on `application.ports.lms.LMSProvider` and `application.ports.clock.Clock`; it never imports `haui_compass.infrastructure` or `MockLMSProvider` (checked by a source-text test, in addition to the existing import-boundary tests).
 - **No duplicated logic:** risk rules live only in `engines/risk`, ranking only in `engines/next_best_action`; the use case calls them and does not reimplement either.
-- **Not yet:** FastAPI routes, persistence, a `TaskRepository`, planning, reflection, RAG, real LMS providers, or natural-language explanation. Those remain the later slices below.
+- **Not part of this use case:** FastAPI routes, persistence, a `TaskRepository`, Weekly Planner v0, reflection, RAG, real LMS providers, or natural-language explanation. Weekly planning and reflection now exist as separate domain/application slices; this daily-recommendation path does not invoke them.
 
 #### Execution Tracking v0 (IMPLEMENTED, domain layer only)
 
@@ -410,10 +410,10 @@ StudentState reflects the new progress and committed effort
 ```
 
 - **A fact, not a judgement.** `TaskExecution` records what the student reports happened in one sitting (`actual_duration` is derived from its own timestamps, never a separately stored number that could disagree with them). It is not a plan, an estimate, or a prediction, and it computes no behavioural signal.
-- **`TaskExecutionSummary`** (`engines/execution/summary.summarize_task_executions`) is a plain, order-independent aggregate over a task's history — counts and timestamps only. It rejects a history that is logically contradictory (mixed task ids, more than one completion) but does **not** check for overlapping session times or exact duplicate records; both are documented v0 limitations (there is no `ExecutionId` to detect a duplicate by).
-- **`RecordTaskExecution`** is orchestration only: it builds the `TaskExecution` from explicit, caller-supplied `started_at`/`ended_at` (never from the `Clock` — an execution describes an observed interval, not "now") and delegates the transition to the engine. There is no `TaskRepository` yet; the caller receives the updated `Task` and holds it.
+- **`TaskExecutionSummary`** (`engines/execution/summary.summarize_task_executions`) is a plain, order-independent aggregate over a task's history — counts and timestamps only. It rejects a history that is logically contradictory (mixed task ids, more than one completion) but does **not** check overlapping sessions or duplicate raw facts. Persistence Foundation v0 adds application-level `ExecutionRecordId` for stored append idempotency without adding persistence identity to the domain fact; callers bypassing that repository still own duplicate handling.
+- **`RecordTaskExecution`** is orchestration only: it builds the `TaskExecution` from explicit, caller-supplied `started_at`/`ended_at` (never from the `Clock` — an execution describes an observed interval, not "now") and delegates the transition to the engine. Persistence Foundation v0 now supplies separate `TaskRepository` and `TaskExecutionRepository` ports, but this explicit-input use case is intentionally not rewritten to depend on them.
 - **Proven end to end:** an integration test runs a real recommendation, records a `PARTIAL` execution (task stays eligible, becomes `IN_PROGRESS`), then a `COMPLETED` one (task leaves NBA eligibility), all through `GenerateDailyRecommendation` and `derive_student_state` unchanged.
-- **Execution history is factual input for future Reflection and Adaptive Planning** (PROJECT.md). This branch does not implement either: no calibration coefficient, no procrastination or productivity inference, no behavioural model is computed from these facts yet — see `docs/research/intelliplan-execution-reference.md` for why that is deferred.
+- **Execution history is factual input for Reflection and Adaptive Planning** (PROJECT.md). Structured Reflection v0 aggregates these facts, Adaptive Replanning v0 accepts their summaries as audit context, and Persistence Foundation v0 stores identified execution records. None computes a calibration coefficient, procrastination/productivity inference, or behavioural model — see `docs/research/intelliplan-execution-reference.md` for why those remain deferred.
 - **StudentState was not changed.** Its progress already derives from `Task` status, so the new loop closes through the existing `derive_student_state`, not a new field.
 
 #### Structured Reflection v0 (IMPLEMENTED, domain layer only)
@@ -440,7 +440,52 @@ ConfirmedReflectionSignals (student-approved facts; the only reflection output l
 - **Determinism.** `ReflectionResponses` deduplicates and sorts its task-id and topic fields on construction (case-insensitively for topics), so `generate_candidate_signals` produces the same candidate signals regardless of input order or of the iteration order of the task/summary mappings supplied to it.
 - **`submitted_at`/`confirmed_at` come from the Clock, read once per use case** — unlike `TaskExecution`'s timestamps, a submission or a confirmation genuinely is "now", not an observed historical interval.
 - **Proven end to end:** an integration test builds execution history for a task, submits a reflection referencing it plus self-reported topics and a deferred task, and confirms only some of the resulting candidates — proving the rejected proposal never reaches `ConfirmedReflectionSignals`.
-- **Not implemented in this branch:** `StudentState` is unchanged — no reflection field was added to it, and `ConfirmedReflectionSignals` is not yet consumed anywhere. Free-text reflection, an LLM summarizer that proposes candidate signals from prose, and adaptive replanning are all PLANNED (`ai/reflection`, slice 5 below).
+- **Bounded downstream consumption:** `StudentState` remains unchanged and no reflection field was added to it. Adaptive Replanning v0 accepts only `ConfirmedReflectionSignals`, validates their student/time context, and reports their kinds as informational; none changes effort, ordering, or placement. Free-text reflection, an LLM summarizer that proposes candidate signals from prose, and evidence-backed reflection actions remain PLANNED.
+
+#### Weekly Planner v0 (IMPLEMENTED, domain/application layer only)
+
+**The repository now has a first-class baseline plan.** Code: `domain/plans/{plan,planning}.py` (`PlanPeriod`, `StudyWindow`, `StudyBlock`, `UnplannedTask`, `StudyPlan`, `PlanningCandidate`, `PlanningPolicy`), `engines/planning/schedule.py`, and `application/use_cases/generate_weekly_plan.py`.
+
+```text
+Explicit Tasks + matching Assignments
+        +
+UTC PlanPeriod + explicit UTC StudyWindows
+        +
+explicit generated_at + versioned PlanningPolicy
+   ↓ GenerateWeeklyPlan (validation/orchestration only)
+   ↓ generate_weekly_plan (pure, deterministic)
+StudyPlan(blocks, unplanned_tasks, planner_version, generated_at)
+```
+
+- **Task and planned execution are separate facts.** A `Task` states work and estimated effort; a `StudyBlock` states when some of that explicit task should be attempted. No task generation or assignment decomposition occurs.
+- **Window capacity is temporal, not one weekly number.** Every window is a positive UTC interval inside the caller's planning period. The engine sorts and merges overlapping/touching windows before allocation, preventing double-counted minutes.
+- **Transparent policy:** earliest deadline first; for equal deadlines, `IN_PROGRESS` before `NOT_STARTED` by default; assignment id and task id are stable final tie-breaks. The policy and output carry `planner_version=1` by default. No arbitrary weights are used.
+- **Session splitting:** a task consumes the earliest eligible window segments until its exact `estimated_duration` is planned or eligible time runs out. Long tasks may therefore span multiple blocks. V0 introduces no minimum-session heuristic or cognitive optimization constant.
+- **Deadline and feasibility:** a block never extends beyond its assignment deadline, its study window, or the period. Work that does not fit is not moved after the deadline or dropped: exact remaining effort is returned with `NO_STUDY_WINDOW_BEFORE_DEADLINE` or `INSUFFICIENT_CAPACITY`.
+- **Baseline isolation:** RiskSignal does not influence ordering because capacity-before-deadline and allocation are coupled; feeding risk back into the allocator would create circular semantics. StudentState, execution history, and confirmed reflection signals are not consumed. Estimates are not calibrated.
+- **Purity:** no I/O, clock reads, infrastructure, AI, LMS access, persistence, or randomness. Generation time and all facts are explicit inputs.
+- **Proven invariants:** adding capacity and moving a deadline later do not reduce scheduled effort; completing a task removes it; blocks remain inside supplied windows and deadlines; planned effort never exceeds estimates; requested effort is accounted for as planned plus unplanned; input permutations yield the same plan.
+- **PLANNED:** evidence-backed reflection effects, estimate calibration, risk-after-deferral scenarios, persistence, and UI/API delivery.
+
+#### Adaptive Replanning v0 (IMPLEMENTED, domain/application layer only)
+
+`ReplanStudyPlan` delegates explicit facts to a pure deterministic engine. The engine treats the existing `StudyPlan` as a first-class baseline, freezes blocks ending at or before `effective_at`, and freezes a block crossing that instant in full. For each open task, callers must supply `TaskRemainingEffort`; execution time is audit context and is never subtracted from an estimate.
+
+Future blocks remain byte-for-byte stable when the task is open, the block fits a current window and deadline, and the task's explicit remaining-effort budget can still cover it. Earlier baseline blocks are preserved first. Frozen/preserved blocks are subtracted from current windows, and only residual effort uses the existing Weekly Planner allocator. Completed tasks receive no future work; capacity shortfalls remain explicit `UnplannedTask`s.
+
+The output contains one typed `PlanChange` only for each actually modified task, typed factual reasons, before/after future blocks and unplanned effort, and a `ReplanningSummary` of preserved/removed/added blocks, moved duration, newly unplanned duration, frozen history, and execution-context count. There is no weighted stability score, behavioral model, probability, LLM, database, FastAPI route, or autonomous trigger. Confirmed reflection signals—including `DeferredTaskSignal`—are validated and explicitly reported as informational only in v0. Persistence Foundation v0 can now store this typed result beside a linked revised-plan record without changing the engine.
+
+#### Persistence Foundation v0 (IMPLEMENTED, application/infrastructure only)
+
+ADR-0002 assigns courses, assignments, deadlines, and submission status to the LMS source of truth. HaUI Compass owns task state, execution facts, generated plans, confirmed reflections, and replanning audit. Application ports exist only for those justified workflows; there is no generic repository, `CourseRepository`, `AssignmentRepository`, or unit-of-work abstraction.
+
+Persistence identity remains outside pure domain entities. `StoredTask` associates a `Task` with an explicit student. `StoredTaskExecution` and `StoredConfirmedReflection` add typed record identity and explicit save time. Exact retries are idempotent and conflicting identifier reuse is rejected. Only confirmed signals are persisted; candidate signals remain proposals.
+
+`StoredStudyPlan` is an append-only envelope: record id, plan, revision, parent record id, save time, and typed `ReplanningResult`. Revision 1 has no parent; each adaptive revision links to the exact latest baseline. Earlier records remain retrievable. A stale-baseline guard exists for sequential calls, but the in-memory adapter is not thread/process-safe and provides no cross-repository transaction.
+
+Adapters under `infrastructure/persistence/memory` store typed immutable objects, return deterministic ordering, and perform no filesystem/database/serialization/random/clock operations. Reusable repository contract tests cover save/retrieve, isolation, ordering, idempotency/conflict, history/latest, scope validation, and stale revisions. A canonical integration test proves Generate Weekly Plan → save v1 → record execution → confirm reflection → Replan → save v2 → load latest while retaining v1.
+
+No SQLAlchemy, Alembic, PostgreSQL/SQLite driver, ORM, FastAPI, LLM, or RAG dependency is introduced. PostgreSQL adapters and real transaction/concurrency behavior remain PLANNED.
 
 
 ---
@@ -475,10 +520,10 @@ Next.js page: "Today" — one recommended action with Why now / Risk if deferred
 
 | Slice | Scope | Key proof |
 |---|---|---|
-| 2. Weekly planning | Weekly goal, availability windows, greedy capacity-aware planner (EDF by risk), feasibility verifier, template decomposition; AI decomposition suggestions optional | Plans are feasible or report overload explicitly |
-| 3. Execution tracking | `TaskExecution` fact record and transitions **IMPLEMENTED** (this document, above); `StudySession` persistence, plan-vs-actual reporting, and calibration ratio remain PLANNED | Actual execution changes state (proved); risk/calibration integration is a later step |
+| 2. Weekly planning | Baseline `StudyPlan`, explicit windows, deterministic deadline-first allocator, splitting, typed unplanned effort, and in-memory revision persistence **IMPLEMENTED**; weekly goal, PostgreSQL/UI, independent feasibility report, and decomposition remain PLANNED | Planned/unplanned effort and append-only revisions are explicit and tested |
+| 3. Execution tracking | `TaskExecution` fact record, transitions, and append-only in-memory execution persistence **IMPLEMENTED**; production persistence, plan-vs-actual reporting, and calibration ratio remain PLANNED | Actual execution changes state and survives repository calls (proved); risk/calibration integration is later |
 | 4. Structured reflection | `Reflection`, typed `ReflectionSignal`s, candidate/confirmed split, and the `SubmitReflection`/`ConfirmReflectionSignals` use cases **IMPLEMENTED** (this document, above); a weekly UI form, free-text reflection, and an LLM summary that proposes candidate signals from prose remain PLANNED | Signals are bounded, attributable, private (proved for the deterministic path; LLM path not built) |
-| 5. Adaptive replanning | Next plan uses execution + confirmed reflection signals; stability cost; change explanations | Plan changes are explained, no silent churn |
+| 5. Adaptive replanning | Explicit baseline/current facts, strict preservation, residual Weekly Planner reuse, typed changes, objective churn facts, and linked in-memory revision audit **IMPLEMENTED**; PostgreSQL/UI, manual overrides, calibrated estimates, behavioral adaptation, and actionable reflection policy remain PLANNED | No-change, conservation, history, deadline/window, completion, shortfall, reflection, determinism, and retained revision history are tested |
 | 6. Course RAG + citations | Ingestion, chunking, pgvector, authz filters, validated citations, abstention; integrity guardrails | Citation correctness and abstention measured |
 | 7. Lecturer risk dashboard | Course aggregates, minimum group size, intervention signals | No private content exposed |
 | 8. Evaluation + observability | Datasets and baselines for planning, NBA usefulness, RAG, guardrails; latency/cost dashboards | Metrics defined and reproducible |

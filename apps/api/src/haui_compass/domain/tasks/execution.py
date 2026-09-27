@@ -5,11 +5,11 @@ reports happened in one sitting, with its own start and end time, independent of
 ``estimated_duration``. Deriving any behavioural signal (calibration, risk, procrastination) from
 these facts is deliberately out of scope here; see docs/research/intelliplan-execution-reference.md.
 
-No ``ExecutionId``: nothing in this branch needs to look one up, deduplicate by it, or persist it
-independently of the task it describes. Persistence, if it needs one, can add it later without
-changing this type's meaning. One consequence, documented rather than silently handled: v0 cannot
-distinguish a second, genuinely repeated sitting from an accidental duplicate submission of the
-same record; both are just another ``TaskExecution`` for the engine to summarise.
+No domain ``ExecutionId``: identity is not part of the observed fact's meaning. Persistence
+Foundation v0 wraps this value in an application-level ``StoredTaskExecution`` with an explicit
+``ExecutionRecordId`` for append idempotency and audit without changing this type. A caller that
+passes raw duplicate ``TaskExecution`` values directly to the summary engine still cannot
+distinguish an accidental duplicate from a genuinely repeated sitting.
 """
 
 from dataclasses import dataclass

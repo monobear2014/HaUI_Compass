@@ -130,6 +130,14 @@ An LLM may explain an existing risk result in natural language, but it should no
 
 The ranking should initially combine deterministic constraints and transparent scoring. AI can help decompose work or explain the recommendation, while the system preserves the inputs and reasoning needed to reproduce the choice.
 
+## Weekly Planning
+
+**IMPLEMENTED at the domain/application foundation level:** Weekly Planner v0 creates an immutable, deterministic `StudyPlan` from explicit `Task` and `Assignment` facts, an explicit UTC `PlanPeriod`, and explicit UTC `StudyWindow`s. It schedules only open tasks, uses each task's stated estimate unchanged, permits effort to span multiple `StudyBlock`s, enforces assignment deadlines, and returns typed remaining `UnplannedTask` effort when capacity is insufficient.
+
+The v0 ordering is transparent: earliest assignment deadline, then `IN_PROGRESS` before `NOT_STARTED` when deadlines tie, then stable assignment/task identifiers. Overlapping or touching input windows are merged before allocation so capacity is never counted twice. The planner uses no LLM, RiskSignal, StudentState, execution history, reflection signal, persistence, LMS access, or wall clock.
+
+**PLANNED:** weekly goals and product UI, PostgreSQL-backed persistence, independent post-plan feasibility reporting, evidence-backed reflection effects, and estimate calibration.
+
 ## Reflection
 
 **PLANNED:** Weekly reflection will capture structured answers about estimate errors, postponed tasks, difficult topics, workload realism, and desired changes. The experience should favor a few actionable questions over an open-ended transcript.
@@ -138,9 +146,21 @@ AI may summarize a reflection and propose candidate signals, but durable memory 
 
 ## Adaptive Replanning
 
-**PLANNED:** Replanning will compare plan versus execution, update relevant estimates and constraints, carry forward unfinished work, and build a feasible next plan. Adaptation must not silently rewrite goals or continuously churn a plan without meaningful new evidence.
+**IMPLEMENTED at the domain/application foundation level:** Adaptive Replanning v0 takes an explicit baseline `StudyPlan`, current tasks and assignments, current study windows, explicit remaining effort for every open task, optional execution summaries and confirmed reflections, and an explicit `effective_at`. It freezes past blocks and a block crossing that instant, preserves every valid future block that fits current effort and constraints, and sends only residual work through Weekly Planner v0.
 
-The planner should expose why dates, task sizes, or priorities changed and should preserve important user constraints.
+Execution duration never implies remaining work. The full duration of a crossing block reserves explicit remaining effort; callers should normally replan between sessions. Completed tasks lose future work, infeasible effort remains typed and visible, and every actual task-level modification has typed reasons plus before/after evidence. The result also reports objective churn counts/durations rather than an unvalidated stability score. All confirmed reflection signal kinds, including deferred-task signals, are explicitly reported as informational in v0 and cannot silently change placement.
+
+**PLANNED:** PostgreSQL-backed persistence, UI/API delivery, manual pins/overrides, independently validated reflection-to-plan actions, estimate calibration, behavioral adaptation, and autonomous triggers.
+
+## Persistence Foundation
+
+**IMPLEMENTED at the application/infrastructure foundation level:** Persistence Foundation v0 defines narrow application-owned repository protocols and deterministic in-memory adapters for current task state, append-only task executions, confirmed reflection signals, and append-only study-plan revisions with typed adaptive-replanning audit. `StudyPlan` remains persistence-agnostic; `StoredStudyPlan` supplies record identity, revision, parent revision, save time, and the typed `ReplanningResult` where applicable.
+
+LMS remains authoritative for courses, assignments, deadlines, and submission status, so v0 deliberately has no `CourseRepository` or `AssignmentRepository`. Candidate reflection signals are not stored as confirmed facts. Repository timestamps and identifiers are explicit, ordering is deterministic, exact record-ID retries are idempotent, and a sequential stale-baseline guard prevents silently branching a plan history.
+
+The in-memory adapters are development/test infrastructure only: they provide no durability across process restart, transaction spanning repositories, thread/process concurrency guarantee, authorization, database schema, ORM, migration, or production readiness. Ownership and revision decisions are recorded in ADR-0002.
+
+**PLANNED:** PostgreSQL adapters implementing the same contracts, migrations, transaction boundaries, retention/deletion rules, authorization, and production concurrency control.
 
 ## RAG
 

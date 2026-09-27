@@ -8,9 +8,9 @@ HaUI Compass is a planned adaptive AI learning companion for students at Hanoi U
 
 **Current phase: Project foundation / architecture design.**
 
-**IMPLEMENTED:** repository foundation, source-of-truth documentation, working protocol, directory structure, and the backend Python package foundation (core domain types `Course`/`Assignment`/`Task`, typed identifiers, `Clock`/`SystemClock`, `StudentState` v0 with its pure derivation engine, a deterministic rule-based `RiskEngine` v0 (not a probability; thresholds are unvalidated MVP heuristics), a deterministic `NextBestActionEngine` v0 (ordered comparison, no score, no LLM; no `risk_if_deferred` yet), the `LMSProvider` port with a deterministic `MockLMSProvider` (development/test infrastructure only) and record-to-domain mapping, the first end-to-end use case `GenerateDailyRecommendation` (LMS + explicit tasks/capacity -> StudentState -> Risk -> NextBestAction, no FastAPI/database/UI yet), Execution Tracking v0 (`TaskExecution`, task state transitions, and `RecordTaskExecution`, proven to update `StudentState` and NBA eligibility), Structured Reflection v0 (`Reflection`, typed `ReflectionSignal`s with a candidate/confirmed split, and the `SubmitReflection`/`ConfirmReflectionSignals` use cases; no LLM, no `StudentState` field yet), tests, and an import-boundary check).
+**IMPLEMENTED:** repository foundation, source-of-truth documentation, working protocol, directory structure, and the backend Python package foundation (core domain types `Course`/`Assignment`/`Task`, typed identifiers, `Clock`/`SystemClock`, `StudentState` v0 with its pure derivation engine, a deterministic rule-based `RiskEngine` v0 (not a probability; thresholds are unvalidated MVP heuristics), a deterministic `NextBestActionEngine` v0 (ordered comparison, no score, no LLM; no `risk_if_deferred` yet), the `LMSProvider` port with a deterministic `MockLMSProvider` (development/test infrastructure only) and record-to-domain mapping, the first end-to-end use case `GenerateDailyRecommendation` (LMS + explicit tasks/capacity -> StudentState -> Risk -> NextBestAction, no FastAPI/database/UI yet), Execution Tracking v0 (`TaskExecution`, task state transitions, and `RecordTaskExecution`, proven to update `StudentState` and NBA eligibility), Structured Reflection v0 (`Reflection`, typed `ReflectionSignal`s with a candidate/confirmed split, and the `SubmitReflection`/`ConfirmReflectionSignals` use cases; no LLM, no `StudentState` field yet), Weekly Planner v0 (`StudyPlan`, explicit `StudyWindow`s, deterministic deadline-first allocation, typed unplanned effort, and `GenerateWeeklyPlan`), Adaptive Replanning v0 (explicit baseline/current facts, strict valid-block preservation, explicit remaining effort, typed plan changes and objective churn facts; confirmed reflections are informational only), and Persistence Foundation v0 (application repository ports plus deterministic in-memory adapters for task state, execution facts, confirmed reflections, and append-only typed plan revisions), tests, and an import-boundary check).
 
-**PLANNED:** the web application, FastAPI service, further domain behavior, AI workflows, grounded RAG, behaviour-aware risk, `risk_if_deferred`, weekly planning, a reflection UI and LLM-assisted free-text summarization, adaptive replanning from confirmed reflection signals, execution persistence, real LMS providers (HaUI, Canvas, Moodle), dashboards, and evaluation suites.
+**PLANNED:** the web application, FastAPI service, PostgreSQL adapters and migrations, further domain behavior, AI workflows, grounded RAG, behaviour-aware risk, `risk_if_deferred`, weekly-goal/UI integration for planning, a reflection UI and LLM-assisted free-text summarization, evidence-backed reflection effects on planning, estimate calibration, real LMS providers (HaUI, Canvas, Moodle), dashboards, and evaluation suites.
 
 No product feature is claimed to be operational yet.
 
@@ -36,12 +36,12 @@ This direction is intentionally revisable. Material decisions will be recorded a
 
 ## Repository structure
 
-Package layout and dependency rules are defined in [ADR-0001](docs/decisions/0001-python-package-and-domain-boundaries.md). Everything below is an **empty scaffold**: only placeholder files exist, and no application code has been implemented.
+Package layout and dependency rules are defined in [ADR-0001](docs/decisions/0001-python-package-and-domain-boundaries.md). Implemented backend modules occupy part of the scaffold; unimplemented areas remain placeholders.
 
 ```text
 apps/
   api/                          Backend (FastAPI itself is still planned)
-    src/haui_compass/           Single Python package; only `domain` (core types, `StudentState` v0, risk types), `engines/student_state`, `engines/risk`, `engines/next_best_action`, the Clock and LMS ports with their mock/system adapters, record mapping, and the `application/use_cases` layer's first use case exist so far
+    src/haui_compass/           Single Python package containing the implemented domain foundation, deterministic engines, application use cases, and current adapters
       domain/                   Entities, value objects, invariants (no framework or vendor imports)
       engines/                  Deterministic decision algorithms: student state, risk, planning,
                                 next best action, replanning (no AI)
@@ -84,4 +84,4 @@ Dependency direction between layers is enforced by `apps/api/tests/unit/test_imp
 
 ## Development status
 
-The repository contains documentation, the empty architectural scaffold, and a small tested backend foundation (domain primitives, a clock abstraction, `StudentState` v0, a rule-based Risk Engine v0, a rule-ordered Next Best Action v0, Execution Tracking v0, and Structured Reflection v0). The web and API applications, database schemas, AI capabilities, and all other product behavior such as planning remains planned and will be introduced incrementally in future tasks.
+The repository contains documentation, an architectural scaffold, and a tested backend foundation (domain primitives, a clock abstraction, `StudentState` v0, a rule-based Risk Engine v0, a rule-ordered Next Best Action v0, Execution Tracking v0, Structured Reflection v0, deterministic Weekly Planner v0, Adaptive Replanning v0, and deterministic in-memory Persistence Foundation v0). The web and API applications, database schemas/adapters, AI capabilities, and product-facing integration remain planned and will be introduced incrementally.
