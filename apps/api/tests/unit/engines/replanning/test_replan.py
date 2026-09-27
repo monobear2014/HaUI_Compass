@@ -359,3 +359,28 @@ def test_capacity_shortfall_conserves_exact_remaining_effort() -> None:
     assert planned + unplanned.remaining_effort == timedelta(minutes=150)
     assert unplanned.reason is UnplannedReason.INSUFFICIENT_CAPACITY
     assert PlanChangeReason.INSUFFICIENT_CAPACITY in result.changes[0].reasons
+
+
+def test_changed_unplanned_reason_is_audited_even_when_effort_is_unchanged() -> None:
+    old_unplanned = UnplannedTask(
+        task_id=task_id(1),
+        remaining_effort=timedelta(hours=1),
+        reason=UnplannedReason.INSUFFICIENT_CAPACITY,
+    )
+    result = replan_study_plan(
+        baseline_plan=baseline(unplanned=(old_unplanned,)),
+        tasks=(make_task(1, 1),),
+        assignments=(make_assignment(1, deadline=at(day=5)),),
+        study_windows=(),
+        remaining_efforts=(remaining(1, 60),),
+        execution_summaries=(),
+        confirmed_reflections=(),
+        effective_at=EFFECTIVE,
+    )
+    assert result.revised_plan.unplanned_tasks[0].reason is (
+        UnplannedReason.NO_STUDY_WINDOW_BEFORE_DEADLINE
+    )
+    assert result.changes[0].baseline_unplanned_reason is (UnplannedReason.INSUFFICIENT_CAPACITY)
+    assert result.changes[0].revised_unplanned_reason is (
+        UnplannedReason.NO_STUDY_WINDOW_BEFORE_DEADLINE
+    )

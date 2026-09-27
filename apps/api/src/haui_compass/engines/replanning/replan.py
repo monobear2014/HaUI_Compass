@@ -10,6 +10,7 @@ from haui_compass.domain.plans.plan import (
     StudyBlock,
     StudyPlan,
     StudyWindow,
+    UnplannedTask,
 )
 from haui_compass.domain.plans.planning import (
     DEFAULT_PLANNING_POLICY,
@@ -97,8 +98,9 @@ def replan_study_plan(
 
     crossing_duration = _duration_by_task(crossing)
     future_by_task = _blocks_by_task(baseline_future)
+    baseline_unplanned_items = {item.task_id: item for item in baseline_plan.unplanned_tasks}
     baseline_unplanned = {
-        item.task_id: item.remaining_effort for item in baseline_plan.unplanned_tasks
+        task_id: item.remaining_effort for task_id, item in baseline_unplanned_items.items()
     }
 
     preserved: list[StudyBlock] = []
@@ -172,9 +174,8 @@ def replan_study_plan(
         baseline_future=future_by_task,
         revised_future=_blocks_by_task(revised_future),
         baseline_unplanned=baseline_unplanned,
-        revised_unplanned={
-            item.task_id: item.remaining_effort for item in revised_plan.unplanned_tasks
-        },
+        baseline_unplanned_items=baseline_unplanned_items,
+        revised_unplanned_items={item.task_id: item for item in revised_plan.unplanned_tasks},
         invalid_window_tasks=invalid_window_tasks,
         invalid_deadline_tasks=invalid_deadline_tasks,
     )
@@ -373,7 +374,8 @@ def _build_changes(
     baseline_future: dict[TaskId, tuple[StudyBlock, ...]],
     revised_future: dict[TaskId, tuple[StudyBlock, ...]],
     baseline_unplanned: dict[TaskId, timedelta],
-    revised_unplanned: dict[TaskId, timedelta],
+    baseline_unplanned_items: dict[TaskId, UnplannedTask],
+    revised_unplanned_items: dict[TaskId, UnplannedTask],
     invalid_window_tasks: set[TaskId],
     invalid_deadline_tasks: set[TaskId],
 ) -> tuple[PlanChange, ...]:
@@ -382,8 +384,14 @@ def _build_changes(
         before_blocks = baseline_future.get(task_id, ())
         after_blocks = revised_future.get(task_id, ())
         before_unplanned = baseline_unplanned.get(task_id, timedelta(0))
-        after_unplanned = revised_unplanned.get(task_id, timedelta(0))
-        if before_blocks == after_blocks and before_unplanned == after_unplanned:
+        before_unplanned_item = baseline_unplanned_items.get(task_id)
+        after_unplanned_item = revised_unplanned_items.get(task_id)
+        after_unplanned = (
+            after_unplanned_item.remaining_effort
+            if after_unplanned_item is not None
+            else timedelta(0)
+        )
+        if before_blocks == after_blocks and before_unplanned_item == after_unplanned_item:
             continue
 
         reasons: list[PlanChangeReason] = []
@@ -418,6 +426,12 @@ def _build_changes(
                 revised_future_blocks=after_blocks,
                 baseline_unplanned_effort=before_unplanned,
                 revised_unplanned_effort=after_unplanned,
+                baseline_unplanned_reason=(
+                    before_unplanned_item.reason if before_unplanned_item is not None else None
+                ),
+                revised_unplanned_reason=(
+                    after_unplanned_item.reason if after_unplanned_item is not None else None
+                ),
                 had_execution_activity=task_id in execution_by_task,
             )
         )

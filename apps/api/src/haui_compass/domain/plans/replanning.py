@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from enum import StrEnum
 
-from haui_compass.domain.plans.plan import StudyBlock, StudyPlan
+from haui_compass.domain.plans.plan import StudyBlock, StudyPlan, UnplannedReason
 from haui_compass.domain.shared.errors import DomainValidationError
 from haui_compass.domain.shared.validation import (
     require_aware_utc,
@@ -68,6 +68,8 @@ class PlanChange:
     revised_future_blocks: tuple[StudyBlock, ...]
     baseline_unplanned_effort: timedelta
     revised_unplanned_effort: timedelta
+    baseline_unplanned_reason: UnplannedReason | None
+    revised_unplanned_reason: UnplannedReason | None
     had_execution_activity: bool
 
     def __post_init__(self) -> None:
@@ -77,9 +79,22 @@ class PlanChange:
             raise DomainValidationError("PlanChange reasons must be unique")
         require_non_negative(self.baseline_unplanned_effort, "PlanChange.baseline_unplanned_effort")
         require_non_negative(self.revised_unplanned_effort, "PlanChange.revised_unplanned_effort")
+        if (self.baseline_unplanned_effort == timedelta(0)) != (
+            self.baseline_unplanned_reason is None
+        ):
+            raise DomainValidationError(
+                "PlanChange baseline unplanned reason must exist exactly when effort is positive"
+            )
+        if (self.revised_unplanned_effort == timedelta(0)) != (
+            self.revised_unplanned_reason is None
+        ):
+            raise DomainValidationError(
+                "PlanChange revised unplanned reason must exist exactly when effort is positive"
+            )
         if (
             self.baseline_future_blocks == self.revised_future_blocks
             and self.baseline_unplanned_effort == self.revised_unplanned_effort
+            and self.baseline_unplanned_reason == self.revised_unplanned_reason
         ):
             raise DomainValidationError("PlanChange must describe an actual plan modification")
 

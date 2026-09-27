@@ -77,6 +77,8 @@ def test_plan_change_requires_reason_and_real_difference() -> None:
             revised_future_blocks=(),
             baseline_unplanned_effort=timedelta(0),
             revised_unplanned_effort=timedelta(0),
+            baseline_unplanned_reason=None,
+            revised_unplanned_reason=None,
             had_execution_activity=False,
         )
     with pytest.raises(DomainValidationError, match="actual plan modification"):
@@ -87,6 +89,8 @@ def test_plan_change_requires_reason_and_real_difference() -> None:
             revised_future_blocks=(),
             baseline_unplanned_effort=timedelta(0),
             revised_unplanned_effort=timedelta(0),
+            baseline_unplanned_reason=None,
+            revised_unplanned_reason=None,
             had_execution_activity=False,
         )
 
