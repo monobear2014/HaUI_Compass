@@ -392,6 +392,31 @@ DailyRecommendationResult (as_of, StudentState, per-assignment RiskSignals, the 
 - **No duplicated logic:** risk rules live only in `engines/risk`, ranking only in `engines/next_best_action`; the use case calls them and does not reimplement either.
 - **Not yet:** FastAPI routes, persistence, a `TaskRepository`, planning, reflection, RAG, real LMS providers, or natural-language explanation. Those remain the later slices below.
 
+#### Execution Tracking v0 (IMPLEMENTED, domain layer only)
+
+**The loop now extends past the recommendation, into what the student actually did.** Code: `domain/tasks/execution.py` (`TaskExecution`, `ExecutionOutcome`, `TaskExecutionSummary`), `engines/execution/{transitions,summary}.py`, `application/use_cases/record_task_execution.py`.
+
+```text
+Recommendation (from GenerateDailyRecommendation)
+   ↓ student performs the task
+TaskExecution (observed fact: task_id, started_at, ended_at, outcome — PARTIAL or COMPLETED)
+   ↓ engines/execution/transitions.apply_task_execution (pure)
+Updated Task (immutable; NOT_STARTED/IN_PROGRESS + PARTIAL → IN_PROGRESS; either + COMPLETED →
+              COMPLETED; COMPLETED + anything → rejected)
+   ↓
+derive_student_state(updated tasks, …)   -- unchanged; no progress logic duplicated
+   ↓
+StudentState reflects the new progress and committed effort
+```
+
+- **A fact, not a judgement.** `TaskExecution` records what the student reports happened in one sitting (`actual_duration` is derived from its own timestamps, never a separately stored number that could disagree with them). It is not a plan, an estimate, or a prediction, and it computes no behavioural signal.
+- **`TaskExecutionSummary`** (`engines/execution/summary.summarize_task_executions`) is a plain, order-independent aggregate over a task's history — counts and timestamps only. It rejects a history that is logically contradictory (mixed task ids, more than one completion) but does **not** check for overlapping session times or exact duplicate records; both are documented v0 limitations (there is no `ExecutionId` to detect a duplicate by).
+- **`RecordTaskExecution`** is orchestration only: it builds the `TaskExecution` from explicit, caller-supplied `started_at`/`ended_at` (never from the `Clock` — an execution describes an observed interval, not "now") and delegates the transition to the engine. There is no `TaskRepository` yet; the caller receives the updated `Task` and holds it.
+- **Proven end to end:** an integration test runs a real recommendation, records a `PARTIAL` execution (task stays eligible, becomes `IN_PROGRESS`), then a `COMPLETED` one (task leaves NBA eligibility), all through `GenerateDailyRecommendation` and `derive_student_state` unchanged.
+- **Execution history is factual input for future Reflection and Adaptive Planning** (PROJECT.md). This branch does not implement either: no calibration coefficient, no procrastination or productivity inference, no behavioural model is computed from these facts yet — see `docs/research/intelliplan-execution-reference.md` for why that is deferred.
+- **StudentState was not changed.** Its progress already derives from `Task` status, so the new loop closes through the existing `derive_student_state`, not a new field.
+
+
 ---
 
 **Original proposal (superseded in the ways noted above):** prove the domain architecture end to end without any LLM.
@@ -425,7 +450,7 @@ Next.js page: "Today" — one recommended action with Why now / Risk if deferred
 | Slice | Scope | Key proof |
 |---|---|---|
 | 2. Weekly planning | Weekly goal, availability windows, greedy capacity-aware planner (EDF by risk), feasibility verifier, template decomposition; AI decomposition suggestions optional | Plans are feasible or report overload explicitly |
-| 3. Execution tracking | `StudySession`, progress updates, plan-vs-actual, calibration ratio in StudentState | Actual execution changes state and risk |
+| 3. Execution tracking | `TaskExecution` fact record and transitions **IMPLEMENTED** (this document, above); `StudySession` persistence, plan-vs-actual reporting, and calibration ratio remain PLANNED | Actual execution changes state (proved); risk/calibration integration is a later step |
 | 4. Structured reflection | Weekly form, typed `ReflectionSignal`s, optional LLM summary with validation, student confirmation | Signals are bounded, attributable, private |
 | 5. Adaptive replanning | Next plan uses execution + confirmed reflection signals; stability cost; change explanations | Plan changes are explained, no silent churn |
 | 6. Course RAG + citations | Ingestion, chunking, pgvector, authz filters, validated citations, abstention; integrity guardrails | Citation correctness and abstention measured |
