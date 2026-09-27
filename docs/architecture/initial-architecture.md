@@ -88,7 +88,7 @@ Stateless functions over domain types, `now` injected:
 |---|---|---|
 | `state` | assignments, tasks, sessions, availability, confirmed reflection signals, previous state | `StudentState` snapshot |
 | `risk` | `StudentState`, assignments/tasks, `now` | `RiskSignal` per assignment (level, reason codes, evidence) |
-| `planning` | tasks, capacity, risk, constraints from state | `StudyPlan` + deferrals + feasibility report |
+| `planning` v0 **IMPLEMENTED** | explicit tasks + assignments, UTC plan period, UTC study windows, generation time | deterministic `StudyPlan` + typed unplanned effort |
 | `nba` | state, risk, plan, available minutes, dismissals, `now` | ranked `Recommendation`s with components, reasons, deferral risk |
 | `replanning` | previous plan, execution, confirmed reflection signals | new plan + change explanations |
 
@@ -390,7 +390,7 @@ DailyRecommendationResult (as_of, StudentState, per-assignment RiskSignals, the 
 - **LMS submission status is not used in v0.** The domain has no `Submission` entity yet, and whether a submitted assignment's remaining tasks still matter is the task supplier's decision, not this use case's. This is a stated limitation, not an oversight.
 - **Port independence:** the use case depends only on `application.ports.lms.LMSProvider` and `application.ports.clock.Clock`; it never imports `haui_compass.infrastructure` or `MockLMSProvider` (checked by a source-text test, in addition to the existing import-boundary tests).
 - **No duplicated logic:** risk rules live only in `engines/risk`, ranking only in `engines/next_best_action`; the use case calls them and does not reimplement either.
-- **Not yet:** FastAPI routes, persistence, a `TaskRepository`, planning, reflection, RAG, real LMS providers, or natural-language explanation. Those remain the later slices below.
+- **Not part of this use case:** FastAPI routes, persistence, a `TaskRepository`, Weekly Planner v0, reflection, RAG, real LMS providers, or natural-language explanation. Weekly planning and reflection now exist as separate domain/application slices; this daily-recommendation path does not invoke them.
 
 #### Execution Tracking v0 (IMPLEMENTED, domain layer only)
 
@@ -442,6 +442,31 @@ ConfirmedReflectionSignals (student-approved facts; the only reflection output l
 - **Proven end to end:** an integration test builds execution history for a task, submits a reflection referencing it plus self-reported topics and a deferred task, and confirms only some of the resulting candidates — proving the rejected proposal never reaches `ConfirmedReflectionSignals`.
 - **Not implemented in this branch:** `StudentState` is unchanged — no reflection field was added to it, and `ConfirmedReflectionSignals` is not yet consumed anywhere. Free-text reflection, an LLM summarizer that proposes candidate signals from prose, and adaptive replanning are all PLANNED (`ai/reflection`, slice 5 below).
 
+#### Weekly Planner v0 (IMPLEMENTED, domain/application layer only)
+
+**The repository now has a first-class baseline plan.** Code: `domain/plans/{plan,planning}.py` (`PlanPeriod`, `StudyWindow`, `StudyBlock`, `UnplannedTask`, `StudyPlan`, `PlanningCandidate`, `PlanningPolicy`), `engines/planning/schedule.py`, and `application/use_cases/generate_weekly_plan.py`.
+
+```text
+Explicit Tasks + matching Assignments
+        +
+UTC PlanPeriod + explicit UTC StudyWindows
+        +
+explicit generated_at + versioned PlanningPolicy
+   ↓ GenerateWeeklyPlan (validation/orchestration only)
+   ↓ generate_weekly_plan (pure, deterministic)
+StudyPlan(blocks, unplanned_tasks, planner_version, generated_at)
+```
+
+- **Task and planned execution are separate facts.** A `Task` states work and estimated effort; a `StudyBlock` states when some of that explicit task should be attempted. No task generation or assignment decomposition occurs.
+- **Window capacity is temporal, not one weekly number.** Every window is a positive UTC interval inside the caller's planning period. The engine sorts and merges overlapping/touching windows before allocation, preventing double-counted minutes.
+- **Transparent policy:** earliest deadline first; for equal deadlines, `IN_PROGRESS` before `NOT_STARTED` by default; assignment id and task id are stable final tie-breaks. The policy and output carry `planner_version=1` by default. No arbitrary weights are used.
+- **Session splitting:** a task consumes the earliest eligible window segments until its exact `estimated_duration` is planned or eligible time runs out. Long tasks may therefore span multiple blocks. V0 introduces no minimum-session heuristic or cognitive optimization constant.
+- **Deadline and feasibility:** a block never extends beyond its assignment deadline, its study window, or the period. Work that does not fit is not moved after the deadline or dropped: exact remaining effort is returned with `NO_STUDY_WINDOW_BEFORE_DEADLINE` or `INSUFFICIENT_CAPACITY`.
+- **Baseline isolation:** RiskSignal does not influence ordering because capacity-before-deadline and allocation are coupled; feeding risk back into the allocator would create circular semantics. StudentState, execution history, and confirmed reflection signals are not consumed. Estimates are not calibrated.
+- **Purity:** no I/O, clock reads, infrastructure, AI, LMS access, persistence, or randomness. Generation time and all facts are explicit inputs.
+- **Proven invariants:** adding capacity and moving a deadline later do not reduce scheduled effort; completing a task removes it; blocks remain inside supplied windows and deadlines; planned effort never exceeds estimates; requested effort is accounted for as planned plus unplanned; input permutations yield the same plan.
+- **PLANNED:** Adaptive Replanning, reflection-aware planning, estimate calibration, risk-after-deferral scenarios, persistence, and UI/API delivery.
+
 
 ---
 
@@ -475,7 +500,7 @@ Next.js page: "Today" — one recommended action with Why now / Risk if deferred
 
 | Slice | Scope | Key proof |
 |---|---|---|
-| 2. Weekly planning | Weekly goal, availability windows, greedy capacity-aware planner (EDF by risk), feasibility verifier, template decomposition; AI decomposition suggestions optional | Plans are feasible or report overload explicitly |
+| 2. Weekly planning | Baseline `StudyPlan`, explicit windows, deterministic deadline-first allocator, splitting, and typed unplanned effort **IMPLEMENTED**; weekly goal, persistence/UI, independent feasibility report, and decomposition remain PLANNED | Planned and unplanned effort are explicit; deadline/window invariants are tested |
 | 3. Execution tracking | `TaskExecution` fact record and transitions **IMPLEMENTED** (this document, above); `StudySession` persistence, plan-vs-actual reporting, and calibration ratio remain PLANNED | Actual execution changes state (proved); risk/calibration integration is a later step |
 | 4. Structured reflection | `Reflection`, typed `ReflectionSignal`s, candidate/confirmed split, and the `SubmitReflection`/`ConfirmReflectionSignals` use cases **IMPLEMENTED** (this document, above); a weekly UI form, free-text reflection, and an LLM summary that proposes candidate signals from prose remain PLANNED | Signals are bounded, attributable, private (proved for the deterministic path; LLM path not built) |
 | 5. Adaptive replanning | Next plan uses execution + confirmed reflection signals; stability cost; change explanations | Plan changes are explained, no silent churn |
