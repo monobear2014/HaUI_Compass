@@ -52,6 +52,7 @@ def test_recommendation_execution_and_idempotency_flow() -> None:
     recommendation = client.post("/api/v1/daily-recommendation", json=request)
     assert recommendation.status_code == 200
     assert recommendation.json()["recommendation"]["kind"] == "recommendation"
+    assert recommendation.json()["assignment_risks"][0]["level"] == "unknown"
 
     execution = {
         "student": request["student"],
