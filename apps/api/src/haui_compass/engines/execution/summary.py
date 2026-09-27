@@ -5,10 +5,10 @@ order they are supplied in. No scoring, no calibration, no behavioural inference
 timestamps taken directly from the facts.
 
 What v0 deliberately does NOT validate (see docs/research/intelliplan-execution-reference.md):
-overlapping session times, and exact duplicate records (there is no ``ExecutionId`` to detect a
-duplicate by; two identical ``TaskExecution`` values are simply counted as two sessions). What it
-DOES reject as a logically contradictory history: executions for more than one task, and more than
-one ``COMPLETED`` execution (a task does not finish twice).
+overlapping session times and duplicate raw facts. Persistence Foundation v0 can deduplicate stored
+submissions by its application-level ``ExecutionRecordId``; this engine still counts two identical
+``TaskExecution`` values as two sessions. It DOES reject a logically contradictory history:
+executions for more than one task, and more than one ``COMPLETED`` execution.
 """
 
 from collections.abc import Iterable
