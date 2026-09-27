@@ -98,3 +98,33 @@ def test_error_envelope_and_aware_datetime_validation() -> None:
     )
     assert missing.status_code == 404
     assert missing.json()["error"]["code"] == "not_found"
+
+
+def test_conflicting_record_id_and_invalid_intervals_are_safe_errors() -> None:
+    client, task_id = client_with_task()
+    record_id = str(uuid4())
+    base = {
+        "student": {"provider": "mock-lms", "id": "student-001"},
+        "task_id": str(task_id),
+        "record_id": record_id,
+        "started_at": "2026-10-01T07:00:00+00:00",
+        "ended_at": "2026-10-01T07:25:00+00:00",
+        "outcome": "partial",
+    }
+    assert client.post("/api/v1/task-executions", json=base).status_code == 200
+    conflict = {**base, "outcome": "completed"}
+    response = client.post("/api/v1/task-executions", json=conflict)
+    assert response.status_code == 409
+    assert response.json()["error"]["code"] == "record_conflict"
+
+    invalid_interval = {**base, "record_id": str(uuid4()), "ended_at": base["started_at"]}
+    response = client.post("/api/v1/task-executions", json=invalid_interval)
+    assert response.status_code == 400
+    assert response.json()["error"]["code"] == "invalid_request"
+
+    negative_capacity = {
+        "student": {"provider": "mock-lms", "id": "student-001"},
+        "available_minutes": -1,
+        "assignment_capacities": [],
+    }
+    assert client.post("/api/v1/daily-recommendation", json=negative_capacity).status_code == 422
