@@ -136,7 +136,7 @@ The ranking should initially combine deterministic constraints and transparent s
 
 The v0 ordering is transparent: earliest assignment deadline, then `IN_PROGRESS` before `NOT_STARTED` when deadlines tie, then stable assignment/task identifiers. Overlapping or touching input windows are merged before allocation so capacity is never counted twice. The planner uses no LLM, RiskSignal, StudentState, execution history, reflection signal, persistence, LMS access, or wall clock.
 
-**PLANNED:** weekly goals and product UI, persistence, independent post-plan feasibility reporting, reflection-aware planning, estimate calibration, and adaptive replanning of an existing plan.
+**PLANNED:** weekly goals and product UI, persistence, independent post-plan feasibility reporting, evidence-backed reflection effects, and estimate calibration.
 
 ## Reflection
 
@@ -146,9 +146,11 @@ AI may summarize a reflection and propose candidate signals, but durable memory 
 
 ## Adaptive Replanning
 
-**PLANNED:** Replanning will compare plan versus execution, update relevant estimates and constraints, carry forward unfinished work, and build a feasible next plan. Adaptation must not silently rewrite goals or continuously churn a plan without meaningful new evidence.
+**IMPLEMENTED at the domain/application foundation level:** Adaptive Replanning v0 takes an explicit baseline `StudyPlan`, current tasks and assignments, current study windows, explicit remaining effort for every open task, optional execution summaries and confirmed reflections, and an explicit `effective_at`. It freezes past blocks and a block crossing that instant, preserves every valid future block that fits current effort and constraints, and sends only residual work through Weekly Planner v0.
 
-The planner should expose why dates, task sizes, or priorities changed and should preserve important user constraints.
+Execution duration never implies remaining work. The full duration of a crossing block reserves explicit remaining effort; callers should normally replan between sessions. Completed tasks lose future work, infeasible effort remains typed and visible, and every actual task-level modification has typed reasons plus before/after evidence. The result also reports objective churn counts/durations rather than an unvalidated stability score. All confirmed reflection signal kinds, including deferred-task signals, are explicitly reported as informational in v0 and cannot silently change placement.
+
+**PLANNED:** persistence, UI/API delivery, manual pins/overrides, independently validated reflection-to-plan actions, estimate calibration, behavioral adaptation, and autonomous triggers.
 
 ## RAG
 
