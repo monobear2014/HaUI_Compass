@@ -40,3 +40,4 @@ test-results/
 
 # External reference implementations (read-only research, never committed)
 .references/
+*.egg-info/
