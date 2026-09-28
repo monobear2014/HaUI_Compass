@@ -59,16 +59,15 @@ PLAN → DO → MONITOR → REFLECT → ADAPT → PLAN AGAIN
 
 ## HTTP Walking Skeleton v0
 
-**IMPLEMENTED at the API/application foundation level:** `apps/api` exposes a FastAPI walking
-skeleton under `/api/v1`. The explicit `create_app(container=...)` factory wires the LMS, clock,
-repository ports, and application use cases through deterministic in-memory adapters. The health
-route, persisted-task daily recommendation, and persisted task-execution flow are covered through
-ASGI HTTP tests, including explicit execution-record idempotency, stable `{error: {code, message}}`
-errors, aware-UTC validation, and generated OpenAPI paths. Student identity is a trusted development
-request field only; authentication, PostgreSQL, frontend integration, and cross-repository
-transactions are **PLANNED**.
+**IMPLEMENTED at the API/application foundation level:** `apps/api` exposes FastAPI under
+`/api/v1` with an explicit `create_app(container=...)` factory. It now composes the complete
+deterministic learning loop: persisted-task daily recommendation and execution, persisted weekly
+plan revision generation/retrieval/history, structured reflection candidate generation plus explicit
+server-validated confirmation, and adaptive replanning. Routes are HTTP adapters over application
+use cases; student identity is a trusted development request field only. Authentication and frontend
+integration remain **PLANNED**.
 
-**PostgreSQL Persistence v0 is implemented on a feature branch:** synchronous SQLAlchemy 2.x,
+**PostgreSQL Persistence v0 is IMPLEMENTED:** synchronous SQLAlchemy 2.x,
 psycopg, Alembic, typed relational models/adapters, and a small transaction boundary are present.
 The default in-memory composition remains available. A real PostgreSQL instance is required to
 validate the PostgreSQL contract/concurrency/HTTP tests; no SQLite substitute is used.
@@ -152,7 +151,7 @@ The ranking should initially combine deterministic constraints and transparent s
 
 The v0 ordering is transparent: earliest assignment deadline, then `IN_PROGRESS` before `NOT_STARTED` when deadlines tie, then stable assignment/task identifiers. Overlapping or touching input windows are merged before allocation so capacity is never counted twice. The planner uses no LLM, RiskSignal, StudentState, execution history, reflection signal, persistence, LMS access, or wall clock.
 
-**PLANNED:** weekly goals and product UI, PostgreSQL-backed persistence, independent post-plan feasibility reporting, evidence-backed reflection effects, and estimate calibration.
+**PLANNED:** weekly goals and product UI, independent post-plan feasibility reporting, evidence-backed reflection effects, and estimate calibration.
 
 ## Reflection
 
@@ -166,7 +165,7 @@ AI may summarize a reflection and propose candidate signals, but durable memory 
 
 Execution duration never implies remaining work. The full duration of a crossing block reserves explicit remaining effort; callers should normally replan between sessions. Completed tasks lose future work, infeasible effort remains typed and visible, and every actual task-level modification has typed reasons plus before/after evidence. The result also reports objective churn counts/durations rather than an unvalidated stability score. All confirmed reflection signal kinds, including deferred-task signals, are explicitly reported as informational in v0 and cannot silently change placement.
 
-**PLANNED:** PostgreSQL-backed persistence, UI/API delivery, manual pins/overrides, independently validated reflection-to-plan actions, estimate calibration, behavioral adaptation, and autonomous triggers.
+**PLANNED:** UI, manual pins/overrides, independently validated reflection-to-plan actions, estimate calibration, behavioral adaptation, and autonomous triggers.
 
 ## Persistence Foundation
 
@@ -176,7 +175,7 @@ LMS remains authoritative for courses, assignments, deadlines, and submission st
 
 The in-memory adapters are development/test infrastructure only: they provide no durability across process restart, transaction spanning repositories, thread/process concurrency guarantee, authorization, database schema, ORM, migration, or production readiness. Ownership and revision decisions are recorded in ADR-0002.
 
-**PLANNED:** PostgreSQL adapters implementing the same contracts, migrations, transaction boundaries, retention/deletion rules, authorization, and production concurrency control.
+**PLANNED:** retention/deletion rules, authorization, and production operations policy.
 
 ## RAG
 

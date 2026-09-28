@@ -3,13 +3,21 @@
 from haui_compass.api.dependencies import AppContainer
 from haui_compass.application.ports.clock import Clock
 from haui_compass.application.ports.lms import LMSProvider
+from haui_compass.application.use_cases.confirm_reflection_signals import ConfirmReflectionSignals
 from haui_compass.application.use_cases.generate_daily_recommendation import (
     GenerateDailyRecommendation,
 )
 from haui_compass.application.use_cases.get_daily_recommendation import GetDailyRecommendation
+from haui_compass.application.use_cases.persisted_learning_loop import (
+    ConfirmPersistedReflection,
+    GeneratePersistedWeeklyPlan,
+    GenerateReflectionCandidates,
+    ReplanPersistedStudyPlan,
+)
 from haui_compass.application.use_cases.record_persisted_task_execution import (
     RecordPersistedTaskExecution,
 )
+from haui_compass.application.use_cases.submit_reflection import SubmitReflection
 from haui_compass.infrastructure.clock import SystemClock
 from haui_compass.infrastructure.config.database import DatabaseSettings
 from haui_compass.infrastructure.lms.mock import MockLMSProvider
@@ -43,6 +51,12 @@ def build_postgres_container(
     plans = PostgresStudyPlanRepository(provider)
     reflections = PostgresConfirmedReflectionRepository(provider)
     generator = GenerateDailyRecommendation(lms=resolved_lms, clock=resolved_clock)
+    reflection_candidates = GenerateReflectionCandidates(
+        task_repository=tasks,
+        execution_repository=executions,
+        submit_reflection=SubmitReflection(clock=resolved_clock),
+        transaction_manager=transaction_manager,
+    )
     return AppContainer(
         lms=resolved_lms,
         clock=resolved_clock,
@@ -59,4 +73,28 @@ def build_postgres_container(
             execution_repository=executions,
             transaction_manager=transaction_manager,
         ),
+        generate_persisted_weekly_plan=GeneratePersistedWeeklyPlan(
+            task_repository=tasks,
+            plan_repository=plans,
+            lms=resolved_lms,
+            clock=resolved_clock,
+            transaction_manager=transaction_manager,
+        ),
+        generate_reflection_candidates=reflection_candidates,
+        confirm_persisted_reflection=ConfirmPersistedReflection(
+            candidates=reflection_candidates,
+            confirmer=ConfirmReflectionSignals(clock=resolved_clock),
+            repository=reflections,
+            transaction_manager=transaction_manager,
+        ),
+        replan_persisted_study_plan=ReplanPersistedStudyPlan(
+            task_repository=tasks,
+            execution_repository=executions,
+            reflection_repository=reflections,
+            plan_repository=plans,
+            lms=resolved_lms,
+            clock=resolved_clock,
+            transaction_manager=transaction_manager,
+        ),
+        transaction_manager=transaction_manager,
     )

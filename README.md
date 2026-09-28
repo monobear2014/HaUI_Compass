@@ -12,7 +12,7 @@ HaUI Compass is a planned adaptive AI learning companion for students at Hanoi U
 
 **IMPLEMENTED:** FastAPI Walking Skeleton v0 on `feat/api-skeleton`: `/api/v1/health`, persisted-task daily recommendation, persisted task execution with explicit record-id idempotency, stable DTO/error envelopes, OpenAPI generation, and injectable in-memory composition root. This is development-only HTTP plumbing; it has no real authentication or durable database.
 
-**PLANNED:** the web application, PostgreSQL adapters and migrations, further domain behavior, AI workflows, grounded RAG, behaviour-aware risk, `risk_if_deferred`, weekly-goal/UI integration for planning, a reflection UI and LLM-assisted free-text summarization, evidence-backed reflection effects on planning, estimate calibration, real LMS providers (HaUI, Canvas, Moodle), dashboards, production transactions/authentication, and evaluation suites.
+**PLANNED:** the web application, further domain behavior, AI workflows, grounded RAG, behaviour-aware risk, `risk_if_deferred`, weekly-goal/UI integration for planning, a reflection UI and LLM-assisted free-text summarization, evidence-backed reflection effects on planning, estimate calibration, real LMS providers (HaUI, Canvas, Moodle), dashboards, authentication, and evaluation suites.
 
 No product feature is claimed to be operational yet.
 
