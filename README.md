@@ -10,7 +10,9 @@ HaUI Compass is a planned adaptive AI learning companion for students at Hanoi U
 
 **IMPLEMENTED:** repository foundation, source-of-truth documentation, working protocol, directory structure, and the backend Python package foundation (core domain types `Course`/`Assignment`/`Task`, typed identifiers, `Clock`/`SystemClock`, `StudentState` v0 with its pure derivation engine, a deterministic rule-based `RiskEngine` v0 (not a probability; thresholds are unvalidated MVP heuristics), a deterministic `NextBestActionEngine` v0 (ordered comparison, no score, no LLM; no `risk_if_deferred` yet), the `LMSProvider` port with a deterministic `MockLMSProvider` (development/test infrastructure only) and record-to-domain mapping, the first end-to-end use case `GenerateDailyRecommendation` (LMS + explicit tasks/capacity -> StudentState -> Risk -> NextBestAction, no FastAPI/database/UI yet), Execution Tracking v0 (`TaskExecution`, task state transitions, and `RecordTaskExecution`, proven to update `StudentState` and NBA eligibility), Structured Reflection v0 (`Reflection`, typed `ReflectionSignal`s with a candidate/confirmed split, and the `SubmitReflection`/`ConfirmReflectionSignals` use cases; no LLM, no `StudentState` field yet), Weekly Planner v0 (`StudyPlan`, explicit `StudyWindow`s, deterministic deadline-first allocation, typed unplanned effort, and `GenerateWeeklyPlan`), Adaptive Replanning v0 (explicit baseline/current facts, strict valid-block preservation, explicit remaining effort, typed plan changes and objective churn facts; confirmed reflections are informational only), and Persistence Foundation v0 (application repository ports plus deterministic in-memory adapters for task state, execution facts, confirmed reflections, and append-only typed plan revisions), tests, and an import-boundary check).
 
-**PLANNED:** the web application, FastAPI service, PostgreSQL adapters and migrations, further domain behavior, AI workflows, grounded RAG, behaviour-aware risk, `risk_if_deferred`, weekly-goal/UI integration for planning, a reflection UI and LLM-assisted free-text summarization, evidence-backed reflection effects on planning, estimate calibration, real LMS providers (HaUI, Canvas, Moodle), dashboards, and evaluation suites.
+**IMPLEMENTED:** FastAPI Walking Skeleton v0 on `feat/api-skeleton`: `/api/v1/health`, persisted-task daily recommendation, persisted task execution with explicit record-id idempotency, stable DTO/error envelopes, OpenAPI generation, and injectable in-memory composition root. This is development-only HTTP plumbing; it has no real authentication or durable database.
+
+**PLANNED:** the web application, PostgreSQL adapters and migrations, further domain behavior, AI workflows, grounded RAG, behaviour-aware risk, `risk_if_deferred`, weekly-goal/UI integration for planning, a reflection UI and LLM-assisted free-text summarization, evidence-backed reflection effects on planning, estimate calibration, real LMS providers (HaUI, Canvas, Moodle), dashboards, production transactions/authentication, and evaluation suites.
 
 No product feature is claimed to be operational yet.
 
@@ -79,6 +81,14 @@ uv pip install --python .venv/bin/python -e ".[dev]"   # or: .venv/bin/pip insta
 .venv/bin/mypy                                # strict type checking
 .venv/bin/python -m pytest --cov              # optional coverage report
 ```
+
+### PostgreSQL persistence (development)
+
+The PostgreSQL adapter is an explicit composition path; the default API remains in-memory.
+Start the disposable databases with `docker compose -f docker-compose.postgres.yml up -d`,
+set `HAUI_COMPASS_DATABASE_URL` (and `HAUI_COMPASS_TEST_DATABASE_URL` for integration tests),
+then run `cd apps/api && alembic upgrade head`. Alembic owns schema changes; application startup
+never runs migrations. PostgreSQL tests are skipped unless a real PostgreSQL URL is configured.
 
 Dependency direction between layers is enforced by `apps/api/tests/unit/test_import_boundaries.py` (see ADR-0001).
 

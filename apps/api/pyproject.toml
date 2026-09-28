@@ -9,7 +9,13 @@ description = "HaUI Compass backend (modular monolith). See docs/decisions/0001.
 requires-python = ">=3.12"
 # The domain layer is standard-library only (ADR-0001). Runtime dependencies are
 # added deliberately, one at a time, when a branch actually needs them.
-dependencies = []
+dependencies = [
+    "alembic>=1.13,<2",
+    "fastapi>=0.115,<0.116",
+    "psycopg[binary]>=3.2,<4",
+    "sqlalchemy>=2,<3",
+    "uvicorn>=0.30,<1",
+]
 
 [project.optional-dependencies]
 dev = [
@@ -17,6 +23,7 @@ dev = [
     "pytest-cov>=5",
     "ruff>=0.8",
     "mypy>=1.13",
+    "httpx>=0.27,<1",
 ]
 
 [tool.setuptools.packages.find]
@@ -27,6 +34,7 @@ haui_compass = ["py.typed"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+markers = ["postgres: requires a real PostgreSQL integration database"]
 # importlib mode: test files may share basenames across directories without __init__.py.
 addopts = "-ra --strict-markers --import-mode=importlib"
 # Lets tests import shared fakes as `from support.clocks import FixedClock`.

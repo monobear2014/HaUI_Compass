@@ -1,0 +1,62 @@
+"""Explicit PostgreSQL composition; never selected implicitly by API startup."""
+
+from haui_compass.api.dependencies import AppContainer
+from haui_compass.application.ports.clock import Clock
+from haui_compass.application.ports.lms import LMSProvider
+from haui_compass.application.use_cases.generate_daily_recommendation import (
+    GenerateDailyRecommendation,
+)
+from haui_compass.application.use_cases.get_daily_recommendation import GetDailyRecommendation
+from haui_compass.application.use_cases.record_persisted_task_execution import (
+    RecordPersistedTaskExecution,
+)
+from haui_compass.infrastructure.clock import SystemClock
+from haui_compass.infrastructure.config.database import DatabaseSettings
+from haui_compass.infrastructure.lms.mock import MockLMSProvider
+from haui_compass.infrastructure.persistence.postgres.executions import (
+    PostgresTaskExecutionRepository,
+)
+from haui_compass.infrastructure.persistence.postgres.plans import PostgresStudyPlanRepository
+from haui_compass.infrastructure.persistence.postgres.reflections import (
+    PostgresConfirmedReflectionRepository,
+)
+from haui_compass.infrastructure.persistence.postgres.session import (
+    PostgresPersistenceTransactionManager,
+    PostgresSessionFactory,
+)
+from haui_compass.infrastructure.persistence.postgres.tasks import PostgresTaskRepository
+
+
+def build_postgres_container(
+    *,
+    settings: DatabaseSettings | None = None,
+    lms: LMSProvider | None = None,
+    clock: Clock | None = None,
+) -> AppContainer:
+    resolved_clock = clock or SystemClock()
+    resolved_lms = lms or MockLMSProvider.canonical(anchor=resolved_clock.now())
+    session_factory = PostgresSessionFactory((settings or DatabaseSettings.from_env()).url)
+    transaction_manager = PostgresPersistenceTransactionManager(session_factory.session_factory)
+    provider = transaction_manager.current_session
+    tasks = PostgresTaskRepository(provider)
+    executions = PostgresTaskExecutionRepository(provider)
+    plans = PostgresStudyPlanRepository(provider)
+    reflections = PostgresConfirmedReflectionRepository(provider)
+    generator = GenerateDailyRecommendation(lms=resolved_lms, clock=resolved_clock)
+    return AppContainer(
+        lms=resolved_lms,
+        clock=resolved_clock,
+        task_repository=tasks,
+        execution_repository=executions,
+        plan_repository=plans,
+        reflection_repository=reflections,
+        get_daily_recommendation=GetDailyRecommendation(
+            task_repository=tasks, generator=generator, transaction_manager=transaction_manager
+        ),
+        record_persisted_task_execution=RecordPersistedTaskExecution(
+            clock=resolved_clock,
+            task_repository=tasks,
+            execution_repository=executions,
+            transaction_manager=transaction_manager,
+        ),
+    )

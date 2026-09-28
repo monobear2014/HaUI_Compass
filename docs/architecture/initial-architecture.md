@@ -1,10 +1,10 @@
 # Initial Architecture Proposal
 
-- **Status:** PROPOSED — not an ADR, not accepted, nothing here is implemented.
+- **Status:** PROPOSED reference; durable HTTP boundary choices are accepted in [ADR-0003](../decisions/0003-http-api-boundary.md).
 - **Date:** 2026-09-27
 - **Inputs:** [`docs/PROJECT.md`](../PROJECT.md) (source of truth), [`docs/research/intelliplan-audit.md`](../research/intelliplan-audit.md)
 - **Update 2026-09-27:** [ADR-0001](../decisions/0001-python-package-and-domain-boundaries.md) is accepted and supersedes this proposal's package layout, scaffold mapping (§5), and open items 1–2 in §13. Where they differ, the ADR wins; the rest of this document remains a proposal.
-- **Implementation status:** Every component below is **PLANNED**. The repository currently contains documentation and an empty scaffold only.
+- **Implementation status:** The deterministic domain/application foundation, Persistence Foundation v0, and FastAPI Walking Skeleton v0 are implemented; PostgreSQL, auth, frontend, and production transactions remain planned.
 
 This proposal describes how HaUI Compass could be structured after studying IntelliPlan. It keeps PROJECT.md's direction (Next.js + FastAPI modular monolith, PostgreSQL, provider-independent AI and LMS) and adds concrete boundaries. Decisions that deserve an ADR are listed in §13.
 

@@ -57,6 +57,22 @@ Administration will remain minimal initially. Potential later responsibilities i
 PLAN → DO → MONITOR → REFLECT → ADAPT → PLAN AGAIN
 ```
 
+## HTTP Walking Skeleton v0
+
+**IMPLEMENTED at the API/application foundation level:** `apps/api` exposes a FastAPI walking
+skeleton under `/api/v1`. The explicit `create_app(container=...)` factory wires the LMS, clock,
+repository ports, and application use cases through deterministic in-memory adapters. The health
+route, persisted-task daily recommendation, and persisted task-execution flow are covered through
+ASGI HTTP tests, including explicit execution-record idempotency, stable `{error: {code, message}}`
+errors, aware-UTC validation, and generated OpenAPI paths. Student identity is a trusted development
+request field only; authentication, PostgreSQL, frontend integration, and cross-repository
+transactions are **PLANNED**.
+
+**PostgreSQL Persistence v0 is implemented on a feature branch:** synchronous SQLAlchemy 2.x,
+psycopg, Alembic, typed relational models/adapters, and a small transaction boundary are present.
+The default in-memory composition remains available. A real PostgreSQL instance is required to
+validate the PostgreSQL contract/concurrency/HTTP tests; no SQLite substitute is used.
+
 Academic data and student state inform a plan. Execution updates actual progress. Structured reflection captures why reality differed from the plan. Useful, bounded signals update student state and influence the next plan.
 
 ## Core Features
