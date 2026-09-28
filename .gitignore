@@ -37,6 +37,7 @@ tmp/
 .coverage
 playwright-report/
 test-results/
+artifacts/evals/
 
 # External reference implementations (read-only research, never committed)
 .references/

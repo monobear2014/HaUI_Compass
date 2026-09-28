@@ -37,7 +37,7 @@
     {"id":"REPLAN-05","category":"replanning","scenario":"reduced_remaining_effort","expected":{"reason":"remaining_effort_changed"}},
     {"id":"REPLAN-06","category":"replanning","scenario":"increased_remaining_effort","expected":{"reason":"remaining_effort_changed"}},
     {"id":"REPLAN-07","category":"replanning","scenario":"insufficient_capacity","expected":{"unplanned_reason":"insufficient_capacity"}},
-    {"id":"REPLAN-08","category":"replanning","scenario":"missing_remaining_effort","expected":{"error":"missing remaining effort"}},
+    {"id":"REPLAN-08","category":"replanning","scenario":"missing_remaining_effort","expected":{"error":"explicit remaining effort is required for every open task"}},
     {"id":"E2E-01","category":"end_to_end","scenario":"plan_do_reflect_adapt","expected":{"revision_count":2,"confirmed_count":1}}
   ]
 }
