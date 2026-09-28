@@ -13,6 +13,7 @@ from haui_compass.application.ports.executions import (
 from haui_compass.application.ports.lms import ExternalRef
 from haui_compass.application.ports.persistence import PersistenceError, PersistenceErrorCode
 from haui_compass.application.ports.tasks import StoredTask, TaskRepository
+from haui_compass.application.ports.transactions import PersistenceTransactionManager
 from haui_compass.application.use_cases.record_task_execution import (
     RecordTaskExecution,
     RecordTaskExecutionRequest,
@@ -48,13 +49,22 @@ class RecordPersistedTaskExecution:
         task_repository: TaskRepository,
         execution_repository: TaskExecutionRepository,
         recorder: RecordTaskExecution | None = None,
+        transaction_manager: PersistenceTransactionManager | None = None,
     ) -> None:
         self._clock = clock
         self._task_repository = task_repository
         self._execution_repository = execution_repository
         self._recorder = recorder or RecordTaskExecution()
+        self._transaction_manager = transaction_manager
 
     def execute(
+        self, request: RecordPersistedTaskExecutionRequest
+    ) -> RecordPersistedTaskExecutionResult:
+        if self._transaction_manager is not None:
+            return self._transaction_manager.run(lambda: self._execute(request))
+        return self._execute(request)
+
+    def _execute(
         self, request: RecordPersistedTaskExecutionRequest
     ) -> RecordPersistedTaskExecutionResult:
         student_id = student_id_for(request.student)

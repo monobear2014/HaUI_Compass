@@ -82,6 +82,14 @@ uv pip install --python .venv/bin/python -e ".[dev]"   # or: .venv/bin/pip insta
 .venv/bin/python -m pytest --cov              # optional coverage report
 ```
 
+### PostgreSQL persistence (development)
+
+The PostgreSQL adapter is an explicit composition path; the default API remains in-memory.
+Start the disposable databases with `docker compose -f docker-compose.postgres.yml up -d`,
+set `HAUI_COMPASS_DATABASE_URL` (and `HAUI_COMPASS_TEST_DATABASE_URL` for integration tests),
+then run `cd apps/api && alembic upgrade head`. Alembic owns schema changes; application startup
+never runs migrations. PostgreSQL tests are skipped unless a real PostgreSQL URL is configured.
+
 Dependency direction between layers is enforced by `apps/api/tests/unit/test_import_boundaries.py` (see ADR-0001).
 
 ## Development status

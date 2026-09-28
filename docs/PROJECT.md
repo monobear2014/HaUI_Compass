@@ -68,6 +68,11 @@ errors, aware-UTC validation, and generated OpenAPI paths. Student identity is a
 request field only; authentication, PostgreSQL, frontend integration, and cross-repository
 transactions are **PLANNED**.
 
+**PostgreSQL Persistence v0 is implemented on a feature branch:** synchronous SQLAlchemy 2.x,
+psycopg, Alembic, typed relational models/adapters, and a small transaction boundary are present.
+The default in-memory composition remains available. A real PostgreSQL instance is required to
+validate the PostgreSQL contract/concurrency/HTTP tests; no SQLite substitute is used.
+
 Academic data and student state inform a plan. Execution updates actual progress. Structured reflection captures why reality differed from the plan. Useful, bounded signals update student state and influence the next plan.
 
 ## Core Features

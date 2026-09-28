@@ -1,0 +1,27 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: haui
+      POSTGRES_PASSWORD: change-me
+      POSTGRES_DB: haui_compass
+    ports:
+      - "54329:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U haui -d haui_compass"]
+      interval: 2s
+      timeout: 2s
+      retries: 20
+  postgres-test:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: haui
+      POSTGRES_PASSWORD: change-me
+      POSTGRES_DB: haui_compass_test
+    ports:
+      - "54330:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U haui -d haui_compass_test"]
+      interval: 2s
+      timeout: 2s
+      retries: 20
