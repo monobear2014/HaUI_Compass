@@ -129,8 +129,10 @@ def latest_weekly_plan(
     from haui_compass.application.ports.persistence import PersistenceError, PersistenceErrorCode
 
     period = PlanPeriodDTO(start=period_start, end=period_end).to_domain()
-    record = container.plan_repository.latest(
-        student_id_for(ExternalRef(student_provider, student_id)), period
+    record = container.transaction_manager.run(
+        lambda: container.plan_repository.latest(
+            student_id_for(ExternalRef(student_provider, student_id)), period
+        )
     )
     if record is None:
         raise PersistenceError(PersistenceErrorCode.RECORD_NOT_FOUND, "plan was not found")
@@ -149,10 +151,12 @@ def weekly_plan_history(
     from haui_compass.application.ports.lms import ExternalRef
 
     period = PlanPeriodDTO(start=period_start, end=period_end).to_domain()
-    return tuple(
-        plan_record_response(record)
-        for record in container.plan_repository.history(
-            student_id_for(ExternalRef(student_provider, student_id)), period
+    return container.transaction_manager.run(
+        lambda: tuple(
+            plan_record_response(record)
+            for record in container.plan_repository.history(
+                student_id_for(ExternalRef(student_provider, student_id)), period
+            )
         )
     )
 

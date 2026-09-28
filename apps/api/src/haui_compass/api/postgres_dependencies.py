@@ -55,6 +55,7 @@ def build_postgres_container(
         task_repository=tasks,
         execution_repository=executions,
         submit_reflection=SubmitReflection(clock=resolved_clock),
+        transaction_manager=transaction_manager,
     )
     return AppContainer(
         lms=resolved_lms,
@@ -77,12 +78,14 @@ def build_postgres_container(
             plan_repository=plans,
             lms=resolved_lms,
             clock=resolved_clock,
+            transaction_manager=transaction_manager,
         ),
         generate_reflection_candidates=reflection_candidates,
         confirm_persisted_reflection=ConfirmPersistedReflection(
             candidates=reflection_candidates,
             confirmer=ConfirmReflectionSignals(clock=resolved_clock),
             repository=reflections,
+            transaction_manager=transaction_manager,
         ),
         replan_persisted_study_plan=ReplanPersistedStudyPlan(
             task_repository=tasks,
@@ -91,5 +94,7 @@ def build_postgres_container(
             plan_repository=plans,
             lms=resolved_lms,
             clock=resolved_clock,
+            transaction_manager=transaction_manager,
         ),
+        transaction_manager=transaction_manager,
     )

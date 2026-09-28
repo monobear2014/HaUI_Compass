@@ -19,6 +19,7 @@ from haui_compass.application.ports.study_plans import (
     StudyPlanRepository,
 )
 from haui_compass.application.ports.tasks import TaskRepository
+from haui_compass.application.ports.transactions import PersistenceTransactionManager
 from haui_compass.application.use_cases.confirm_reflection_signals import (
     ConfirmReflectionSignals,
     ConfirmReflectionSignalsRequest,
@@ -60,14 +61,21 @@ class GeneratePersistedWeeklyPlan:
         lms: LMSProvider,
         clock: Clock,
         generator: GenerateWeeklyPlan | None = None,
+        transaction_manager: PersistenceTransactionManager | None = None,
     ) -> None:
         self._tasks = task_repository
         self._plans = plan_repository
         self._lms = lms
         self._clock = clock
         self._generator = generator or GenerateWeeklyPlan()
+        self._transaction_manager = transaction_manager
 
     def execute(self, request: GeneratePersistedWeeklyPlanRequest) -> StoredStudyPlan:
+        if self._transaction_manager is not None:
+            return self._transaction_manager.run(lambda: self._execute(request))
+        return self._execute(request)
+
+    def _execute(self, request: GeneratePersistedWeeklyPlanRequest) -> StoredStudyPlan:
         student_id = student_id_for(request.student)
         tasks = tuple(record.task for record in self._tasks.list_for_student(student_id))
         assignments = tuple(
@@ -102,12 +110,19 @@ class GenerateReflectionCandidates:
         task_repository: TaskRepository,
         execution_repository: TaskExecutionRepository,
         submit_reflection: SubmitReflection,
+        transaction_manager: PersistenceTransactionManager | None = None,
     ) -> None:
         self._tasks = task_repository
         self._executions = execution_repository
         self._submit = submit_reflection
+        self._transaction_manager = transaction_manager
 
     def execute(self, request: GenerateReflectionCandidatesRequest) -> SubmitReflectionResult:
+        if self._transaction_manager is not None:
+            return self._transaction_manager.run(lambda: self._execute(request))
+        return self._execute(request)
+
+    def _execute(self, request: GenerateReflectionCandidatesRequest) -> SubmitReflectionResult:
         student_id = student_id_for(request.student)
         tasks = tuple(record.task for record in self._tasks.list_for_student(student_id))
         executions: list[TaskExecution] = []
@@ -168,13 +183,20 @@ class ConfirmPersistedReflection:
         candidates: GenerateReflectionCandidates,
         confirmer: ConfirmReflectionSignals,
         repository: ConfirmedReflectionRepository,
+        transaction_manager: PersistenceTransactionManager | None = None,
     ) -> None:
         self._candidates = candidates
         self._confirmer = confirmer
         self._repository = repository
+        self._transaction_manager = transaction_manager
 
     def execute(self, request: ConfirmPersistedReflectionRequest) -> StoredConfirmedReflection:
-        candidate = self._candidates.execute(
+        if self._transaction_manager is not None:
+            return self._transaction_manager.run(lambda: self._execute(request))
+        return self._execute(request)
+
+    def _execute(self, request: ConfirmPersistedReflectionRequest) -> StoredConfirmedReflection:
+        candidate = self._candidates._execute(
             GenerateReflectionCandidatesRequest(
                 student=request.student, period=request.period, responses=request.responses
             )
@@ -223,6 +245,7 @@ class ReplanPersistedStudyPlan:
         lms: LMSProvider,
         clock: Clock,
         replanner: ReplanStudyPlan | None = None,
+        transaction_manager: PersistenceTransactionManager | None = None,
     ) -> None:
         self._tasks = task_repository
         self._executions = execution_repository
@@ -231,8 +254,14 @@ class ReplanPersistedStudyPlan:
         self._lms = lms
         self._clock = clock
         self._replanner = replanner or ReplanStudyPlan()
+        self._transaction_manager = transaction_manager
 
     def execute(self, request: ReplanPersistedStudyPlanRequest) -> StoredStudyPlan:
+        if self._transaction_manager is not None:
+            return self._transaction_manager.run(lambda: self._execute(request))
+        return self._execute(request)
+
+    def _execute(self, request: ReplanPersistedStudyPlanRequest) -> StoredStudyPlan:
         student_id = student_id_for(request.student)
         baseline = self._plans.latest(student_id, request.period)
         if baseline is None:
