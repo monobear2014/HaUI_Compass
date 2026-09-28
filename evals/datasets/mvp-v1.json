@@ -25,7 +25,7 @@
     {"id":"EXEC-01","category":"execution","scenario":"partial","expected":{"status":"in_progress"}},
     {"id":"EXEC-02","category":"execution","scenario":"completed","expected":{"status":"completed"}},
     {"id":"EXEC-03","category":"execution","scenario":"idempotent_duplicate","expected":{"idempotent_retry":true}},
-    {"id":"EXEC-04","category":"execution","scenario":"invalid_transition","expected":{"error":"invalid_task_transition"}},
+    {"id":"EXEC-04","category":"execution","scenario":"invalid_transition","expected":{"error":"TaskAlreadyCompletedError"}},
     {"id":"REFLECT-01","category":"reflection","scenario":"candidate_generation","expected":{"candidate_count":4}},
     {"id":"REFLECT-02","category":"reflection","scenario":"explicit_confirmation","expected":{"confirmed_count":1}},
     {"id":"REFLECT-03","category":"reflection","scenario":"rejected_unconfirmed","expected":{"persisted_count":1}},

@@ -31,6 +31,10 @@ from haui_compass.api.main import create_app
 from haui_compass.application.lms_mapping import assignment_id_for, student_id_for
 from haui_compass.application.ports.lms import ExternalRef
 from haui_compass.application.ports.tasks import StoredTask
+from haui_compass.application.use_cases.record_task_execution import (
+    RecordTaskExecution,
+    RecordTaskExecutionRequest,
+)
 from haui_compass.domain.plans.plan import PlanPeriod, StudyWindow
 from haui_compass.domain.plans.planning import PlanningCandidate
 from haui_compass.domain.plans.replanning import TaskRemainingEffort
@@ -39,6 +43,7 @@ from haui_compass.domain.recommendations.recommendation import NoRecommendation,
 from haui_compass.domain.risk.context import AssignmentRiskContext
 from haui_compass.domain.risk.signal import RiskEvidence, RiskLevel, RiskReasonCode, RiskSignal
 from haui_compass.domain.students.ids import StudentId
+from haui_compass.domain.tasks.execution import ExecutionOutcome
 from haui_compass.domain.tasks.task import Task, TaskId, TaskStatus
 from haui_compass.engines.next_best_action.recommend import recommend_next_action
 from haui_compass.engines.planning.availability import normalize_study_windows
@@ -520,6 +525,27 @@ def http_cases() -> tuple[list[Result], dict[str, list[float]]]:
     kinds = [item["kind"] for item in candidates]
     selected = data["confirmed"]["confirmed_signal_ids"]
     replan = data["replanned"]
+    completed_result = RecordTaskExecution().execute(
+        RecordTaskExecutionRequest(
+            task=task(80, 80),
+            started_at=NOW - timedelta(minutes=15),
+            ended_at=NOW,
+            outcome=ExecutionOutcome.COMPLETED,
+        )
+    )
+    try:
+        RecordTaskExecution().execute(
+            RecordTaskExecutionRequest(
+                task=completed_result.updated_task,
+                started_at=NOW - timedelta(minutes=10),
+                ended_at=NOW,
+                outcome=ExecutionOutcome.PARTIAL,
+            )
+        )
+    except Exception as error:
+        invalid_transition = type(error).__name__
+    else:  # pragma: no cover - a completed task must reject execution
+        invalid_transition = "accepted"
     cases = [
         Result(
             "EXEC-01",
@@ -531,11 +557,9 @@ def http_cases() -> tuple[list[Result], dict[str, list[float]]]:
         Result(
             "EXEC-02",
             "execution",
-            True,
+            completed_result.updated_task.status.value == "completed",
             {"status": "completed"},
-            {
-                "not_evaluated": "completion transition covered by unit contract; HTTP loop keeps task open for replan"
-            },
+            {"status": completed_result.updated_task.status.value},
         ),
         Result(
             "EXEC-03",
@@ -547,9 +571,9 @@ def http_cases() -> tuple[list[Result], dict[str, list[float]]]:
         Result(
             "EXEC-04",
             "execution",
-            True,
-            {"error": "invalid_task_transition"},
-            {"unit_contract": "Task transition contract exercised by backend suite"},
+            invalid_transition == "TaskAlreadyCompletedError",
+            {"error": "TaskAlreadyCompletedError"},
+            {"error": invalid_transition},
         ),
         Result(
             "REFLECT-01",
