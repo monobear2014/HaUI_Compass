@@ -779,6 +779,7 @@ def write_report(
     timings: dict[str, list[float]],
     loops: int,
     deterministic: tuple[int, int],
+    execution_ms: float,
 ) -> None:
     output.mkdir(parents=True, exist_ok=True)
     failures = [asdict(item) for item in results if not item.passed]
@@ -814,6 +815,7 @@ def write_report(
             "persistence": "in_memory",
             "postgresql": "NOT_RUN: Docker daemon unavailable or no configured database",
         },
+        "execution_duration_ms": round(execution_ms, 3),
         "case_totals": {
             "total": len(results),
             "passed": len(results) - len(failures),
@@ -841,6 +843,7 @@ def write_report(
         f"Commit: `{commit}`",
         "",
         f"Cases: **{summary['case_totals']['passed']}/{summary['case_totals']['total']} passed**",
+        f"Execution duration: {summary['execution_duration_ms']} ms",
         "",
         "## Invariants",
         "",
@@ -875,6 +878,7 @@ def write_report(
 
 
 def main() -> int:
+    started = time.perf_counter_ns()
     parser = argparse.ArgumentParser()
     parser.add_argument("--output", type=Path, default=ROOT / "artifacts/evals/mvp-v1")
     parser.add_argument("--loops", type=int, default=5)
@@ -928,7 +932,14 @@ def main() -> int:
                 "dataset and runner case IDs differ",
             )
         )
-    write_report(args.output, results, timings, args.loops, determinism_result())
+    write_report(
+        args.output,
+        results,
+        timings,
+        args.loops,
+        determinism_result(),
+        (time.perf_counter_ns() - started) / 1_000_000,
+    )
     return 0 if all(item.passed for item in results) else 1
 
 
