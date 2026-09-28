@@ -669,15 +669,18 @@ export function Reflect() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const original = useRef<object | null>(null);
+  const answerVersion = useRef(0);
   if (!context) return null;
   const ctx = context;
   function invalidate() {
+    answerVersion.current += 1;
     setCandidates(null);
     setSelected([]);
     setSuccess("");
   }
   async function review(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const version = answerVersion.current;
     const form = new FormData(event.currentTarget);
     setBusy(true);
     setError("");
@@ -700,6 +703,7 @@ export function Reflect() {
         "reflections/candidates",
         payload,
       );
+      if (version !== answerVersion.current) return;
       original.current = payload;
       setCandidates(result.candidates);
       setSelected([]);
