@@ -11,23 +11,28 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import platform
 import subprocess
 import sys
 import time
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime, timedelta
+from itertools import pairwise
 from pathlib import Path
-from statistics import median
 from uuid import UUID, uuid4
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "apps/api/src"))
 
+from alembic import command
+from alembic.config import Config
 from fastapi.testclient import TestClient
+from sqlalchemy import create_engine, text
 
 from haui_compass.api.dependencies import build_container
 from haui_compass.api.main import create_app
+from haui_compass.api.postgres_dependencies import build_postgres_container
 from haui_compass.application.lms_mapping import assignment_id_for, student_id_for
 from haui_compass.application.ports.lms import ExternalRef
 from haui_compass.application.ports.tasks import StoredTask
@@ -50,7 +55,9 @@ from haui_compass.engines.planning.availability import normalize_study_windows
 from haui_compass.engines.planning.schedule import generate_weekly_plan
 from haui_compass.engines.replanning.replan import replan_study_plan
 from haui_compass.engines.risk.assess import assess_assignment_risk
+from haui_compass.infrastructure.config.database import DatabaseSettings
 from haui_compass.infrastructure.lms.mock import MockLMSProvider
+from haui_compass.infrastructure.persistence.postgres.models import Base
 
 NOW = datetime(2026, 10, 1, 8, tzinfo=UTC)
 STUDENT = ExternalRef("benchmark", "fictional-student-001")
@@ -379,31 +386,61 @@ def candidate(
     )
 
 
-def fresh_client() -> tuple[TestClient, dict[str, object], str]:
+def configured_postgres_url() -> str | None:
+    url = os.getenv("HAUI_COMPASS_TEST_DATABASE_URL")
+    if url and url.startswith(("postgresql://", "postgresql+psycopg://")):
+        return url
+    return None
+
+
+def reset_postgres(database_url: str) -> None:
+    """Migrate then remove only benchmark-test facts before one isolated loop."""
+    os.environ["HAUI_COMPASS_DATABASE_URL"] = database_url
+    command.upgrade(Config(str(ROOT / "apps/api/alembic.ini")), "head")
+    table_names = ", ".join(table.name for table in reversed(Base.metadata.sorted_tables))
+    engine = create_engine(database_url, future=True)
+    try:
+        with engine.begin() as connection:
+            connection.execute(text(f"TRUNCATE TABLE {table_names} CASCADE"))
+    finally:
+        engine.dispose()
+
+
+def fresh_client(*, postgres_url: str | None = None) -> tuple[TestClient, dict[str, object], str]:
     lms = MockLMSProvider.canonical(anchor=NOW)
     # The canonical fixture is provider-specific. Keep benchmark ownership distinct but use its explicit records.
     student = ExternalRef("mock-lms", "student-001")
-    container = build_container(lms=lms, clock=type("FixedClock", (), {"now": lambda self: NOW})())
+    clock = type("FixedClock", (), {"now": lambda self: NOW})()
+    container = (
+        build_postgres_container(
+            settings=DatabaseSettings(url=postgres_url), lms=lms, clock=clock
+        )
+        if postgres_url
+        else build_container(lms=lms, clock=clock)
+    )
     assignment_record = lms.get_assignments(student)[0]
     identity = uuid4()
-    container.task_repository.save(
-        StoredTask(
-            student_id=student_id_for(student),
-            task=Task(
-                id=TaskId(identity),
-                assignment_id=assignment_id_for(assignment_record.ref),
-                title="Fictional benchmark task",
-                estimated_duration=timedelta(minutes=20),
-            ),
-            saved_at=NOW,
-        )
+    stored = StoredTask(
+        student_id=student_id_for(student),
+        task=Task(
+            id=TaskId(identity),
+            assignment_id=assignment_id_for(assignment_record.ref),
+            title="Fictional benchmark task",
+            estimated_duration=timedelta(minutes=20),
+        ),
+        saved_at=NOW,
     )
+    container.transaction_manager.run(lambda: container.task_repository.save(stored))
     payload = {"provider": student.provider, "id": student.id}
     return TestClient(create_app(container)), payload, str(identity)
 
 
-def http_loop(*, selected: bool = True) -> tuple[dict[str, object], dict[str, list[float]]]:
-    client, student, task_id = fresh_client()
+def http_loop(
+    *, selected: bool = True, postgres_url: str | None = None
+) -> tuple[dict[str, object], dict[str, list[float]]]:
+    if postgres_url:
+        reset_postgres(postgres_url)
+    client, student, task_id = fresh_client(postgres_url=postgres_url)
     period = {"start": NOW.isoformat(), "end": (NOW + timedelta(days=1)).isoformat()}
     timings: dict[str, list[float]] = {}
 
@@ -447,7 +484,7 @@ def http_loop(*, selected: bool = True) -> tuple[dict[str, object], dict[str, li
         "outcome": "partial",
     }
     execution = call("execution", "post", "/api/v1/task-executions", json=execution_body)
-    retry = call("execution", "post", "/api/v1/task-executions", json=execution_body)
+    retry = call("execution_idempotent_retry", "post", "/api/v1/task-executions", json=execution_body)
     context = {
         "student": student,
         "period": period,
@@ -486,6 +523,24 @@ def http_loop(*, selected: bool = True) -> tuple[dict[str, object], dict[str, li
             "effective_at": NOW.isoformat(),
         },
     )
+    completed = call(
+        "execution_complete",
+        "post",
+        "/api/v1/task-executions",
+        json={
+            **execution_body,
+            "record_id": str(uuid4()),
+            "started_at": (NOW - timedelta(minutes=30)).isoformat(),
+            "ended_at": (NOW - timedelta(minutes=20)).isoformat(),
+            "outcome": "completed",
+        },
+    )
+    after_completed_recommendation = call(
+        "daily_recommendation_after_completion",
+        "post",
+        "/api/v1/daily-recommendation",
+        json={"student": student, "available_minutes": 60, "assignment_capacities": []},
+    )
     latest = call(
         "latest_plan",
         "get",
@@ -514,8 +569,12 @@ def http_loop(*, selected: bool = True) -> tuple[dict[str, object], dict[str, li
         "candidates": candidates,
         "confirmed": confirmed,
         "replanned": replanned,
+        "completed": completed,
+        "after_completed_recommendation": after_completed_recommendation,
         "latest": latest,
         "history": history,
+        "student": student,
+        "task_id": task_id,
     }, timings
 
 
@@ -742,6 +801,11 @@ def replan_cases() -> list[Result]:
 
 
 def percentile(samples: list[float], fraction: float) -> float:
+    """Nearest-rank percentile: rank = ceil(fraction * n), one-indexed."""
+    if not samples:
+        raise ValueError("percentile requires at least one sample")
+    if not 0 < fraction <= 1:
+        raise ValueError("percentile fraction must be in (0, 1]")
     ordered = sorted(samples)
     return ordered[max(0, min(len(ordered) - 1, int(len(ordered) * fraction + 0.999999) - 1))]
 
@@ -773,13 +837,154 @@ def determinism_result() -> tuple[int, int]:
     return (sum((planner_stable, nba_stable, risk_stable)), 3)
 
 
+LATENCY_ENDPOINTS = (
+    "daily_recommendation",
+    "weekly_plan",
+    "execution",
+    "reflection_candidates",
+    "reflection_confirmation",
+    "adaptive_replan",
+    "latest_plan",
+)
+
+
+def latency_summary(timings: dict[str, list[float]]) -> dict[str, dict[str, float | int]]:
+    return {
+        name: {
+            "n": len(values),
+            "min_ms": round(min(values), 3),
+            "p50_ms": round(percentile(values, 0.50), 3),
+            "p95_ms": round(percentile(values, 0.95), 3),
+            "p99_ms": round(percentile(values, 0.99), 3),
+            "max_ms": round(max(values), 3),
+        }
+        for name in LATENCY_ENDPOINTS
+        if (values := timings.get(name))
+    }
+
+
+def run_isolated_loops(
+    attempts: int, *, postgres_url: str | None = None, capture_timings: bool = False
+) -> tuple[int, list[str], dict[str, list[float]]]:
+    successes = 0
+    failures: list[str] = []
+    timings: dict[str, list[float]] = {}
+    for index in range(attempts):
+        try:
+            _, measured = http_loop(postgres_url=postgres_url)
+            successes += 1
+            if capture_timings:
+                for name in LATENCY_ENDPOINTS:
+                    timings.setdefault(name, []).extend(measured.get(name, ()))
+        except Exception as error:
+            failures.append(f"loop {index + 1}: {error!r}")
+    return successes, failures, timings
+
+
+def normalized_http_outcome(data: dict[str, object]) -> dict[str, object]:
+    """Remove generated record/task identities from domain-visible comparison."""
+    generated = data["generated"]
+    replan = data["replanned"]
+    recommendation = data["recommendation"]
+    assert isinstance(generated, dict) and isinstance(replan, dict) and isinstance(recommendation, dict)
+    return {
+        "generated_revision": generated["revision"],
+        "generated_blocks": [
+            (block["starts_at"], block["ends_at"])
+            for block in generated["blocks"]  # type: ignore[index]
+        ],
+        "recommendation_kind": recommendation["recommendation"]["kind"],  # type: ignore[index]
+        "replan_revision": replan["plan"]["revision"],  # type: ignore[index]
+        "replan_blocks": [
+            (block["starts_at"], block["ends_at"])
+            for block in replan["plan"]["blocks"]  # type: ignore[index]
+        ],
+        "history_revisions": [item["revision"] for item in data["history"]],  # type: ignore[index]
+    }
+
+
+def postgres_evaluation(database_url: str, loops: int) -> dict[str, object]:
+    successes, failures, _ = run_isolated_loops(loops, postgres_url=database_url)
+    data, _ = http_loop(postgres_url=database_url)
+    student = ExternalRef("mock-lms", "student-001")
+    task_id = TaskId(UUID(str(data["task_id"])))
+    period = PlanPeriod(start=NOW, end=NOW + timedelta(days=1))
+    lms = MockLMSProvider.canonical(anchor=NOW)
+    container = build_postgres_container(
+        settings=DatabaseSettings(url=database_url),
+        lms=lms,
+        clock=type("FixedClock", (), {"now": lambda self: NOW})(),
+    )
+    task_record, history, reflections = container.transaction_manager.run(
+        lambda: (
+            container.task_repository.get(student_id_for(student), task_id),
+            container.plan_repository.history(student_id_for(student), period),
+            container.reflection_repository.list_for_student(student_id_for(student)),
+        )
+    )
+    replan = data["replanned"]
+    assert isinstance(replan, dict)
+    blocks = replan["plan"]["blocks"]  # type: ignore[index]
+    unplanned = replan["plan"]["unplanned_tasks"]  # type: ignore[index]
+    scheduled_seconds = sum(
+        int((datetime.fromisoformat(item["ends_at"]) - datetime.fromisoformat(item["starts_at"])).total_seconds())
+        for item in blocks
+    )
+    unplanned_seconds = sum(item["remaining_duration_seconds"] for item in unplanned)
+    deadline = lms.get_assignments(student)[0].deadline
+    ordered = sorted(blocks, key=lambda item: item["starts_at"])
+    overlap = any(
+        datetime.fromisoformat(left["ends_at"]) > datetime.fromisoformat(right["starts_at"])
+        for left, right in pairwise(ordered)
+    )
+    outcomes = [normalized_http_outcome(http_loop(postgres_url=database_url)[0]) for _ in range(3)]
+    stable = sum(item == outcomes[0] for item in outcomes)
+    invariants = {
+        "work_conservation_violations": int(scheduled_seconds + unplanned_seconds != 1200),
+        "deadline_violations": sum(
+            int(datetime.fromisoformat(item["ends_at"]) > deadline) for item in blocks
+        ),
+        "overlap_violations": int(overlap),
+        "unconfirmed_signal_violations": int(
+            len(reflections) != 1 or len(reflections[0].confirmed.signals) != 1
+        ),
+        "revision_history_violations": int(
+            len(history) != 2 or history[0].revision != 1 or history[1].revision != 2
+        ),
+        "latest_revision_violations": int(history[-1].revision != 2),
+        "completed_task_recommendation_violations": int(
+            data["after_completed_recommendation"]["recommendation"]["kind"] != "no_recommendation"  # type: ignore[index]
+        ),
+        "execution_restart_violations": int(
+            task_record is None or task_record.task.status is not TaskStatus.COMPLETED
+        ),
+        "reflection_restart_violations": int(len(reflections) != 1),
+    }
+    if successes != loops or failures:
+        raise RuntimeError(f"PostgreSQL HTTP loops failed: {successes}/{loops}; {failures}")
+    if any(invariants.values()):
+        raise RuntimeError(f"PostgreSQL invariant violations: {invariants}")
+    if stable != len(outcomes):
+        raise RuntimeError(f"PostgreSQL determinism failed: {stable}/{len(outcomes)}")
+    return {
+        "status": "RUN",
+        "http_e2e": {"attempted": loops, "successful": successes, "failures": failures},
+        "invariants": invariants,
+        "determinism": {"attempted": len(outcomes), "stable": stable},
+    }
+
+
 def write_report(
     output: Path,
     results: list[Result],
-    timings: dict[str, list[float]],
+    in_memory_latency: dict[str, dict[str, float | int]],
     loops: int,
     deterministic: tuple[int, int],
     execution_ms: float,
+    warmup: int,
+    samples: int,
+    postgres: dict[str, object],
+    postgres_latency: dict[str, dict[str, float | int]] | None,
 ) -> None:
     output.mkdir(parents=True, exist_ok=True)
     failures = [asdict(item) for item in results if not item.passed]
@@ -791,15 +996,6 @@ def write_report(
     )
     invariants = {
         key: sum(int(item.actual.get(key, 0)) for item in results) for key in invariant_keys
-    }
-    latency = {
-        name: {
-            "samples": len(values),
-            "p50_ms": round(median(values), 3),
-            "p95_ms": round(percentile(values, 0.95), 3),
-            "p99_ms": round(percentile(values, 0.99), 3),
-        }
-        for name, values in sorted(timings.items())
     }
     commit = subprocess.run(
         ["git", "rev-parse", "HEAD"], cwd=ROOT, text=True, capture_output=True, check=True
@@ -813,7 +1009,7 @@ def write_report(
             "python": sys.version.split()[0],
             "platform": platform.platform(),
             "persistence": "in_memory",
-            "postgresql": "NOT_RUN: Docker daemon unavailable or no configured database",
+            "postgresql": postgres["status"],
         },
         "execution_duration_ms": round(execution_ms, 3),
         "case_totals": {
@@ -827,12 +1023,16 @@ def write_report(
             "stable_cases": stable,
             "rate": f"{stable / eligible:.0%}",
         },
-        "http_e2e": {"attempted": loops, "successful": loops, "rate": "100% (small local sample)"},
+        "http_e2e": {"attempted": loops, "successful": loops, "rate": "100% (in-memory)"},
         "latency": {
             "label": "LOCAL DEVELOPMENT BENCHMARK",
-            "configuration": "in_memory",
-            "endpoints": latency,
+            "percentile": "nearest-rank: rank = ceil(p * n), one-indexed",
+            "warmup_loops_excluded": warmup,
+            "measured_loops": samples,
+            "in_memory": in_memory_latency,
+            "postgresql": postgres_latency,
         },
+        "postgresql": postgres,
         "failures": failures,
         "reproduction": "cd apps/api && uv run --extra dev python ../../evals/mvp_benchmark_v1.py --output ../../artifacts/evals/mvp-v1",
     }
@@ -855,20 +1055,43 @@ def write_report(
         "",
         "## HTTP end-to-end",
         "",
-        f"- {loops}/{loops} fresh in-memory loops succeeded. This is a small local sample, not a production reliability claim.",
+        f"- {loops}/{loops} fresh in-memory loops succeeded. This is not a production reliability claim.",
         "",
-        "## Local development latency (in-memory)",
+        "## LOCAL DEVELOPMENT BENCHMARK latency",
         "",
-        "| Endpoint | Samples | p50 ms | p95 ms | p99 ms |",
-        "| --- | ---: | ---: | ---: | ---: |",
+        f"Nearest-rank percentile (`rank = ceil(p x n)`); {warmup} isolated warmup loops excluded; {samples} measured isolated loops.",
+        "",
+        "### In-memory",
+        "",
+        "| Endpoint | n | min ms | p50 ms | p95 ms | p99 ms | max ms |",
+        "| --- | ---: | ---: | ---: | ---: | ---: |",
         *[
-            f"| {name} | {row['samples']} | {row['p50_ms']} | {row['p95_ms']} | {row['p99_ms']} |"
-            for name, row in latency.items()
+            f"| {name} | {row['n']} | {row['min_ms']} | {row['p50_ms']} | {row['p95_ms']} | {row['p99_ms']} | {row['max_ms']} |"
+            for name, row in in_memory_latency.items()
         ],
         "",
         "## PostgreSQL",
         "",
-        "NOT RUN: Docker daemon/database was unavailable. No SQLite substitution was used.",
+        (
+            "NOT RUN: no real PostgreSQL URL was configured. No SQLite substitution was used."
+            if postgres["status"] == "NOT_RUN"
+            else json.dumps(postgres, indent=2)
+        ),
+        *(
+            [
+                "",
+                "### PostgreSQL LOCAL DEVELOPMENT BENCHMARK latency",
+                "",
+                "| Endpoint | n | min ms | p50 ms | p95 ms | p99 ms | max ms |",
+                "| --- | ---: | ---: | ---: | ---: | ---: | ---: |",
+                *[
+                    f"| {name} | {row['n']} | {row['min_ms']} | {row['p50_ms']} | {row['p95_ms']} | {row['p99_ms']} | {row['max_ms']} |"
+                    for name, row in postgres_latency.items()
+                ],
+            ]
+            if postgres_latency
+            else []
+        ),
         "",
         "## Failures",
         "",
@@ -881,30 +1104,19 @@ def main() -> int:
     started = time.perf_counter_ns()
     parser = argparse.ArgumentParser()
     parser.add_argument("--output", type=Path, default=ROOT / "artifacts/evals/mvp-v1")
-    parser.add_argument("--loops", type=int, default=5)
+    parser.add_argument("--loops", type=int, default=5, help="isolated functional E2E loops")
+    parser.add_argument("--warmup", type=int, default=3)
+    parser.add_argument("--samples", type=int, default=100)
     args = parser.parse_args()
+    if args.loops < 1 or args.warmup < 1 or args.samples < 50:
+        parser.error("--loops and --warmup must be positive; --samples must be at least 50")
     results = [*planning_cases(), *risk_cases(), *nba_cases(), *replan_cases()]
-    timings: dict[str, list[float]] = {}
-    successes = 0
-    for _ in range(args.loops):
-        try:
-            cases, measured = http_cases()
-            successes += 1
-            if _ == 0:
-                results.extend(cases)
-            for key, values in measured.items():
-                timings.setdefault(key, []).extend(values)
-        except Exception as error:
-            results.append(
-                Result(
-                    f"E2E-LOOP-{_ + 1}",
-                    "end_to_end",
-                    False,
-                    {"complete_loop": "success"},
-                    {"error": repr(error)},
-                    "HTTP loop failed",
-                )
-            )
+    cases, _ = http_cases()
+    results.extend(cases)
+    successes, loop_failures, _ = run_isolated_loops(args.loops - 1)
+    successes += 1
+    for index, failure in enumerate(loop_failures, start=2):
+        results.append(Result(f"E2E-LOOP-{index}", "end_to_end", False, {"complete_loop": "success"}, {"error": failure}, "HTTP loop failed"))
     if successes != args.loops:
         results.append(
             Result(
@@ -932,13 +1144,39 @@ def main() -> int:
                 "dataset and runner case IDs differ",
             )
         )
+    _, warmup_failures, _ = run_isolated_loops(args.warmup)
+    if warmup_failures:
+        results.append(Result("LATENCY-WARMUP", "benchmark", False, {"success": True}, {"failures": warmup_failures}, "warmup failed"))
+    _, latency_failures, timings = run_isolated_loops(args.samples, capture_timings=True)
+    if latency_failures or any(len(timings.get(name, ())) != args.samples for name in LATENCY_ENDPOINTS):
+        results.append(Result("LATENCY-SAMPLES", "benchmark", False, {"n": args.samples}, {name: len(timings.get(name, ())) for name in LATENCY_ENDPOINTS}, "latency collection did not complete"))
+    postgres_url = configured_postgres_url()
+    postgres: dict[str, object] = {"status": "NOT_RUN", "reason": "HAUI_COMPASS_TEST_DATABASE_URL is not configured"}
+    postgres_latency: dict[str, dict[str, float | int]] | None = None
+    if postgres_url:
+        try:
+            postgres = postgres_evaluation(postgres_url, args.loops)
+            _, postgres_warmup_failures, _ = run_isolated_loops(args.warmup, postgres_url=postgres_url)
+            _, postgres_latency_failures, postgres_timings = run_isolated_loops(args.samples, postgres_url=postgres_url, capture_timings=True)
+            if postgres_warmup_failures or postgres_latency_failures or any(
+                len(postgres_timings.get(name, ())) != args.samples for name in LATENCY_ENDPOINTS
+            ):
+                raise RuntimeError("PostgreSQL warmup or latency loop failed")
+            postgres_latency = latency_summary(postgres_timings)
+        except Exception as error:
+            postgres = {"status": "FAILED", "reason": repr(error)}
+            results.append(Result("POSTGRESQL-BENCHMARK", "postgresql", False, {"success": True}, {"error": repr(error)}, "PostgreSQL benchmark failed"))
     write_report(
         args.output,
         results,
-        timings,
+        latency_summary(timings),
         args.loops,
         determinism_result(),
         (time.perf_counter_ns() - started) / 1_000_000,
+        args.warmup,
+        args.samples,
+        postgres,
+        postgres_latency,
     )
     return 0 if all(item.passed for item in results) else 1
 

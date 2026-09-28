@@ -51,18 +51,34 @@ JSON is deliberately not used to reconstruct domain entities.
 
 ## Local latency method
 
-The runner creates a fresh in-process FastAPI application for every measured
-loop, calls representative endpoints through `TestClient`, and records elapsed
-monotonic time for each operation. p50, p95 and p99 use a nearest-rank percentile
-over the recorded local samples. Results are labeled **LOCAL DEVELOPMENT
-BENCHMARK**; they include no network, authentication, production server or real
-database claim. In-memory and PostgreSQL configurations are kept separate.
+The runner creates a fresh, isolated in-process FastAPI application for every
+full loop, calls representative endpoints through `TestClient`, and records
+elapsed monotonic time for each named operation. It first performs three
+isolated warmup loops; warmup measurements are discarded. The default local run
+then collects 100 samples per required endpoint (the CLI rejects a sample count
+below 50). In-memory and PostgreSQL samples are never mixed.
+
+For every endpoint, the report contains `n`, min, p50, p95, p99 and max. The
+single percentile definition is **nearest rank**: for sorted `n` samples and
+percentile `p`, select the one-indexed rank `ceil(p * n)` (with p50 = 0.50,
+p95 = 0.95 and p99 = 0.99). The runner validates empty/out-of-range inputs so
+the calculation cannot silently fall back to a library default.
+
+Results are labeled **LOCAL DEVELOPMENT BENCHMARK**; they include no network,
+authentication, production server or production-reliability claim.
 
 ## PostgreSQL configuration
 
-When `HAUI_COMPASS_TEST_DATABASE_URL` points at a real PostgreSQL test database,
-the runner may emit a separate PostgreSQL section after Alembic migration and
-isolation. It never substitutes SQLite. If PostgreSQL is unavailable, the report
+When `HAUI_COMPASS_TEST_DATABASE_URL` points at a real disposable PostgreSQL
+test database, the runner runs Alembic to `head` and truncates only the known
+benchmark tables before every loop. It then executes the same corpus and full
+HTTP PLAN → RECOMMEND → EXECUTE → REFLECT → CONFIRM → REPLAN → HISTORY loop
+against PostgreSQL. It verifies append-only revision 1/2 history, execution and
+confirmed-reflection survival through a newly composed PostgreSQL session,
+completed-task recommendation safety, conservation, deadline, overlap and
+unconfirmed-signal invariants, plus three isolated deterministic repeats.
+
+It never substitutes SQLite. If PostgreSQL/Docker is unavailable, the report
 records `NOT_RUN` with the blocking reason; in-memory numbers remain separate.
 
 ## Not evaluated
@@ -75,6 +91,17 @@ visual quality, or backup/retention operations.
 ## Reproduction
 
 ```bash
+cd apps/api
+uv run --extra dev python ../../evals/mvp_benchmark_v1.py \
+  --output ../../artifacts/evals/mvp-v1
+```
+
+For the real PostgreSQL section, first start the disposable `postgres-test`
+service from the repository root and export its URL:
+
+```bash
+docker compose -f docker-compose.postgres.yml up -d postgres-test
+export HAUI_COMPASS_TEST_DATABASE_URL='postgresql+psycopg://haui:change-me@localhost:54330/haui_compass_test'
 cd apps/api
 uv run --extra dev python ../../evals/mvp_benchmark_v1.py \
   --output ../../artifacts/evals/mvp-v1
