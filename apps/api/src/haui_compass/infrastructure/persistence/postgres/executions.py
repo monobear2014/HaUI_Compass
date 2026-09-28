@@ -1,6 +1,6 @@
 from collections.abc import Callable
 
-from sqlalchemy import select
+from sqlalchemy import insert, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -25,19 +25,18 @@ class PostgresTaskExecutionRepository:
 
     def append(self, record: StoredTaskExecution) -> StoredTaskExecution:
         session = self._session()
-        row = ExecutionRow(
-            record_id=record.record_id,
-            student_id=record.student_id,
-            task_id=record.execution.task_id,
-            started_at=utc(record.execution.started_at),
-            ended_at=utc(record.execution.ended_at),
-            outcome=record.execution.outcome.value,
-            recorded_at=utc(record.recorded_at),
-        )
+        values = {
+            "record_id": record.record_id,
+            "student_id": record.student_id,
+            "task_id": record.execution.task_id,
+            "started_at": utc(record.execution.started_at),
+            "ended_at": utc(record.execution.ended_at),
+            "outcome": record.execution.outcome.value,
+            "recorded_at": utc(record.recorded_at),
+        }
         try:
             with session.begin_nested():
-                session.add(row)
-                session.flush()
+                session.execute(insert(ExecutionRow).values(**values))
         except IntegrityError:
             existing = session.get(ExecutionRow, record.record_id)
             if existing is not None:

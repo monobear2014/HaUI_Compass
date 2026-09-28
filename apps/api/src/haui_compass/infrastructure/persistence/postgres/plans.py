@@ -4,6 +4,7 @@
 # SQLAlchemy's dynamically typed session expressions make strict inference noisy in this adapter;
 # the domain/application contracts remain strictly typed at its public boundary.
 from collections.abc import Callable
+from datetime import datetime
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -46,7 +47,9 @@ class PostgresStudyPlanRepository:
     def _session(self) -> Session:
         return self._session_provider()
 
-    def save_initial(self, *, record_id, plan, saved_at):
+    def save_initial(
+        self, *, record_id: PlanRecordId, plan: StudyPlan, saved_at: datetime
+    ) -> StoredStudyPlan:
         candidate = StoredStudyPlan(
             record_id=record_id,
             plan=plan,
@@ -74,13 +77,33 @@ class PostgresStudyPlanRepository:
         self._insert_plan(candidate)
         return candidate
 
-    def save_revision(self, *, record_id, baseline_record_id, result, saved_at):
+    def save_revision(
+        self,
+        *,
+        record_id: PlanRecordId,
+        baseline_record_id: PlanRecordId,
+        result: ReplanningResult,
+        saved_at: datetime,
+    ) -> StoredStudyPlan:
         baseline = self.get(baseline_record_id)
         if baseline is None:
             raise PersistenceError(PersistenceErrorCode.RECORD_NOT_FOUND, "baseline plan not found")
         revised = result.revised_plan
         if revised.student_id != baseline.plan.student_id or revised.period != baseline.plan.period:
             raise PersistenceError(PersistenceErrorCode.PLAN_SCOPE_MISMATCH, "plan scope changed")
+        existing = self.get(record_id)
+        if existing is not None:
+            expected = StoredStudyPlan(
+                record_id=record_id,
+                plan=revised,
+                revision=baseline.revision + 1,
+                parent_record_id=baseline_record_id,
+                saved_at=saved_at,
+                replanning_result=result,
+            )
+            if existing == expected:
+                return existing
+            raise PersistenceError(PersistenceErrorCode.RECORD_CONFLICT, "plan record id conflict")
         # Lock the latest row for this scope. The caller's transaction makes this race-safe.
         latest_row = self._session().scalar(
             select(PlanRow)
@@ -104,19 +127,14 @@ class PostgresStudyPlanRepository:
             saved_at=saved_at,
             replanning_result=result,
         )
-        existing = self.get(record_id)
-        if existing is not None:
-            if existing == candidate:
-                return existing
-            raise PersistenceError(PersistenceErrorCode.RECORD_CONFLICT, "plan record id conflict")
         self._insert_plan(candidate)
         return candidate
 
-    def get(self, record_id):
+    def get(self, record_id: PlanRecordId) -> StoredStudyPlan | None:
         row = self._session().get(PlanRow, record_id)
         return None if row is None else self._to_stored(row)
 
-    def latest(self, student_id, period):
+    def latest(self, student_id: StudentId, period: PlanPeriod) -> StoredStudyPlan | None:
         row = self._session().scalar(
             select(PlanRow)
             .where(
@@ -128,7 +146,7 @@ class PostgresStudyPlanRepository:
         )
         return None if row is None else self._to_stored(row)
 
-    def history(self, student_id, period):
+    def history(self, student_id: StudentId, period: PlanPeriod) -> tuple[StoredStudyPlan, ...]:
         rows = self._session().scalars(
             select(PlanRow)
             .where(
@@ -156,6 +174,7 @@ class PostgresStudyPlanRepository:
                 planner_version=plan.planner_version,
             )
         )
+        session.flush()
         for position, block in enumerate(plan.blocks):
             session.add(
                 PlanBlockRow(
@@ -197,6 +216,7 @@ class PostgresStudyPlanRepository:
                 execution_context_task_count=summary.execution_context_task_count,
             )
         )
+        session.flush()
         for kind in result.informational_reflection_signals:
             session.add(PlanReflectionKindRow(record_id=record_id, kind=kind.value))
         for change in result.changes:
