@@ -81,6 +81,23 @@ unconfirmed-signal invariants, plus three isolated deterministic repeats.
 It never substitutes SQLite. If PostgreSQL/Docker is unavailable, the report
 records `NOT_RUN` with the blocking reason; in-memory numbers remain separate.
 
+## Recorded baseline
+
+The completed local PostgreSQL baseline is recorded in the ignored generated
+report for commit `4dbf3fd`:
+
+- structured corpus: **36/36** passed;
+- isolated in-memory HTTP loops: **5/5** passed;
+- isolated PostgreSQL HTTP loops: **5/5** passed after Alembic reached `head`;
+- PostgreSQL work-conservation, deadline, overlap, reflection, revision,
+  completed-task and restart-persistence invariant violations: **0**;
+- PostgreSQL deterministic isolated outcomes: **3/3** stable; and
+- frontend Playwright acceptance: **12/12** passed.
+
+These are local engineering-validation results using fictional data and a
+disposable real PostgreSQL service. They do not establish production
+reliability, production-scale performance, or student-outcome effectiveness.
+
 ## Not evaluated
 
 This benchmark does not validate real HaUI LMS data quality, real student
