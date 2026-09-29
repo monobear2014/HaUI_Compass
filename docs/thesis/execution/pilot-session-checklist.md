@@ -1,11 +1,11 @@
-# Pilot Session Checklist — Protocol v1.2
+# Pilot Session Checklist — Protocol v1.3
 
 ## Pre-session
 
 - [ ] Assigned a pseudonymous participant ID from `P01`–`P15`; no identity is encoded in it.
 - [ ] Consent material is ready; consent record will be stored separately.
 - [ ] Prototype is available and browser is ready.
-- [ ] Canonical fictional dataset is reset to the Protocol v1.2 fixture: 4 courses, 5 assignments, 4 initial study tasks; Academic Skills has no study task before T2.
+- [ ] Canonical fictional dataset is reset to the Protocol v1.3 fixture: 4 courses, 5 assignments, 4 initial study tasks, and four StudyWindows deriving 5.0 hours; Academic Skills has no study task before T2.
 - [ ] No previous participant state, session data, saved credentials, or browser autofill is present.
 - [ ] Participant-facing scenario sheet is ready.
 - [ ] Blank observation sheet and questionnaire form are ready.

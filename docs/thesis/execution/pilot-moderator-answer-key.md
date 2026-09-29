@@ -1,4 +1,4 @@
-# Pilot Moderator Answer Key — Protocol v1.2
+# Pilot Moderator Answer Key — Protocol v1.3
 
 **Researcher-only; never show this document to participants.** Use the current structured backend output as the authoritative answer key. Before each session, reset the fixture, generate the baseline plan, retrieve the Next Best Action and its `reason_codes`/evidence, and save a de-identified snapshot reference under the participant ID. If the fixed fixture does not yield the expected output below, stop the session setup and resolve the fixture; do not coach around a mismatch.
 

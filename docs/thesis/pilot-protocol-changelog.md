@@ -21,3 +21,11 @@ Research questions, hypotheses, participant criteria, SUS, custom questionnaire,
 The canonical scenario explicitly names four distinct courses—Algorithms, Databases, Machine Learning, and Academic Skills—while v1.1 incorrectly stated three.
 
 v1.2 changes course-count metadata only: the initial state has four courses, five assignments, and four study tasks; T2 creates the fifth task. No participant data has been collected.
+
+## Controlled Thesis Pilot Protocol v1.3
+
+**Status: FROZEN FOR PILOT**
+
+### Change from v1.2
+
+The exact canonical StudyWindows total 5.0 hours (18,000 seconds), while v1.2 incorrectly declared a larger aggregate. v1.3 makes the StudyWindows authoritative and derives total capacity from them; capacity is not independently editable. This is capacity metadata only. No participant data has been collected.
