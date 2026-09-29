@@ -34,11 +34,13 @@ from haui_compass.api.schemas.recommendations import (
     DailyRecommendationResponse,
     recommendation_response,
 )
+from haui_compass.api.schemas.tasks import CreateStudyTaskRequestDTO, StudyTaskResponse
 from haui_compass.application.academic_import import AcademicSource, dataset_from_values
 from haui_compass.application.ports.executions import ExecutionRecordId
 from haui_compass.application.ports.lms import SubmissionStatus
 from haui_compass.application.ports.reflections import ConfirmedReflectionRecordId
 from haui_compass.application.ports.study_plans import PlanRecordId
+from haui_compass.application.use_cases.create_study_task import CreateStudyTaskRequest
 from haui_compass.application.use_cases.get_daily_recommendation import (
     GetDailyRecommendationRequest,
 )
@@ -106,7 +108,9 @@ def import_academic_data(
             for item in request.submissions
         ),
     )
-    retry = container.imported_academic_data.replace(dataset)
+    retry = container.transaction_manager.run(
+        lambda: container.imported_academic_data.replace(dataset)
+    )
     return _academic_response(request, idempotent_retry=retry)
 
 
@@ -126,8 +130,10 @@ def current_academic_data(
 ) -> AcademicDataResponse:
     from haui_compass.application.ports.lms import ExternalRef
 
-    dataset = container.imported_academic_data.dataset(
-        ExternalRef(source.value, student_external_id)
+    dataset = container.transaction_manager.run(
+        lambda: container.imported_academic_data.dataset(
+            ExternalRef(source.value, student_external_id)
+        )
     )
     if dataset is None:
         from haui_compass.application.ports.persistence import (
@@ -181,7 +187,34 @@ def clear_academic_data(
 ) -> None:
     from haui_compass.application.ports.lms import ExternalRef
 
-    container.imported_academic_data.clear(ExternalRef(source.value, student_external_id))
+    container.transaction_manager.run(
+        lambda: container.imported_academic_data.clear(
+            ExternalRef(source.value, student_external_id)
+        )
+    )
+
+
+@router.post("/tasks", response_model=StudyTaskResponse)
+def create_study_task(
+    request: CreateStudyTaskRequestDTO, container: AppContainer = container_dependency
+) -> StudyTaskResponse:
+    record = container.create_study_task.execute(
+        CreateStudyTaskRequest(
+            student=request.student.to_domain(),
+            assignment=request.assignment.to_domain(),
+            task_id=TaskId(request.task_id),
+            title=request.title,
+            estimated_duration=request.duration(),
+        )
+    )
+    task = record.task
+    return StudyTaskResponse(
+        id=task.id,
+        assignment_id=task.assignment_id,
+        title=task.title,
+        estimated_duration_seconds=int(task.estimated_duration.total_seconds()),
+        status=task.status.value,
+    )
 
 
 @router.post("/daily-recommendation", response_model=DailyRecommendationResponse)

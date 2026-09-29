@@ -22,6 +22,73 @@ class Base(DeclarativeBase):
     pass
 
 
+class AcademicSourceRow(Base):
+    __tablename__ = "academic_sources"
+    __table_args__ = (
+        UniqueConstraint("student_id", "source", name="uq_academic_source_student_source"),
+        CheckConstraint("source IN ('manual', 'csv', 'json')", name="ck_academic_source_kind"),
+        Index("ix_academic_sources_student", "student_id"),
+    )
+    source_id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True)
+    student_id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), nullable=False)
+    source: Mapped[str] = mapped_column(String(32), nullable=False)
+    student_external_id: Mapped[str] = mapped_column(String(255), nullable=False)
+    imported_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class ImportedCourseRow(Base):
+    __tablename__ = "imported_courses"
+    __table_args__ = (
+        UniqueConstraint("source_id", "external_id", name="uq_imported_course_external"),
+        Index("ix_imported_courses_source", "source_id"),
+    )
+    course_id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True)
+    source_id: Mapped[UUID] = mapped_column(
+        PGUUID(as_uuid=True),
+        ForeignKey("academic_sources.source_id", ondelete="RESTRICT"),
+        nullable=False,
+    )
+    external_id: Mapped[str] = mapped_column(String(255), nullable=False)
+    name: Mapped[str] = mapped_column(String(500), nullable=False)
+    code: Mapped[str | None] = mapped_column(String(255), nullable=True)
+
+
+class ImportedAssignmentRow(Base):
+    __tablename__ = "imported_assignments"
+    __table_args__ = (
+        UniqueConstraint("source_id", "external_id", name="uq_imported_assignment_external"),
+        Index("ix_imported_assignments_source", "source_id"),
+    )
+    assignment_id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True)
+    source_id: Mapped[UUID] = mapped_column(
+        PGUUID(as_uuid=True),
+        ForeignKey("academic_sources.source_id", ondelete="RESTRICT"),
+        nullable=False,
+    )
+    course_id: Mapped[UUID] = mapped_column(
+        PGUUID(as_uuid=True),
+        ForeignKey("imported_courses.course_id", ondelete="RESTRICT"),
+        nullable=False,
+    )
+    external_id: Mapped[str] = mapped_column(String(255), nullable=False)
+    title: Mapped[str] = mapped_column(String(500), nullable=False)
+    deadline: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    estimated_seconds: Mapped[int | None] = mapped_column(Integer, nullable=True)
+
+
+class ImportedSubmissionRow(Base):
+    __tablename__ = "imported_submissions"
+    __table_args__ = (UniqueConstraint("assignment_id", name="uq_imported_submission_assignment"),)
+    submission_id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True)
+    assignment_id: Mapped[UUID] = mapped_column(
+        PGUUID(as_uuid=True),
+        ForeignKey("imported_assignments.assignment_id", ondelete="RESTRICT"),
+        nullable=False,
+    )
+    status: Mapped[str] = mapped_column(String(32), nullable=False)
+    submitted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
 class TaskRow(Base):
     __tablename__ = "tasks"
     __table_args__ = (

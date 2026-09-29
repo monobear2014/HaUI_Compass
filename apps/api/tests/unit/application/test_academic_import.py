@@ -3,6 +3,7 @@ from datetime import UTC, datetime
 import pytest
 
 from haui_compass.application.academic_import import (
+    AcademicDataSet,
     AcademicImportError,
     AcademicImportErrorCode,
     AcademicSource,
@@ -12,7 +13,7 @@ from haui_compass.application.academic_import import (
 from haui_compass.application.ports.lms import SubmissionStatus
 
 
-def dataset():
+def dataset() -> AcademicDataSet:
     return dataset_from_values(
         student_id="pilot-student",
         source=AcademicSource.JSON_IMPORT,

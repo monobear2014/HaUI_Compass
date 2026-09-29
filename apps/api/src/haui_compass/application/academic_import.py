@@ -8,6 +8,7 @@ from collections.abc import Collection
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from enum import StrEnum
+from typing import Protocol
 
 from haui_compass.application.ports.lms import (
     ExternalRef,
@@ -84,6 +85,14 @@ class AcademicDataSet:
             )
 
 
+class AcademicDataStore(LMSProvider, Protocol):
+    def replace(self, dataset: AcademicDataSet) -> bool: ...
+
+    def clear(self, student: ExternalRef) -> bool: ...
+
+    def dataset(self, student: ExternalRef) -> AcademicDataSet | None: ...
+
+
 class ImportedAcademicDataProvider:
     """Read-only LMSProvider implementation backed by validated pilot datasets."""
 
@@ -147,7 +156,7 @@ class ImportedAcademicDataProvider:
 class AcademicDataRoutingProvider:
     """Route pilot namespaces to imports and retain the existing configured provider otherwise."""
 
-    def __init__(self, *, imported: ImportedAcademicDataProvider, fallback: LMSProvider) -> None:
+    def __init__(self, *, imported: AcademicDataStore, fallback: LMSProvider) -> None:
         self._imported = imported
         self._fallback = fallback
 

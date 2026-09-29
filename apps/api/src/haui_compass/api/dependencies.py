@@ -4,6 +4,7 @@ from dataclasses import dataclass
 
 from haui_compass.application.academic_import import (
     AcademicDataRoutingProvider,
+    AcademicDataStore,
     ImportedAcademicDataProvider,
 )
 from haui_compass.application.ports.clock import Clock
@@ -14,6 +15,7 @@ from haui_compass.application.ports.study_plans import StudyPlanRepository
 from haui_compass.application.ports.tasks import TaskRepository
 from haui_compass.application.ports.transactions import PersistenceTransactionManager
 from haui_compass.application.use_cases.confirm_reflection_signals import ConfirmReflectionSignals
+from haui_compass.application.use_cases.create_study_task import CreateStudyTask
 from haui_compass.application.use_cases.generate_daily_recommendation import (
     GenerateDailyRecommendation,
 )
@@ -46,7 +48,7 @@ from haui_compass.infrastructure.persistence.memory.transactions import (
 @dataclass(frozen=True, slots=True)
 class AppContainer:
     lms: LMSProvider
-    imported_academic_data: ImportedAcademicDataProvider
+    imported_academic_data: AcademicDataStore
     clock: Clock
     task_repository: TaskRepository
     execution_repository: TaskExecutionRepository
@@ -58,6 +60,7 @@ class AppContainer:
     generate_reflection_candidates: GenerateReflectionCandidates
     confirm_persisted_reflection: ConfirmPersistedReflection
     replan_persisted_study_plan: ReplanPersistedStudyPlan
+    create_study_task: CreateStudyTask
     transaction_manager: PersistenceTransactionManager
 
 
@@ -80,7 +83,9 @@ def build_container(
     resolved_executions = execution_repository or InMemoryTaskExecutionRepository()
     resolved_plans = plan_repository or InMemoryStudyPlanRepository()
     resolved_reflections = reflection_repository or InMemoryConfirmedReflectionRepository()
-    transaction_manager = InMemoryPersistenceTransactionManager(resolved_tasks, resolved_executions)
+    transaction_manager = InMemoryPersistenceTransactionManager(
+        resolved_tasks, resolved_executions, imported_academic_data
+    )
     generator = GenerateDailyRecommendation(lms=resolved_lms, clock=resolved_clock)
     reflection_candidates = GenerateReflectionCandidates(
         task_repository=resolved_tasks,
@@ -123,6 +128,12 @@ def build_container(
             plan_repository=resolved_plans,
             lms=resolved_lms,
             clock=resolved_clock,
+        ),
+        create_study_task=CreateStudyTask(
+            lms=resolved_lms,
+            tasks=resolved_tasks,
+            clock=resolved_clock,
+            transaction_manager=transaction_manager,
         ),
         transaction_manager=transaction_manager,
     )
