@@ -5,6 +5,8 @@ from fastapi.responses import JSONResponse
 from haui_compass.application.ports.lms import LMSNotFoundError
 from haui_compass.application.ports.persistence import PersistenceError, PersistenceErrorCode
 from haui_compass.application.use_cases.daily_recommendation import DailyRecommendationInputError
+from haui_compass.application.use_cases.generate_weekly_plan import WeeklyPlanInputError
+from haui_compass.application.use_cases.persisted_learning_loop import ReflectionSelectionError
 from haui_compass.domain.shared.errors import DomainValidationError
 
 
@@ -35,6 +37,14 @@ def register_error_handlers(app: FastAPI) -> None:
     @app.exception_handler(DailyRecommendationInputError)
     async def recommendation_input(_: Request, exc: DailyRecommendationInputError) -> JSONResponse:
         return _response(400, exc.code.value, str(exc))
+
+    @app.exception_handler(WeeklyPlanInputError)
+    async def weekly_plan_input(_: Request, exc: WeeklyPlanInputError) -> JSONResponse:
+        return _response(400, exc.code.value, str(exc))
+
+    @app.exception_handler(ReflectionSelectionError)
+    async def reflection_selection(_: Request, __: ReflectionSelectionError) -> JSONResponse:
+        return _response(400, "invalid_reflection_selection", "selected signal was not generated")
 
     @app.exception_handler(DomainValidationError)
     async def domain_validation(_: Request, __: DomainValidationError) -> JSONResponse:

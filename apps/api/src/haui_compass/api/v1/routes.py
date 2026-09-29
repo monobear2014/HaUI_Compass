@@ -1,18 +1,40 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
 from uuid import UUID
 
 from fastapi import APIRouter, Depends
 
 from haui_compass.api.dependencies import AppContainer
 from haui_compass.api.schemas.executions import TaskExecutionRequest, TaskExecutionResponse
+from haui_compass.api.schemas.learning_loop import (
+    ConfirmedReflectionResponse,
+    ConfirmReflectionRequest,
+    PlanPeriodDTO,
+    PlanRecordDTO,
+    ReflectionCandidatesResponse,
+    ReflectionContextRequest,
+    ReplanRequest,
+    ReplanResponse,
+    WeeklyPlanRequest,
+    candidate_response,
+    plan_record_response,
+    replan_response,
+)
 from haui_compass.api.schemas.recommendations import (
     DailyRecommendationRequest,
     DailyRecommendationResponse,
     recommendation_response,
 )
 from haui_compass.application.ports.executions import ExecutionRecordId
+from haui_compass.application.ports.reflections import ConfirmedReflectionRecordId
+from haui_compass.application.ports.study_plans import PlanRecordId
 from haui_compass.application.use_cases.get_daily_recommendation import (
     GetDailyRecommendationRequest,
+)
+from haui_compass.application.use_cases.persisted_learning_loop import (
+    ConfirmPersistedReflectionRequest,
+    GeneratePersistedWeeklyPlanRequest,
+    GenerateReflectionCandidatesRequest,
+    ReplanPersistedStudyPlanRequest,
 )
 from haui_compass.application.use_cases.record_persisted_task_execution import (
     RecordPersistedTaskExecutionRequest,
@@ -77,3 +99,118 @@ def task_execution(
         task_status=result.updated_task.task.status.value,
         idempotent_retry=result.idempotent_retry,
     )
+
+
+@router.post("/weekly-plans", response_model=PlanRecordDTO)
+def weekly_plan(
+    request: WeeklyPlanRequest, container: AppContainer = container_dependency
+) -> PlanRecordDTO:
+    record = container.generate_persisted_weekly_plan.execute(
+        GeneratePersistedWeeklyPlanRequest(
+            student=request.student.to_domain(),
+            period=request.period.to_domain(),
+            study_windows=tuple(item.to_domain() for item in request.study_windows),
+            record_id=PlanRecordId(request.record_id),
+        )
+    )
+    return plan_record_response(record)
+
+
+@router.get("/weekly-plans/latest", response_model=PlanRecordDTO)
+def latest_weekly_plan(
+    student_provider: str,
+    student_id: str,
+    period_start: datetime,
+    period_end: datetime,
+    container: AppContainer = container_dependency,
+) -> PlanRecordDTO:
+    from haui_compass.application.lms_mapping import student_id_for
+    from haui_compass.application.ports.lms import ExternalRef
+    from haui_compass.application.ports.persistence import PersistenceError, PersistenceErrorCode
+
+    period = PlanPeriodDTO(start=period_start, end=period_end).to_domain()
+    record = container.transaction_manager.run(
+        lambda: container.plan_repository.latest(
+            student_id_for(ExternalRef(student_provider, student_id)), period
+        )
+    )
+    if record is None:
+        raise PersistenceError(PersistenceErrorCode.RECORD_NOT_FOUND, "plan was not found")
+    return plan_record_response(record)
+
+
+@router.get("/weekly-plans/history", response_model=tuple[PlanRecordDTO, ...])
+def weekly_plan_history(
+    student_provider: str,
+    student_id: str,
+    period_start: datetime,
+    period_end: datetime,
+    container: AppContainer = container_dependency,
+) -> tuple[PlanRecordDTO, ...]:
+    from haui_compass.application.lms_mapping import student_id_for
+    from haui_compass.application.ports.lms import ExternalRef
+
+    period = PlanPeriodDTO(start=period_start, end=period_end).to_domain()
+    return container.transaction_manager.run(
+        lambda: tuple(
+            plan_record_response(record)
+            for record in container.plan_repository.history(
+                student_id_for(ExternalRef(student_provider, student_id)), period
+            )
+        )
+    )
+
+
+@router.post("/reflections/candidates", response_model=ReflectionCandidatesResponse)
+def reflection_candidates(
+    request: ReflectionContextRequest, container: AppContainer = container_dependency
+) -> ReflectionCandidatesResponse:
+    result = container.generate_reflection_candidates.execute(
+        GenerateReflectionCandidatesRequest(
+            student=request.student.to_domain(),
+            period=request.reflection_period(),
+            responses=request.responses.to_domain(),
+        )
+    )
+    return candidate_response(result.candidate_signals.signals)
+
+
+@router.post("/reflections/confirm", response_model=ConfirmedReflectionResponse)
+def confirm_reflection(
+    request: ConfirmReflectionRequest, container: AppContainer = container_dependency
+) -> ConfirmedReflectionResponse:
+    record = container.confirm_persisted_reflection.execute(
+        ConfirmPersistedReflectionRequest(
+            student=request.student.to_domain(),
+            period=request.reflection_period(),
+            responses=request.responses.to_domain(),
+            selected_signal_ids=request.selected_signal_ids,
+            record_id=ConfirmedReflectionRecordId(request.record_id),
+        )
+    )
+    return ConfirmedReflectionResponse(
+        record_id=UUID(str(record.record_id)),
+        confirmed_at=record.confirmed.confirmed_at,
+        saved_at=record.saved_at,
+        confirmed_signal_ids=tuple(
+            candidate_response(record.confirmed.signals).candidates[i].id
+            for i in range(len(record.confirmed.signals))
+        ),
+    )
+
+
+@router.post("/weekly-plans/replan", response_model=ReplanResponse)
+def replan_weekly_plan(
+    request: ReplanRequest, container: AppContainer = container_dependency
+) -> ReplanResponse:
+    record = container.replan_persisted_study_plan.execute(
+        ReplanPersistedStudyPlanRequest(
+            student=request.student.to_domain(),
+            period=request.period.to_domain(),
+            study_windows=tuple(item.to_domain() for item in request.study_windows),
+            remaining_efforts=tuple(item.to_domain() for item in request.remaining_efforts),
+            effective_at=request.effective_at,
+            record_id=PlanRecordId(request.record_id),
+        )
+    )
+    return replan_response(record)

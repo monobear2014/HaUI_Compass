@@ -2,7 +2,8 @@
 
 ## Status
 
-Accepted (2026-09-27). Walking Skeleton v0 is implemented on `feat/api-skeleton`.
+Accepted (2026-09-27). Walking Skeleton v0 is implemented; Learning Loop API v0 extends this
+boundary on `feat/api-learning-loop`.
 
 ## Decision
 
@@ -11,10 +12,10 @@ domain, engines, and application use cases remain framework-independent. `create
 is the explicit application factory. `api.dependencies` is the sole composition root and wires LMS,
 clock, repository ports, and use cases without a dependency-injection framework.
 
-The v0 API uses deterministic in-memory adapters and a trusted development student identity in the
-request body. Execution writes append the execution record first and then save the current task
-snapshot; repository writes are not one transaction. PostgreSQL, authentication/authorization,
-frontend integration, and production transaction handling remain planned.
+The API supports both explicit in-memory and explicit PostgreSQL composition roots. The PostgreSQL
+root runs repository access through its transaction boundary; execution and plan-revision writes
+retain their adapter-owned atomicity. Trusted development student identity remains in request bodies.
+Authentication/authorization and frontend integration remain planned.
 
 ## Consequences
 

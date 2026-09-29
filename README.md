@@ -8,11 +8,22 @@ HaUI Compass is a planned adaptive AI learning companion for students at Hanoi U
 
 **Current phase: Project foundation / architecture design.**
 
+**Latest implemented milestone:** deterministic Learning Loop API v0, PostgreSQL
+persistence foundation, and a development-only Next.js workspace (Today, Weekly Plan,
+Reflect, History). See [frontend setup and boundaries](apps/web/README.md) and
+[product implementation status](docs/PROJECT.md). The opt-in demo uses fictional,
+in-memory data; authentication, real LMS and production deployment remain planned.
+
+The foundation descriptions below describe earlier milestones, not production readiness.
+
 **IMPLEMENTED:** repository foundation, source-of-truth documentation, working protocol, directory structure, and the backend Python package foundation (core domain types `Course`/`Assignment`/`Task`, typed identifiers, `Clock`/`SystemClock`, `StudentState` v0 with its pure derivation engine, a deterministic rule-based `RiskEngine` v0 (not a probability; thresholds are unvalidated MVP heuristics), a deterministic `NextBestActionEngine` v0 (ordered comparison, no score, no LLM; no `risk_if_deferred` yet), the `LMSProvider` port with a deterministic `MockLMSProvider` (development/test infrastructure only) and record-to-domain mapping, the first end-to-end use case `GenerateDailyRecommendation` (LMS + explicit tasks/capacity -> StudentState -> Risk -> NextBestAction, no FastAPI/database/UI yet), Execution Tracking v0 (`TaskExecution`, task state transitions, and `RecordTaskExecution`, proven to update `StudentState` and NBA eligibility), Structured Reflection v0 (`Reflection`, typed `ReflectionSignal`s with a candidate/confirmed split, and the `SubmitReflection`/`ConfirmReflectionSignals` use cases; no LLM, no `StudentState` field yet), Weekly Planner v0 (`StudyPlan`, explicit `StudyWindow`s, deterministic deadline-first allocation, typed unplanned effort, and `GenerateWeeklyPlan`), Adaptive Replanning v0 (explicit baseline/current facts, strict valid-block preservation, explicit remaining effort, typed plan changes and objective churn facts; confirmed reflections are informational only), and Persistence Foundation v0 (application repository ports plus deterministic in-memory adapters for task state, execution facts, confirmed reflections, and append-only typed plan revisions), tests, and an import-boundary check).
 
 **IMPLEMENTED:** FastAPI Walking Skeleton v0 on `feat/api-skeleton`: `/api/v1/health`, persisted-task daily recommendation, persisted task execution with explicit record-id idempotency, stable DTO/error envelopes, OpenAPI generation, and injectable in-memory composition root. This is development-only HTTP plumbing; it has no real authentication or durable database.
 
-**PLANNED:** the web application, PostgreSQL adapters and migrations, further domain behavior, AI workflows, grounded RAG, behaviour-aware risk, `risk_if_deferred`, weekly-goal/UI integration for planning, a reflection UI and LLM-assisted free-text summarization, evidence-backed reflection effects on planning, estimate calibration, real LMS providers (HaUI, Canvas, Moodle), dashboards, production transactions/authentication, and evaluation suites.
+**PLANNED:** production web integration, further domain behavior, AI workflows,
+grounded RAG, behaviour-aware risk, `risk_if_deferred`, weekly goals, LLM-assisted
+reflection summaries, evidence-backed reflection effects, estimate calibration,
+real LMS providers, lecturer dashboards, authentication and evaluation suites.
 
 No product feature is claimed to be operational yet.
 
@@ -42,7 +53,7 @@ Package layout and dependency rules are defined in [ADR-0001](docs/decisions/000
 
 ```text
 apps/
-  api/                          Backend (FastAPI itself is still planned)
+  api/                          FastAPI backend and deterministic application/domain
     src/haui_compass/           Single Python package containing the implemented domain foundation, deterministic engines, application use cases, and current adapters
       domain/                   Entities, value objects, invariants (no framework or vendor imports)
       engines/                  Deterministic decision algorithms: student state, risk, planning,
@@ -54,7 +65,7 @@ apps/
       api/v1/                   HTTP layer
       config/                   Settings
     tests/                      Backend unit and integration tests
-  web/                          Planned Next.js web application
+  web/                          Next.js development workspace MVP
 packages/shared/                Planned generated or shared contracts
 evals/                          Planned AI and product evaluation assets (not unit tests)
 tests/                          Reserved for cross-app end-to-end tests
@@ -67,7 +78,9 @@ Start with [docs/PROJECT.md](docs/PROJECT.md) for product scope and architecture
 
 ## Backend development
 
-The backend package foundation lives in `apps/api` and currently depends on nothing at runtime. There is no web server yet, so there is nothing to start.
+The backend lives in `apps/api`. Run the fictional learning-loop demo using the
+[frontend development guide](apps/web/README.md); the ordinary API factory is
+`haui_compass.api.main:create_app` and remains unseeded by default.
 
 Requires Python 3.12 or newer (developed on 3.12; [uv](https://docs.astral.sh/uv/) is convenient but optional).
 
@@ -94,4 +107,6 @@ Dependency direction between layers is enforced by `apps/api/tests/unit/test_imp
 
 ## Development status
 
-The repository contains documentation, an architectural scaffold, and a tested backend foundation (domain primitives, a clock abstraction, `StudentState` v0, a rule-based Risk Engine v0, a rule-ordered Next Best Action v0, Execution Tracking v0, Structured Reflection v0, deterministic Weekly Planner v0, Adaptive Replanning v0, and deterministic in-memory Persistence Foundation v0). The web and API applications, database schemas/adapters, AI capabilities, and product-facing integration remain planned and will be introduced incrementally.
+The deterministic backend, HTTP learning loop, PostgreSQL adapters/migrations and
+development frontend are implemented. AI capabilities, authenticated production
+integration and real LMS access remain planned; the demo is not a deployed product.

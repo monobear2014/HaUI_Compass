@@ -4,7 +4,7 @@
 - **Date:** 2026-09-27
 - **Inputs:** [`docs/PROJECT.md`](../PROJECT.md) (source of truth), [`docs/research/intelliplan-audit.md`](../research/intelliplan-audit.md)
 - **Update 2026-09-27:** [ADR-0001](../decisions/0001-python-package-and-domain-boundaries.md) is accepted and supersedes this proposal's package layout, scaffold mapping (§5), and open items 1–2 in §13. Where they differ, the ADR wins; the rest of this document remains a proposal.
-- **Implementation status:** The deterministic domain/application foundation, Persistence Foundation v0, and FastAPI Walking Skeleton v0 are implemented; PostgreSQL, auth, frontend, and production transactions remain planned.
+- **Implementation status:** The deterministic domain/application foundation, PostgreSQL Persistence v0, and Learning Loop API v0 are implemented. Authentication, frontend, real HaUI LMS integration, LLM/RAG, and production operations policy remain planned.
 
 This proposal describes how HaUI Compass could be structured after studying IntelliPlan. It keeps PROJECT.md's direction (Next.js + FastAPI modular monolith, PostgreSQL, provider-independent AI and LMS) and adds concrete boundaries. Decisions that deserve an ADR are listed in §13.
 
@@ -485,7 +485,29 @@ Persistence identity remains outside pure domain entities. `StoredTask` associat
 
 Adapters under `infrastructure/persistence/memory` store typed immutable objects, return deterministic ordering, and perform no filesystem/database/serialization/random/clock operations. Reusable repository contract tests cover save/retrieve, isolation, ordering, idempotency/conflict, history/latest, scope validation, and stale revisions. A canonical integration test proves Generate Weekly Plan → save v1 → record execution → confirm reflection → Replan → save v2 → load latest while retaining v1.
 
-No SQLAlchemy, Alembic, PostgreSQL/SQLite driver, ORM, FastAPI, LLM, or RAG dependency is introduced. PostgreSQL adapters and real transaction/concurrency behavior remain PLANNED.
+The persistence foundation itself stays independent of SQLAlchemy, Alembic, FastAPI, LLM, and RAG.
+PostgreSQL adapters, migrations, transaction/concurrency behavior, and real-database contract tests
+are now implemented in infrastructure; SQLite is not used as a substitute.
+
+#### Learning Loop API v0 (IMPLEMENTED, HTTP/application composition)
+
+The versioned HTTP boundary now exposes the implemented deterministic loop without exposing ORM or
+domain objects directly:
+
+```text
+HTTP → persisted weekly plan → task execution → reflection candidates
+     → explicit confirmation → adaptive replan → latest/history
+```
+
+`POST /weekly-plans`, `GET /weekly-plans/latest`, `GET /weekly-plans/history`,
+`POST /reflections/candidates`, `POST /reflections/confirm`, and `POST /weekly-plans/replan`
+compose existing application use cases through repository/LMS ports. The confirmation endpoint
+regenerates candidates from the submitted structured context and accepts only their deterministic
+typed identities; candidates themselves are never persisted as facts. Replanning receives explicit
+remaining effort and loads the baseline, execution facts, and confirmed reflections server-side.
+Both in-memory and PostgreSQL composition roots are covered by ASGI tests; PostgreSQL reads/writes
+run within the application transaction boundary. Frontend, authentication, and real HaUI LMS are
+still **PLANNED**.
 
 
 ---
