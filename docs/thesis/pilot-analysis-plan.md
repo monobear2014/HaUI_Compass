@@ -1,4 +1,8 @@
-# Pilot Analysis Plan
+# Pilot Analysis Plan — Protocol v1
+
+**Status: FROZEN FOR PILOT**
+**One moderated session: 30–45 minutes**
+**Participant plan: target 12; acceptable range 10–15; fewer than 10 is exploratory only**
 
 ## Timing and unit of analysis
 
@@ -21,7 +25,7 @@ Do not make a composite “pilot score.” Keep task-level results separate so a
 
 ## Quantitative reporting
 
-For the small pilot, report n/N and percentage for completion/abandonment and comprehension categories; median and range (or IQR when informative) for time, errors, assistance, and navigation mistakes; and item-level Likert distributions with median. Report the standard SUS score only as a separate established-instrument result. Show missing responses and technical incidents. Prefer descriptive statistics; do not use significance tests unless a justified sample size, comparison, and pre-specified method are added before collection.
+For this pilot, report task completion rate, median time-on-task, error count, assistance count, abandonment, navigation mistakes, and comprehension accuracy. Report n/N and percentage for completion/abandonment and comprehension categories; median and range (or IQR when informative) for time and event counts; custom-Likert item distributions with median; and the standard SUS score separately. Show missing responses and technical incidents. Use descriptive statistics only; do not perform inferential significance testing.
 
 Map evidence to questions: RQ1 uses T1–T10 completion/time/errors; RQ2 uses the Next Best Action item and T4; RQ3 uses T5/T10 comprehension and clarity/replan items; RQ4 uses SUS and workload item; RQ5 uses error notes, free text, and interview themes. H1–H4 are assessed descriptively, with wording limited to the observed sample.
 
@@ -32,3 +36,5 @@ Transcribe or expand interview notes without identifiers. Two reviewers, where f
 ## Reporting boundary
 
 Report technical validation in a distinct section from participant results. Interpret findings as formative evidence from a controlled fictional scenario, not estimates of academic outcomes, real LMS workflow performance, population adoption, or production readiness.
+
+After the first participant session begins, changes to comprehension scoring or primary metrics require a protocol version bump; do not silently mix datasets.

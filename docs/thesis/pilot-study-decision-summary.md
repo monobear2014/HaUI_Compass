@@ -1,4 +1,8 @@
-# Supervisor Review Summary: HaUI Compass Controlled Pilot
+# Pilot Study Decision Summary — Controlled Thesis Pilot Protocol v1
+
+**Status: FROZEN FOR PILOT**
+**One moderated session per participant: 30–45 minutes**
+**Participant plan: target 12; acceptable range 10–15; fewer than 10 is exploratory only**
 
 ## Thesis objective
 
@@ -23,11 +27,11 @@ These are descriptive pilot hypotheses; none concerns GPA, learning gain, retent
 
 ## Study design
 
-A moderated controlled usability/pilot session has five phases: orientation; a common fictional academic scenario; independent task completion; questionnaires; and a short semi-structured interview. The facilitator records observations without coaching. Technical validation evidence is reported separately from participant outcomes.
+A moderated controlled usability study has five phases: orientation; a common fictional academic scenario; independent task completion; questionnaires; and a short semi-structured interview. The facilitator records observations without coaching. Technical validation evidence is reported separately from participant outcomes.
 
 ## Participants
 
-Include university students able to use a web application and provide informed consent; HaUI enrolment is not required. Exclude prior participants and project researchers/developers. The minimum practical pilot target is **5** participants; the preferred target is **10–15** participants.
+Include university students aged 18+ with basic web-app familiarity who can provide informed consent; HaUI enrolment is not required. Exclude prior participants and people directly involved in developing HaUI Compass. The target is **12** participants; the acceptable range is **10–15**. Fewer than 10 participants is an exploratory pilot only.
 
 ## Participant tasks
 
@@ -60,11 +64,13 @@ For T5, ask why the system recommended the displayed task and compare the respon
 
 ## Data collected
 
-Collect only anonymous participant ID, session/task outcomes and durations, UI errors, navigation/assistance/abandonment events, questionnaire responses, comprehension responses/codes, interview notes, and technical-incident notes. The repository contains only a field template, never participant records.
+Collect only pseudonymous participant IDs (`P01`, `P02`, …), session/task outcomes and durations, UI errors, navigation/assistance/abandonment events, questionnaire responses, comprehension responses/codes, interview notes, and technical-incident notes. The repository contains only a field template, never participant records.
 
 ## Consent and privacy
 
-Participation is voluntary; participants may skip questions/tasks or stop without consequence or grade effect. The study uses fictional data and requires no HaUI/LMS credentials. Consent records are separated from pseudonymised analysis data. Passwords, student IDs in the analysis dataset, real academic records, financial information, and health information are not collected. Storage, access, retention, and secure deletion are set before recruitment. Ethics/supervisor status is explicitly **TO BE CONFIRMED**.
+Participation is voluntary; participants may skip questions/tasks or stop without consequence or grade effect. The study uses fictional data and requires no HaUI/LMS credentials. Consent records are separated from pseudonymised analysis data. Passwords, student IDs, real academic records, financial information, health information, and unnecessary identifying information are not collected. Retain raw/pseudonymous data for six months after thesis/project completion, then delete it; aggregated anonymized results may remain in the thesis/project report.
+
+**Ethics status:** Minimal-risk personal usability pilot. Formal institutional ethics approval has not been obtained. If an institution later requires ethics approval for formal thesis use, that approval must be obtained before collecting data under that institutional study.
 
 ## Analysis method
 
@@ -78,20 +84,8 @@ Small convenience sample, fictional workload, short duration, novelty effect, se
 
 If supported, the thesis may claim that the prototype is technically functional (from separate engineering evidence), that this sample completed specified tasks, that participants perceived features as useful/clear, and that deterministic recommendation/replanning behaviour was explainable to the measured extent. It must not claim improved GPA, learning outcomes, dropout, long-term behaviour, production readiness, or official HaUI LMS integration.
 
-## Decisions Needed From Supervisor
+## Frozen decisions and change control
 
-Please approve or provide feedback on:
+RQ1–RQ5, H1–H4, the target sample, participant eligibility, the fixed fictional scenario, unmodified SUS, separate custom 5-point Likert items, interview prompts, comprehension coding, descriptive-only statistics, privacy/retention terms, ethics wording, and claim boundaries are final for Protocol v1.
 
-- Research questions RQ1–RQ5.
-- Hypotheses H1–H4 and their descriptive pilot framing.
-- Participant target: minimum 5 and preferred 10–15.
-- Participant eligibility criteria.
-- The controlled fictional scenario and its use instead of real academic data.
-- Use of the unmodified SUS.
-- Custom Likert questions.
-- Semi-structured interview questions.
-- Participant-information and consent wording.
-- Required retention period and secure deletion method.
-- Whether ethics or institutional approval is required before recruitment.
-- Whether statistical testing is expected beyond the planned descriptive analysis.
-- Thesis claim boundaries.
+After the first participant session begins, any change to participant tasks, canonical scenario, questionnaire, comprehension scoring, or primary metrics requires a protocol version bump. Do not silently mix datasets collected under different versions.

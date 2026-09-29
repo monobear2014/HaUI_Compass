@@ -1,4 +1,8 @@
-# HaUI Compass Controlled Pilot Evaluation Protocol
+# HaUI Compass Controlled Thesis Pilot Protocol v1
+
+**Status: FROZEN FOR PILOT**
+**Session duration: 30–45 minutes per participant**
+**Participant plan: target 12; acceptable range 10–15; fewer than 10 is exploratory only**
 
 ## Purpose and scope
 
@@ -16,7 +20,7 @@ Existing engineering evidence is reported separately: MVP Benchmark v1, Pilot Im
 
 ## Hypotheses
 
-- **H1:** Participants complete the core workflow tasks with a high task-completion rate, reported with its confidence interval and raw numerator/denominator.
+- **H1:** Participants complete the core workflow tasks with a high task-completion rate, reported with raw numerator/denominator.
 - **H2:** Participants rate Next Best Action as useful for prioritising study work on a post-task Likert item.
 - **H3:** After seeing structured recommendation reasons/evidence, participants can explain the prioritisation correctly or partially correctly more often than incorrectly.
 - **H4:** Participants rate the revised plan as useful after a controlled execution/capacity change.
@@ -25,7 +29,7 @@ Existing engineering evidence is reported separately: MVP Benchmark v1, Pilot Im
 
 ## Design and session procedure
 
-This is a moderated, controlled usability/pilot study with five phases: (A) orientation, (B) fictional scenario briefing, (C) independent task performance, (D) questionnaire, and (E) a short semi-structured interview. The researcher uses the task sheet and records observations without coaching.
+This is a moderated, controlled usability/pilot study with one 30–45 minute session per participant and five phases: (A) orientation, (B) fictional scenario briefing, (C) independent task performance, (D) questionnaire, and (E) a short semi-structured interview. The researcher uses the task sheet and records observations without coaching.
 
 1. Give participant information, obtain consent, and assign an anonymous ID.
 2. Give a 3–5 minute neutral product introduction: pages available and how to use ordinary controls; do not reveal task answers or reasons.
@@ -39,9 +43,9 @@ For technical failure, pause the timer, document the incident, restore the known
 
 ## Participants
 
-Inclusion criteria are university students who can use a web application and can provide informed consent. HaUI enrolment is not required for this controlled first study. Exclude only people who cannot consent or who have already participated in this exact study; researchers/developers should not be recruited because of prior system knowledge.
+Inclusion criteria are university students aged 18 or older who have basic web-application familiarity and can provide informed consent. HaUI enrolment is not required. Exclude people directly involved in developing HaUI Compass and people who have already participated in this exact study.
 
-Recruit a **minimum practical pilot target of 5 participants**, sufficient to expose prominent workflow problems in a moderated formative pilot. The **preferred target is 10–15 participants**, giving more stable descriptive distributions while remaining feasible for a student thesis. Report the achieved number and recruitment method; do not substitute either target for a decided sample size or claim population representativeness.
+Recruit a **target of 12 participants**, with an acceptable range of **10–15**. Fewer than 10 participants constitutes an exploratory pilot only. Report the achieved number and recruitment method; do not claim population representativeness.
 
 ## Canonical fictional scenario
 
@@ -59,9 +63,9 @@ After replan, ask: “What changed? Why did it change? What remained unchanged?�
 
 ## Data collection and privacy boundary
 
-Collect only anonymous participant ID, task outcomes/durations, UI errors, navigation mistakes, assistance and abandonment events, questionnaire answers, comprehension responses/codes, interview notes, and technical-incident notes. Use the field-only template in [pilot-data-collection-template.md](pilot-data-collection-template.md).
+Collect only pseudonymous participant IDs (`P01`, `P02`, …), task outcomes/durations, UI errors, navigation mistakes, assistance and abandonment events, questionnaire answers, comprehension responses/codes, interview notes, and technical-incident notes. Use the field-only template in [pilot-data-collection-template.md](pilot-data-collection-template.md).
 
-Do not collect passwords, HaUI/LMS credentials, names in the analysis dataset, student IDs, financial or health information, or real academic records. Retention period, storage location, access roles, deletion method, and any link between consent form and participant ID must be set before recruitment begins.
+Do not collect passwords, HaUI/LMS credentials, names in the analysis dataset, student IDs, financial or health information, or real academic records. Retain raw/pseudonymous study data for six months after thesis/project completion, then delete it. Aggregated anonymized results may remain in the thesis/project report.
 
 ## Threats to validity
 
@@ -84,4 +88,8 @@ It must not claim that HaUI Compass improves GPA, learning outcomes, dropout, lo
 
 ## Ethics and approval
 
-**ETHICS / SUPERVISOR APPROVAL STATUS: TO BE CONFIRMED.** Do not recruit until the required supervisor/institutional review, retention/deletion plan, and participant materials are confirmed.
+**Minimal-risk personal usability pilot. Formal institutional ethics approval has not been obtained.** If an institution later requires ethics approval for formal thesis use, that approval must be obtained before collecting data under that institutional study.
+
+## Change control
+
+After the first participant session begins, any change to participant tasks, the canonical scenario, questionnaire, comprehension scoring, or primary metrics requires a protocol version bump. Do not silently mix data collected under different protocol versions.

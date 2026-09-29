@@ -1,4 +1,8 @@
-# Pilot Participant Tasks and Canonical Scenario
+# Pilot Participant Tasks and Canonical Scenario — Protocol v1
+
+**Status: FROZEN FOR PILOT**
+**One moderated session: 30–45 minutes**
+**Participant plan: target 12; acceptable range 10–15; fewer than 10 is exploratory only**
 
 ## Controlled scenario card
 
@@ -32,3 +36,5 @@ Controlled change: after T6, the participant records 45 minutes of partial work 
 | T10 | “In History, compare the original and revised plans. What changed, why, and what stayed the same?” | Locates both revisions and gives responses codeable against change records. | Cannot locate revisions, no interpretable response, abandonment. | same + three verbatim responses and codes |
 
 An error is an action producing an invalid state, an incorrect required value, or an unnecessary recovery caused by the participant. A navigation mistake is entering a page/control that does not advance the current task, excluding deliberate exploration and researcher-directed navigation. Record each observable event once with a short note.
+
+After the first participant session begins, changes to these tasks or the canonical scenario require a protocol version bump; do not silently mix datasets.

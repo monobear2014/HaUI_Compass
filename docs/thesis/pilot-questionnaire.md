@@ -1,4 +1,8 @@
-# Pilot Questionnaire
+# Pilot Questionnaire — Protocol v1
+
+**Status: FROZEN FOR PILOT**
+**One moderated session: 30–45 minutes**
+**Participant plan: target 12; acceptable range 10–15; fewer than 10 is exploratory only**
 
 Administer the relevant post-task item immediately after T5, T7, T9, and T10, before the interview. Use this response scale for every custom item: 1 Strongly disagree, 2 Disagree, 3 Neither agree nor disagree, 4 Agree, 5 Strongly agree, plus “Prefer not to answer” (reported as missing, not as a midpoint).
 
@@ -41,3 +45,5 @@ Ask neutral follow-ups such as “Can you tell me more?” or “What led you to
 6. What information was missing, if any?
 7. Would you consider using a tool like this for your actual coursework? Why or why not?
 8. What would stop you from using it?
+
+After the first participant session begins, changes to this questionnaire require a protocol version bump; do not silently mix datasets.
