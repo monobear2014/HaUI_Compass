@@ -130,10 +130,16 @@ def test_postgres_import_idempotency_conflict_provenance_and_safe_clear(database
     engine = create_engine(database_url, future=True)
     try:
         with engine.connect() as connection:
-            source = connection.execute(select(AcademicSourceRow)).scalar_one()
-            assert source.source == "json"
-            assert source.student_external_id == "pilot"
-            assert source.imported_at.tzinfo is not None
+            source, student_external_id, imported_at = connection.execute(
+                select(
+                    AcademicSourceRow.source,
+                    AcademicSourceRow.student_external_id,
+                    AcademicSourceRow.imported_at,
+                )
+            ).one()
+            assert source == "json"
+            assert student_external_id == "pilot"
+            assert imported_at.tzinfo is not None
     finally:
         engine.dispose()
 
@@ -250,8 +256,8 @@ def test_canonical_http_thesis_scenario_survives_rebuilt_composition(database_ur
             "student": student,
             "task_id": task_id,
             "record_id": str(uuid4()),
-            "started_at": "2026-10-01T08:00:00+00:00",
-            "ended_at": "2026-10-01T08:20:00+00:00",
+            "started_at": "2026-10-01T07:00:00+00:00",
+            "ended_at": "2026-10-01T07:20:00+00:00",
             "outcome": "partial",
         },
     )
@@ -286,7 +292,7 @@ def test_canonical_http_thesis_scenario_survives_rebuilt_composition(database_ur
             "period": PERIOD,
             "study_windows": [window],
             "remaining_efforts": [{"task_id": task_id, "remaining_duration_seconds": 1500}],
-            "effective_at": "2026-10-01T08:30:00+00:00",
+            "effective_at": "2026-10-01T08:00:00+00:00",
         },
     )
     assert revised.status_code == 200

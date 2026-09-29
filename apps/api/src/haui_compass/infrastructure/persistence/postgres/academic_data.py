@@ -60,10 +60,11 @@ class PostgresImportedAcademicDataProvider:
             imported_at=datetime.now(UTC),
         )
         session.add(source)
+        session.flush()
         course_rows: dict[ExternalRef, ImportedCourseRow] = {}
         for course in dataset.courses:
             course_row = ImportedCourseRow(
-                course_id=uuid5(_NAMESPACE, f"course|{course.ref}"),
+                course_id=uuid5(_NAMESPACE, f"course|{dataset.student}|{course.ref}"),
                 source_id=source.source_id,
                 external_id=course.ref.id,
                 name=course.name,
@@ -71,10 +72,11 @@ class PostgresImportedAcademicDataProvider:
             )
             course_rows[course.ref] = course_row
             session.add(course_row)
+        session.flush()
         assignment_rows: dict[ExternalRef, ImportedAssignmentRow] = {}
         for assignment in dataset.assignments:
             assignment_row = ImportedAssignmentRow(
-                assignment_id=uuid5(_NAMESPACE, f"assignment|{assignment.ref}"),
+                assignment_id=uuid5(_NAMESPACE, f"assignment|{dataset.student}|{assignment.ref}"),
                 source_id=source.source_id,
                 course_id=course_rows[assignment.course_ref].course_id,
                 external_id=assignment.ref.id,
@@ -86,10 +88,14 @@ class PostgresImportedAcademicDataProvider:
             )
             assignment_rows[assignment.ref] = assignment_row
             session.add(assignment_row)
+        session.flush()
         for submission in dataset.submissions:
             session.add(
                 ImportedSubmissionRow(
-                    submission_id=uuid5(_NAMESPACE, f"submission|{submission.assignment_ref}"),
+                    submission_id=uuid5(
+                        _NAMESPACE,
+                        f"submission|{dataset.student}|{submission.assignment_ref}",
+                    ),
                     assignment_id=assignment_rows[submission.assignment_ref].assignment_id,
                     status=submission.status.value,
                     submitted_at=utc(submission.submitted_at) if submission.submitted_at else None,
@@ -127,14 +133,17 @@ class PostgresImportedAcademicDataProvider:
         )
         for submission_row in submissions:
             self._session().delete(submission_row)
+        self._session().flush()
         for assignment_row in self._session().scalars(
             select(ImportedAssignmentRow).where(ImportedAssignmentRow.source_id == source.source_id)
         ):
             self._session().delete(assignment_row)
+        self._session().flush()
         for course_row in self._session().scalars(
             select(ImportedCourseRow).where(ImportedCourseRow.source_id == source.source_id)
         ):
             self._session().delete(course_row)
+        self._session().flush()
         self._session().delete(source)
         return True
 
