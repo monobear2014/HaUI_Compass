@@ -2,11 +2,11 @@
 
 **Date:** 2026-09-29
 **Classification:** Internal operational dry-run; not participant data; excluded from `P01`–`P15` and all final-study datasets.
-**Final decision:** **PROTOCOL REVISION REQUIRED**
+**Final decision:** **NOT READY FOR DRYRUN-02**
 
 ## Scope and execution point reached
 
-The dry-run followed [pilot-dry-run-plan.md](pilot-dry-run-plan.md) and began with the pre-session checklist and canonical-fixture reset check. It stopped before consent, timing, or any participant task because the required Protocol v1 fixture could not be prepared using the available prototype demo. No participant-facing session was run and no research-data directory or participant record was created.
+The dry-run followed [pilot-dry-run-plan.md](pilot-dry-run-plan.md) and began with the pre-session checklist and canonical-fixture reset check. It stopped before consent, timing, or any participant task because a deterministic resettable fixture for the required Protocol v1 scenario is not yet available in the prototype. No participant-facing session was run and no research-data directory or participant record was created.
 
 ## Duration
 
@@ -20,7 +20,7 @@ The dry-run followed [pilot-dry-run-plan.md](pilot-dry-run-plan.md) and began wi
 
 The available explicit fictional frontend demo is the only documented resettable prototype route. Its implementation (`apps/api/src/haui_compass/api/demo.py`) seeds four tasks and three availability windows: 90, 60, and 60 minutes (3.5 hours total). Its documented boundary (`apps/web/README.md`) likewise states “Four fictional tasks and three editable availability windows.”
 
-Protocol v1 requires a fixed scenario with three courses, five assignments, five listed study tasks, 6.5 hours of capacity, Algorithms configured high risk, Databases configured medium risk, and the specified controlled execution/reflection/capacity-change sequence. The existing demo fixture uses different tasks and assignment/course labels and does not establish the Protocol v1 risk fixture. It therefore cannot be truthfully represented as the canonical scenario, nor can its output support the frozen moderator answer key.
+Protocol v1 requires a fixed scenario with three courses, five assignments, five listed study tasks, 6.5 hours of capacity, Algorithms configured high risk, Databases configured medium risk, and the specified controlled execution/reflection/capacity-change sequence. The existing demo fixture uses different tasks and assignment/course labels and does not establish the Protocol v1 risk fixture. It therefore cannot be truthfully represented as the canonical scenario, nor can its output support the frozen moderator answer key. This is a missing execution/environment fixture, not a defect in Protocol v1.
 
 ## T1–T10 operational result
 
@@ -53,14 +53,14 @@ The current demo is resettable by restart, but resets the wrong fictional fixtur
 
 | ID | Issue | Classification | Required action |
 | --- | --- | --- | --- |
-| B-01 | No resettable prototype fixture implements the frozen canonical scenario and its expected evidence. | **B. Protocol-level issue** | Stop. Define the executable canonical fixture and its relationship to T1–T10, issue a protocol version bump, update controlled materials, then rerun one dry-run. |
+| E-01 | Canonical resettable pilot fixture unavailable: no prototype reset mechanism implements the frozen scenario and its expected evidence. | **A. Execution/environment issue** | Implement a deterministic resettable fixture for the existing frozen scenario, validate it automatically, then rerun the dry-run. |
 
-No execution-material-only issue was found or changed. This blocker concerns canonical scenario semantics and task/evidence viability, which are frozen elements.
+No protocol-level issue was found. Protocol v1 remains frozen; no protocol version bump is required. The blocker is limited to execution/infrastructure availability.
 
 ## Changes made
 
-None to Protocol v1, participant tasks, scenario semantics, questionnaire, SUS, comprehension scoring, metrics, or product code. This report was added as an execution record only.
+None to Protocol v1, participant tasks, scenario semantics, questionnaire, SUS, comprehension scoring, metrics, or product code. This report was updated only to correct the issue classification.
 
 ## Readiness
 
-**PROTOCOL REVISION REQUIRED.** Do not recruit participants or run the participant study until B-01 is resolved through a documented protocol version bump and a subsequent successful dry-run.
+**NOT READY FOR DRYRUN-02.** Do not recruit participants or run the participant study until E-01 is resolved through a deterministic resettable canonical fixture, automated validation, and a subsequent successful dry-run.
