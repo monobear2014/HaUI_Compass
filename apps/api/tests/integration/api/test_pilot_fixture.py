@@ -1,5 +1,6 @@
 from datetime import datetime
 from uuid import UUID
+from uuid import uuid4
 from fastapi.testclient import TestClient
 from haui_compass.api.pilot_fixture import create_pilot_fixture_app
 def test_reset_and_t2_creation():
@@ -10,3 +11,20 @@ def test_reset_and_t2_creation():
   task_id=str(UUID(int=99)); result=c.post('/api/v1/tasks',json={'student':before['student'],'assignment':{'provider':'pilot-fixture','id':'reading-response'},'task_id':task_id,'title':'Summarise two articles','estimated_effort_minutes':45})
   assert result.status_code==200 and result.json()['status']=='not_started'
   after=c.get('/api/v1/demo/context').json(); assert len(after['tasks'])==5
+
+def test_canonical_engine_flow():
+ with TestClient(create_pilot_fixture_app()) as c:
+  ctx=c.post('/api/v1/pilot-fixture/reset').json(); reading=str(UUID(int=99))
+  assert c.post('/api/v1/tasks',json={'student':ctx['student'],'assignment':{'provider':'pilot-fixture','id':'reading-response'},'task_id':reading,'title':'Summarise two articles','estimated_effort_minutes':45}).status_code==200
+  ctx=c.get('/api/v1/demo/context').json(); ids={x['title']:x['id'] for x in ctx['tasks']}
+  caps=[{'assignment_id':x['assignment_id'],'available_minutes':60 if x['title']=='Solve graph exercises' else 100} for x in ctx['tasks']]
+  rec=c.post('/api/v1/daily-recommendation',json={'student':ctx['student'],'available_minutes':300,'assignment_capacities':caps}); assert rec.status_code==200,rec.text
+  body=rec.json(); assert body['recommendation']['task_id']==ids['Solve graph exercises']
+  plan=c.post('/api/v1/weekly-plans',json={'student':ctx['student'],'record_id':str(uuid4()),'period':ctx['period'],'study_windows':ctx['study_windows']}); assert plan.status_code==200,plan.text
+  execution=c.post('/api/v1/task-executions',json={'student':ctx['student'],'record_id':str(uuid4()),'task_id':ids['Solve graph exercises'],'started_at':'2026-10-05T01:15:00+00:00','ended_at':'2026-10-05T02:00:00+00:00','outcome':'partial'}); assert execution.status_code==200,execution.text
+  reflection={'student':ctx['student'],'period':ctx['period'],'responses':{'reflected_task_ids':[ids['Solve graph exercises']],'workload_feedback':'too_heavy'}}
+  candidates=c.post('/api/v1/reflections/candidates',json=reflection); assert candidates.status_code==200,candidates.text
+  selected=[x['id'] for x in candidates.json()['candidates']]
+  confirmed=c.post('/api/v1/reflections/confirm',json={**reflection,'record_id':str(uuid4()),'selected_signal_ids':selected}); assert confirmed.status_code==200,confirmed.text
+  replan=c.post('/api/v1/weekly-plans/replan',json={'student':ctx['student'],'record_id':str(uuid4()),'period':ctx['period'],'study_windows':[x for i,x in enumerate(ctx['study_windows']) if i!=1],'effective_at':'2026-10-05T02:00:00+00:00','remaining_efforts':[{'task_id':x['id'],'remaining_duration_seconds':x['estimated_duration_seconds']} for x in ctx['tasks']]}); assert replan.status_code==200,replan.text
+  assert replan.json()['plan']['revision']==2

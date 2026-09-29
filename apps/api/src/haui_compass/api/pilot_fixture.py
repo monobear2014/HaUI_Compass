@@ -23,7 +23,7 @@ def build() -> AppContainer:
   a=by[k]; c.task_repository.save(StoredTask(student_id=student_id_for(STUDENT),task=Task(id=TaskId(UUID(int=n)),assignment_id=assignment_id_for(a.ref),title=t,estimated_duration=timedelta(minutes=m),status=s),saved_at=NOW))
  return c
 def snapshot(c:AppContainer)->dict:
- ts=c.task_repository.list_for_student(student_id_for(STUDENT)); return {"courses":4,"assignments":5,"student":{"provider":STUDENT.provider,"id":STUDENT.id},"study_windows":[{"starts_at":x,"ends_at":y} for x,y in WINDOWS],"tasks":[{"id":str(x.task.id),"title":x.task.title,"assignment_id":str(x.task.assignment_id),"estimated_duration_seconds":int(x.task.estimated_duration.total_seconds()),"status":x.task.status.value} for x in ts]}
+ ts=c.task_repository.list_for_student(student_id_for(STUDENT)); return {"courses":4,"assignments":5,"student":{"provider":STUDENT.provider,"id":STUDENT.id},"period":{"start":d(5,0),"end":d(10,0)},"study_windows":[{"starts_at":x,"ends_at":y} for x,y in WINDOWS],"tasks":[{"id":str(x.task.id),"title":x.task.title,"assignment_id":str(x.task.assignment_id),"estimated_duration_seconds":int(x.task.estimated_duration.total_seconds()),"status":x.task.status.value} for x in ts]}
 def create_pilot_fixture_app()->FastAPI:
  app=create_app(build())
  @app.post("/api/v1/pilot-fixture/reset")
