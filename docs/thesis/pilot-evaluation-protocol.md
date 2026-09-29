@@ -1,4 +1,4 @@
-# HaUI Compass Controlled Thesis Pilot Protocol v1.1
+# HaUI Compass Controlled Thesis Pilot Protocol v1.2
 
 **Status: FROZEN FOR PILOT**
 **Session duration: 30–45 minutes per participant**
@@ -49,7 +49,7 @@ Recruit a **target of 12 participants**, with an acceptable range of **10–15**
 
 ## Canonical fictional scenario
 
-Use a resettable study account and the exact scenario in [pilot-participant-tasks.md](pilot-participant-tasks.md). Its initial state has three courses, five assignments, and four study tasks: the Academic Skills assignment exists but has no study task until T2. T2 explicitly creates the fifth study task. The scenario has overlapping deadlines, 6.5 hours of study capacity, a high-risk and a medium-risk assignment, an in-progress task, a reflection, and a subsequent capacity change. It exercises Academic Data → Create Study Task → Weekly Plan → Today → Record Execution → Reflection → Confirm Signal → Adaptive Replan → History. No real student data, accounts, LMS data, or credentials are needed.
+Use a resettable study account and the exact scenario in [pilot-participant-tasks.md](pilot-participant-tasks.md). Its initial state has four courses, five assignments, and four study tasks: the Academic Skills assignment exists but has no study task until T2. T2 explicitly creates the fifth study task. The scenario has overlapping deadlines, 6.5 hours of study capacity, a high-risk and a medium-risk assignment, an in-progress task, a reflection, and a subsequent capacity change. It exercises Academic Data → Create Study Task → Weekly Plan → Today → Record Execution → Reflection → Confirm Signal → Adaptive Replan → History. No real student data, accounts, LMS data, or credentials are needed.
 
 ## Recommendation and replanning comprehension
 

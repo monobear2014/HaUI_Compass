@@ -20,7 +20,7 @@ The dry-run followed [pilot-dry-run-plan.md](pilot-dry-run-plan.md) and began wi
 
 The available explicit fictional frontend demo is the only documented resettable prototype route. Its implementation (`apps/api/src/haui_compass/api/demo.py`) seeds four tasks and three availability windows: 90, 60, and 60 minutes (3.5 hours total). Its documented boundary (`apps/web/README.md`) likewise states “Four fictional tasks and three editable availability windows.”
 
-Protocol v1 requires a fixed scenario with three courses, five assignments, five listed study tasks, 6.5 hours of capacity, Algorithms configured high risk, Databases configured medium risk, and the specified controlled execution/reflection/capacity-change sequence. The existing demo fixture uses different tasks and assignment/course labels and does not establish the Protocol v1 risk fixture. It therefore cannot be truthfully represented as the canonical scenario, nor can its output support the frozen moderator answer key. This is a missing execution/environment fixture, not a defect in Protocol v1.
+The then-current protocol required a fixed scenario with defined courses, assignments, tasks, 6.5 hours of capacity, Algorithms configured high risk, Databases configured medium risk, and the specified controlled execution/reflection/capacity-change sequence. The existing demo fixture uses different tasks and assignment/course labels and does not establish the protocol risk fixture. It therefore cannot be truthfully represented as the canonical scenario, nor can its output support the frozen moderator answer key. This is a missing execution/environment fixture, not a defect in the protocol.
 
 ## T1–T10 operational result
 
