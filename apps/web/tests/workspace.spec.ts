@@ -30,6 +30,29 @@ test("four screens are readable and responsive", async ({ page }, info) => {
   expect(errors).toEqual([]);
 });
 
+test("manual academic data becomes an explicit study task", async ({ page }) => {
+  await page.goto("/academic");
+  await page.getByLabel("Course name").fill("Pilot Databases");
+  await page.getByLabel("Course code").fill("DB-PILOT");
+  await page.getByLabel("Assignment title").fill("Normalize the pilot schema");
+  await page
+    .getByLabel("Deadline (your device timezone)")
+    .fill("2026-10-08T17:00");
+  await page.getByLabel("Planning estimate (minutes)").fill("90");
+  await page.getByRole("button", { name: "Import manual data" }).click();
+  await expect(page.getByText("Provenance: MANUAL")).toBeVisible();
+  await expect(
+    page.getByText("student-provided pilot data, never official HaUI data"),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Create study task" }).click();
+  await expect(
+    page.getByText("Study task created. It can now be used by the existing planning loop."),
+  ).toBeVisible();
+  await page.getByRole("link", { name: "Today", exact: true }).click();
+  await expect(page.getByText("Work on Normalize the pilot schema")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Record work", exact: true })).toBeVisible();
+});
+
 test("real HTTP learning loop preserves explicit student choices", async ({
   page,
 }) => {

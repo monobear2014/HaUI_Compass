@@ -129,7 +129,7 @@ export default function AcademicPage() {
             <label>Course name<input required value={course} onChange={(e) => setCourse(e.target.value)} /></label>
             <label>Course code <input value={code} onChange={(e) => setCode(e.target.value)} /></label>
             <label>Assignment title<input required value={assignment} onChange={(e) => setAssignment(e.target.value)} /></label>
-            <label>Deadline<input required type="datetime-local" value={deadline} onChange={(e) => setDeadline(e.target.value)} /></label>
+            <label>Deadline (your device timezone)<input required type="datetime-local" value={deadline} onChange={(e) => setDeadline(e.target.value)} /></label>
             <label>Planning estimate (minutes)<input required min="1" type="number" value={effort} onChange={(e) => setEffort(e.target.value)} /></label>
             <p className="fine-print">This is your focused-study estimate, not an LMS value.</p>
             <button className="primary">Import manual data</button>

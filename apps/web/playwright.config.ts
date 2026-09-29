@@ -1,11 +1,14 @@
 import { defineConfig } from "@playwright/test";
 
+const webPort = process.env.PLAYWRIGHT_WEB_PORT || "3000";
+const webUrl = `http://127.0.0.1:${webPort}`;
+
 export default defineConfig({
   testDir: "./tests",
   fullyParallel: false,
   workers: 1,
   timeout: 45000,
-  use: { baseURL: "http://127.0.0.1:3000", trace: "retain-on-failure" },
+  use: { baseURL: webUrl, trace: "retain-on-failure" },
   projects: [
     { name: "desktop", use: { viewport: { width: 1280, height: 900 } } },
     { name: "mobile", use: { viewport: { width: 390, height: 844 } } },
@@ -19,8 +22,8 @@ export default defineConfig({
       reuseExistingServer: !process.env.CI,
     },
     {
-      command: "npm run dev",
-      url: "http://127.0.0.1:3000",
+      command: `npm run dev -- --port ${webPort}`,
+      url: webUrl,
       env: { COMPASS_API_URL: "http://127.0.0.1:8001" },
       reuseExistingServer: !process.env.CI,
     },
