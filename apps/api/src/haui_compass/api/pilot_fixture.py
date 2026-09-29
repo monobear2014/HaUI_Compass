@@ -111,6 +111,8 @@ def build() -> AppContainer:
 
 def snapshot(c: AppContainer) -> dict:
     ts = c.task_repository.list_for_student(student_id_for(STUDENT))
+    assignments = {assignment_id_for(a.ref): a for a in ASSIGNMENTS}
+    courses = {course.ref: course.name for course in COURSES}
     return {
         "courses": 4,
         "assignments": 5,
@@ -122,6 +124,9 @@ def snapshot(c: AppContainer) -> dict:
                 "id": str(x.task.id),
                 "title": x.task.title,
                 "assignment_id": str(x.task.assignment_id),
+                "assignment_title": assignments[x.task.assignment_id].title,
+                "course": courses[assignments[x.task.assignment_id].course_ref],
+                "deadline": assignments[x.task.assignment_id].deadline,
                 "estimated_duration_seconds": int(x.task.estimated_duration.total_seconds()),
                 "status": x.task.status.value,
             }
