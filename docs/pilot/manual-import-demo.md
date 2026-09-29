@@ -18,7 +18,7 @@ executions, and confirmed reflections. Re-importing exactly the same dataset suc
 idempotently; material changes conflict until the source is explicitly cleared. Clear is
 blocked if it would orphan an existing task.
 
-Known limitation: the current visual workspace still defaults to its separate fictional
-Mock-LMS demo context. The Academic Data page performs the real import/task API actions,
-but a source-switching workspace context for Today/Plan is future polish rather than a
-claim of official HaUI connectivity.
+In the development/pilot workspace, importing a source selects it explicitly. Today and
+Weekly Plan then request the same source and student context from the API rather than
+`MockLMS`. This remains user-provided pilot input rather than a claim of official HaUI
+connectivity.
