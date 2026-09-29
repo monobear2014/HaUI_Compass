@@ -10,6 +10,7 @@ const links = [
   { href: "/plan", title: "Weekly Plan", icon: "plan" },
   { href: "/reflect", title: "Reflect", icon: "reflect" },
   { href: "/history", title: "History", icon: "history" },
+  { href: "/academic", title: "Academic Data", icon: "book" },
 ];
 export function Shell({ children }: { children: React.ReactNode }) {
   const path = usePathname();

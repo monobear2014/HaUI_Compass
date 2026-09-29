@@ -834,6 +834,14 @@ input[type="radio"] {
   font-size: 11px;
   font-weight: 400;
 }
+
+.academic-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; margin-bottom: 20px; }
+.academic-current { display: grid; gap: 14px; }
+.academic-current select { border: 1px solid var(--border); border-radius: 7px; padding: 7px; background: var(--panel); }
+.academic-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+.academic-list li { display: flex; justify-content: space-between; align-items: center; gap: 16px; border-top: 1px solid var(--border); padding-top: 12px; }
+.academic-list span { display: block; color: var(--muted); font-size: 13px; margin-top: 3px; }
+@media (max-width: 720px) { .academic-grid { grid-template-columns: 1fr; } .academic-list li { align-items: flex-start; flex-direction: column; } }
 .form-stack button.primary {
   align-self: flex-start;
 }
