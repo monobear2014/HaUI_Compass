@@ -2,6 +2,8 @@
 
 This reproducible thesis demonstration needs no HaUI API, login, credential, or
 institutional LMS access. Use only fictional data or the student's own authorized data.
+For the PostgreSQL validation commands and current validation boundary, see
+[the pilot validation runbook](pilot-validation-runbook.md).
 
 1. Start the PostgreSQL-backed API after `alembic upgrade head`, then start the web app.
 2. Open **Academic Data** and import
