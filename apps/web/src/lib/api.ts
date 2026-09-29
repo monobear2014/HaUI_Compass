@@ -131,6 +131,21 @@ export async function api<T>(path: string, body?: unknown): Promise<T> {
   }
   return response.json();
 }
+export async function apiDelete(path: string): Promise<void> {
+  const response = await fetch("/compass-api/" + path, {
+    method: "DELETE",
+    cache: "no-store",
+    signal: AbortSignal.timeout(15000),
+  });
+  if (!response.ok) {
+    const error = await response.json().catch(() => null);
+    throw new ApiError(
+      error?.error?.code || "request_failed",
+      error?.error?.message || "Something went wrong. Try again.",
+      response.status,
+    );
+  }
+}
 export function scope(context: Context) {
   return new URLSearchParams({
     student_provider: context.student.provider,

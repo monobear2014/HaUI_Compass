@@ -1,0 +1,14 @@
+{
+  "schema_version": "haui-compass-academic-import-v1",
+  "student_external_id": "fictional-student",
+  "source": "json",
+  "courses": [
+    {"external_id": "db", "name": "Database Systems", "code": "DB101"}
+  ],
+  "assignments": [
+    {"external_id": "schema-report", "course_external_id": "db", "title": "Schema report", "deadline": "2026-10-08T17:00:00+07:00", "estimated_effort_minutes": 90}
+  ],
+  "submissions": [
+    {"assignment_external_id": "schema-report", "status": "not_submitted", "submitted_at": null}
+  ]
+}

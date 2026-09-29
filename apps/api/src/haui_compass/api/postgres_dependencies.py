@@ -1,9 +1,13 @@
 """Explicit PostgreSQL composition; never selected implicitly by API startup."""
 
 from haui_compass.api.dependencies import AppContainer
+from haui_compass.application.academic_import import (
+    AcademicDataRoutingProvider,
+)
 from haui_compass.application.ports.clock import Clock
 from haui_compass.application.ports.lms import LMSProvider
 from haui_compass.application.use_cases.confirm_reflection_signals import ConfirmReflectionSignals
+from haui_compass.application.use_cases.create_study_task import CreateStudyTask
 from haui_compass.application.use_cases.generate_daily_recommendation import (
     GenerateDailyRecommendation,
 )
@@ -21,6 +25,9 @@ from haui_compass.application.use_cases.submit_reflection import SubmitReflectio
 from haui_compass.infrastructure.clock import SystemClock
 from haui_compass.infrastructure.config.database import DatabaseSettings
 from haui_compass.infrastructure.lms.mock import MockLMSProvider
+from haui_compass.infrastructure.persistence.postgres.academic_data import (
+    PostgresImportedAcademicDataProvider,
+)
 from haui_compass.infrastructure.persistence.postgres.executions import (
     PostgresTaskExecutionRepository,
 )
@@ -42,10 +49,14 @@ def build_postgres_container(
     clock: Clock | None = None,
 ) -> AppContainer:
     resolved_clock = clock or SystemClock()
-    resolved_lms = lms or MockLMSProvider.canonical(anchor=resolved_clock.now())
     session_factory = PostgresSessionFactory((settings or DatabaseSettings.from_env()).url)
     transaction_manager = PostgresPersistenceTransactionManager(session_factory.session_factory)
     provider = transaction_manager.current_session
+    imported_academic_data = PostgresImportedAcademicDataProvider(provider)
+    resolved_lms = AcademicDataRoutingProvider(
+        imported=imported_academic_data,
+        fallback=lms or MockLMSProvider.canonical(anchor=resolved_clock.now()),
+    )
     tasks = PostgresTaskRepository(provider)
     executions = PostgresTaskExecutionRepository(provider)
     plans = PostgresStudyPlanRepository(provider)
@@ -59,6 +70,7 @@ def build_postgres_container(
     )
     return AppContainer(
         lms=resolved_lms,
+        imported_academic_data=imported_academic_data,
         clock=resolved_clock,
         task_repository=tasks,
         execution_repository=executions,
@@ -93,6 +105,12 @@ def build_postgres_container(
             reflection_repository=reflections,
             plan_repository=plans,
             lms=resolved_lms,
+            clock=resolved_clock,
+            transaction_manager=transaction_manager,
+        ),
+        create_study_task=CreateStudyTask(
+            lms=resolved_lms,
+            tasks=tasks,
             clock=resolved_clock,
             transaction_manager=transaction_manager,
         ),
