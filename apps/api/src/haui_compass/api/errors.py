@@ -2,6 +2,7 @@ from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
+from haui_compass.application.academic_import import AcademicImportError
 from haui_compass.application.ports.lms import LMSNotFoundError
 from haui_compass.application.ports.persistence import PersistenceError, PersistenceErrorCode
 from haui_compass.application.use_cases.daily_recommendation import DailyRecommendationInputError
@@ -15,6 +16,11 @@ def _response(status: int, code: str, message: str) -> JSONResponse:
 
 
 def register_error_handlers(app: FastAPI) -> None:
+    @app.exception_handler(AcademicImportError)
+    async def academic_import_error(_: Request, exc: AcademicImportError) -> JSONResponse:
+        status = 409 if exc.code.value == "academic_import_conflict" else 400
+        return _response(status, exc.code.value, str(exc))
+
     @app.exception_handler(RequestValidationError)
     async def validation_error(_: Request, __: RequestValidationError) -> JSONResponse:
         return _response(422, "validation_error", "request validation failed")

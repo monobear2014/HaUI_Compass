@@ -4,6 +4,16 @@ from uuid import UUID
 from fastapi import APIRouter, Depends
 
 from haui_compass.api.dependencies import AppContainer
+from haui_compass.api.schemas.academic_data import (
+    AcademicDataResponse,
+    AcademicImportRequest,
+    AcademicImportResponse,
+    AssignmentImportDTO,
+    CourseImportDTO,
+    CsvImportRequest,
+    SubmissionImportDTO,
+    parse_canonical_csv,
+)
 from haui_compass.api.schemas.executions import TaskExecutionRequest, TaskExecutionResponse
 from haui_compass.api.schemas.learning_loop import (
     ConfirmedReflectionResponse,
@@ -24,7 +34,9 @@ from haui_compass.api.schemas.recommendations import (
     DailyRecommendationResponse,
     recommendation_response,
 )
+from haui_compass.application.academic_import import AcademicSource, dataset_from_values
 from haui_compass.application.ports.executions import ExecutionRecordId
+from haui_compass.application.ports.lms import SubmissionStatus
 from haui_compass.application.ports.reflections import ConfirmedReflectionRecordId
 from haui_compass.application.ports.study_plans import PlanRecordId
 from haui_compass.application.use_cases.get_daily_recommendation import (
@@ -55,6 +67,121 @@ container_dependency = Depends(container_from_app)
 @router.get("/health")
 def health() -> dict[str, str]:
     return {"status": "ok"}
+
+
+def _academic_response(
+    request: AcademicImportRequest, *, idempotent_retry: bool
+) -> AcademicImportResponse:
+    return AcademicImportResponse(
+        student_provider=request.source,
+        student_id=request.student_external_id,
+        source=request.source,
+        courses=len(request.courses),
+        assignments=len(request.assignments),
+        submissions=len(request.submissions),
+        idempotent_retry=idempotent_retry,
+    )
+
+
+@router.post("/academic-data/import", response_model=AcademicImportResponse)
+def import_academic_data(
+    request: AcademicImportRequest, container: AppContainer = container_dependency
+) -> AcademicImportResponse:
+    dataset = dataset_from_values(
+        student_id=request.student_external_id,
+        source=AcademicSource(request.source),
+        courses=tuple((item.external_id, item.name, item.code) for item in request.courses),
+        assignments=tuple(
+            (
+                item.external_id,
+                item.course_external_id,
+                item.title,
+                item.deadline,
+                item.estimated_effort_minutes,
+            )
+            for item in request.assignments
+        ),
+        submissions=tuple(
+            (item.assignment_external_id, SubmissionStatus(item.status), item.submitted_at)
+            for item in request.submissions
+        ),
+    )
+    retry = container.imported_academic_data.replace(dataset)
+    return _academic_response(request, idempotent_retry=retry)
+
+
+@router.post("/academic-data/import/csv", response_model=AcademicImportResponse)
+def import_academic_csv(
+    request: CsvImportRequest, container: AppContainer = container_dependency
+) -> AcademicImportResponse:
+    parsed = parse_canonical_csv(request.content, student_external_id=request.student_external_id)
+    return import_academic_data(parsed, container)
+
+
+@router.get("/academic-data", response_model=AcademicDataResponse)
+def current_academic_data(
+    source: AcademicSource,
+    student_external_id: str,
+    container: AppContainer = container_dependency,
+) -> AcademicDataResponse:
+    from haui_compass.application.ports.lms import ExternalRef
+
+    dataset = container.imported_academic_data.dataset(
+        ExternalRef(source.value, student_external_id)
+    )
+    if dataset is None:
+        from haui_compass.application.ports.persistence import (
+            PersistenceError,
+            PersistenceErrorCode,
+        )
+
+        raise PersistenceError(PersistenceErrorCode.RECORD_NOT_FOUND, "academic data was not found")
+    request = AcademicImportRequest(
+        schema_version="haui-compass-academic-import-v1",
+        student_external_id=student_external_id,
+        source=source.value,
+        courses=tuple(
+            CourseImportDTO(external_id=x.ref.id, name=x.name, code=x.code) for x in dataset.courses
+        ),
+        assignments=tuple(
+            AssignmentImportDTO(
+                external_id=x.ref.id,
+                course_external_id=x.course_ref.id,
+                title=x.title,
+                deadline=x.deadline,
+                estimated_effort_minutes=(
+                    int(x.estimated_effort.total_seconds() / 60) if x.estimated_effort else None
+                ),
+            )
+            for x in dataset.assignments
+        ),
+        submissions=tuple(
+            SubmissionImportDTO(
+                assignment_external_id=x.assignment_ref.id,
+                status=x.status.value,
+                submitted_at=x.submitted_at,
+            )
+            for x in dataset.submissions
+        ),
+    )
+    response = _academic_response(request, idempotent_retry=False)
+    return AcademicDataResponse(
+        **response.model_dump(),
+        courses_data=request.courses,
+        assignments_data=request.assignments,
+        submissions_data=request.submissions,
+    )
+
+
+@router.delete("/academic-data", status_code=204)
+def clear_academic_data(
+    source: AcademicSource,
+    student_external_id: str,
+    container: AppContainer = container_dependency,
+) -> None:
+    from haui_compass.application.ports.lms import ExternalRef
+
+    container.imported_academic_data.clear(ExternalRef(source.value, student_external_id))
 
 
 @router.post("/daily-recommendation", response_model=DailyRecommendationResponse)

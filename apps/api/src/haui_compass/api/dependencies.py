@@ -2,6 +2,10 @@
 
 from dataclasses import dataclass
 
+from haui_compass.application.academic_import import (
+    AcademicDataRoutingProvider,
+    ImportedAcademicDataProvider,
+)
 from haui_compass.application.ports.clock import Clock
 from haui_compass.application.ports.executions import TaskExecutionRepository
 from haui_compass.application.ports.lms import LMSProvider
@@ -42,6 +46,7 @@ from haui_compass.infrastructure.persistence.memory.transactions import (
 @dataclass(frozen=True, slots=True)
 class AppContainer:
     lms: LMSProvider
+    imported_academic_data: ImportedAcademicDataProvider
     clock: Clock
     task_repository: TaskRepository
     execution_repository: TaskExecutionRepository
@@ -66,7 +71,11 @@ def build_container(
     reflection_repository: ConfirmedReflectionRepository | None = None,
 ) -> AppContainer:
     resolved_clock = clock or SystemClock()
-    resolved_lms = lms or MockLMSProvider.canonical(anchor=resolved_clock.now())
+    imported_academic_data = ImportedAcademicDataProvider()
+    resolved_lms = AcademicDataRoutingProvider(
+        imported=imported_academic_data,
+        fallback=lms or MockLMSProvider.canonical(anchor=resolved_clock.now()),
+    )
     resolved_tasks = task_repository or InMemoryTaskRepository()
     resolved_executions = execution_repository or InMemoryTaskExecutionRepository()
     resolved_plans = plan_repository or InMemoryStudyPlanRepository()
@@ -80,6 +89,7 @@ def build_container(
     )
     return AppContainer(
         lms=resolved_lms,
+        imported_academic_data=imported_academic_data,
         clock=resolved_clock,
         task_repository=resolved_tasks,
         execution_repository=resolved_executions,

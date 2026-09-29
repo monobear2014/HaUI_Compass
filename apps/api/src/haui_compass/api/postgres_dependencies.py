@@ -1,6 +1,10 @@
 """Explicit PostgreSQL composition; never selected implicitly by API startup."""
 
 from haui_compass.api.dependencies import AppContainer
+from haui_compass.application.academic_import import (
+    AcademicDataRoutingProvider,
+    ImportedAcademicDataProvider,
+)
 from haui_compass.application.ports.clock import Clock
 from haui_compass.application.ports.lms import LMSProvider
 from haui_compass.application.use_cases.confirm_reflection_signals import ConfirmReflectionSignals
@@ -42,7 +46,11 @@ def build_postgres_container(
     clock: Clock | None = None,
 ) -> AppContainer:
     resolved_clock = clock or SystemClock()
-    resolved_lms = lms or MockLMSProvider.canonical(anchor=resolved_clock.now())
+    imported_academic_data = ImportedAcademicDataProvider()
+    resolved_lms = AcademicDataRoutingProvider(
+        imported=imported_academic_data,
+        fallback=lms or MockLMSProvider.canonical(anchor=resolved_clock.now()),
+    )
     session_factory = PostgresSessionFactory((settings or DatabaseSettings.from_env()).url)
     transaction_manager = PostgresPersistenceTransactionManager(session_factory.session_factory)
     provider = transaction_manager.current_session
@@ -59,6 +67,7 @@ def build_postgres_container(
     )
     return AppContainer(
         lms=resolved_lms,
+        imported_academic_data=imported_academic_data,
         clock=resolved_clock,
         task_repository=tasks,
         execution_repository=executions,
