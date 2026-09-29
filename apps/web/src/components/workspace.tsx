@@ -43,7 +43,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
         api<Recommendation>("daily-recommendation", {
           student: ctx.student,
           available_minutes: 210,
-          assignment_capacities: [],
+          assignment_capacities: ctx.assignment_capacities || [],
         }),
       ]);
       setContext(ctx);

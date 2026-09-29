@@ -17,6 +17,7 @@ export type Context = {
   period: Period;
   study_windows: Window[];
   tasks: Task[];
+  assignment_capacities?: { assignment_id: string; available_minutes: number }[];
 };
 export type Block = Window & { task_id: string };
 export type Plan = {

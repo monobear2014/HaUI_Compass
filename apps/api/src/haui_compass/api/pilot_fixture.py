@@ -116,9 +116,14 @@ def snapshot(c: AppContainer) -> dict:
     return {
         "courses": 4,
         "assignments": 5,
+        "now": NOW,
         "student": {"provider": STUDENT.provider, "id": STUDENT.id},
         "period": {"start": d(5, 0), "end": d(10, 0)},
         "study_windows": [{"starts_at": x, "ends_at": y} for x, y in WINDOWS],
+        "assignment_capacities": [
+            {"assignment_id": str(assignment_id_for(a.ref)), "available_minutes": 60 if a.ref.id == "problem-set-3" else 100}
+            for a in ASSIGNMENTS
+        ],
         "tasks": [
             {
                 "id": str(x.task.id),

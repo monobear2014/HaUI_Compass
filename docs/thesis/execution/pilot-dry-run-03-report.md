@@ -6,7 +6,9 @@
 
 ## Result
 
-The canonical fixture was reset and the actual browser UI was opened against the fixture API. The UI failed during workspace rendering with `Invalid time value` in the frontend date formatter. The run stopped before T1–T10, so no human timing result can be claimed.
+The canonical fixture was reset and the actual browser UI was opened against the fixture API. The initial attempt failed during workspace rendering with `Invalid time value` in the frontend date formatter. Root cause: the fixture context omitted required `now` metadata consumed by `Shell` at `src/lib/api.ts:164`/`src/components/shell.tsx:111`; the originating value was `undefined` from the context response. The fixture was corrected to emit the fixed timezone-aware `now` value. A resumed browser check renders Today successfully and shows the canonical `Solve graph exercises` recommendation after capacity metadata was supplied.
+
+The complete timed T1–T10 rehearsal was not completed in this run, so no human timing result can yet be claimed.
 
 ## Timing
 
@@ -21,10 +23,12 @@ The canonical fixture was reset and the actual browser UI was opened against the
 
 ## Issues
 
-**B-01 — Fixture/operation issue:** the fixture context initially omitted task metadata required by the real UI (assignment title, course, and deadline). The metadata was added to the local fixture worktree; the browser still showed the runtime date error and the fix requires further UI debugging.
+**B-01 — Fixture/operation issue (fixed):** the fixture context initially omitted task metadata and `now` required by the real UI. The fixture now emits assignment title, course, deadline, and fixed timezone-aware `now`; the resumed Today workspace renders cleanly with the canonical recommendation.
+
+**B-02 — Fixture/frontend composition issue (fixed):** the UI sent no assignment capacities, producing UNKNOWN risk and the wrong recommendation. The fixture now exposes canonical capacities and the workspace passes them through without changing engine policy.
 
 No Protocol v1.3 semantics, task definitions, questionnaire wording, SUS, scoring rules, or primary metrics were changed.
 
 ## Readiness
 
-**EXECUTION MATERIAL FIXES REQUIRED.** Resolve the fixture/UI context error, rerun the complete browser rehearsal, and only then assess the 30–45-minute target. Do not recruit participants yet.
+**EXECUTION MATERIAL FIXES REQUIRED.** The browser rendering blockers are fixed, but the complete timed researcher-led T1–T10 rehearsal still must be completed before assessing the 30–45-minute target. Do not recruit participants yet.
