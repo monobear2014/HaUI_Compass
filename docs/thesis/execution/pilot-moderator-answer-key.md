@@ -1,4 +1,4 @@
-# Pilot Moderator Answer Key — Protocol v1
+# Pilot Moderator Answer Key — Protocol v1.1
 
 **Researcher-only; never show this document to participants.** Use the current structured backend output as the authoritative answer key. Before each session, reset the fixture, generate the baseline plan, retrieve the Next Best Action and its `reason_codes`/evidence, and save a de-identified snapshot reference under the participant ID. If the fixed fixture does not yield the expected output below, stop the session setup and resolve the fixture; do not coach around a mismatch.
 
@@ -7,7 +7,7 @@
 | Item | Expected outcome |
 | --- | --- |
 | T1 | Participant locates Academic Data and identifies at least three courses and two deadlines. |
-| T2 | `Summarise two articles` is saved for Academic Skills / Reading response with 45-minute estimate and open state. The reset fixture must not pre-create this study task; it is introduced by T2. |
+| T2 | `Summarise two articles` is saved for Academic Skills / Reading response with 45-minute estimate and open state. The initial fixture has five assignments but only four study tasks; T2 creates the fifth. |
 | T3 | A baseline weekly-plan revision is generated and blocks/unplanned work are viewable. |
 | T4 | Next Best Action identifies `Solve graph exercises` for Algorithms / Problem Set 3. |
 | T5 | Response is evaluated against the actual current recommendation output recorded below. |

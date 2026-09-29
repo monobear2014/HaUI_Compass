@@ -1,4 +1,4 @@
-# Pilot Participant Tasks and Canonical Scenario — Protocol v1
+# Pilot Participant Tasks and Canonical Scenario — Protocol v1.1
 
 **Status: FROZEN FOR PILOT**
 **One moderated session: 30–45 minutes**
@@ -14,9 +14,9 @@ Use a fresh fictional account for every participant. The facilitator enters or r
 | Databases | ER-model report, Thu 12:00 | Draft ER diagram — 90 min — open |
 | Machine Learning | Quiz revision, Tue 17:00 | Review regularisation notes — 60 min — in progress, 20 min already recorded |
 | Machine Learning | Mini-project outline, Fri 17:00 | Write project outline — 90 min — open |
-| Academic Skills | Reading response, Thu 17:00 | Summarise two articles — 45 min — open |
+| Academic Skills | Reading response, Thu 17:00 | No initial study task; T2 creates **Summarise two articles** — 45 min — open |
 
-Planning period: Monday–Friday of the session week. Available windows total 6.5 hours: Mon 18:00–19:30, Tue 18:00–19:30, Wed 18:00–20:00, Thu 18:00–19:30. Configure the Algorithms assignment as high risk and Databases as medium risk in the known study fixture. The exact displayed Next Best Action and structured evidence are recorded in the session answer key, not presumed from prose.
+Initial state means **five assignments and four study tasks**. An assignment is academic context; a study task is an explicit, separately created planning item. Planning period: Monday–Friday of the session week. Available windows total 6.5 hours: Mon 18:00–19:30, Tue 18:00–19:30, Wed 18:00–20:00, Thu 18:00–19:30. Configure the Algorithms assignment as high risk and Databases as medium risk in the known study fixture. The exact displayed Next Best Action and structured evidence are recorded in the session answer key, not presumed from prose.
 
 Controlled change: after T6, the participant records 45 minutes of partial work on the recommended/open task. Before T9, the facilitator applies the predefined change: the Tue 18:00–19:30 study window is no longer available. The participant completes a reflection, confirms the shown “limited available study time” signal if offered by the fixture, and replans. This makes execution, reflection/confirmation, and capacity change visible without claiming that reflection itself changes the v0 schedule.
 
