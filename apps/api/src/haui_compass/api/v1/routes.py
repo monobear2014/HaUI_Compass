@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
 from fastapi import APIRouter, Depends
@@ -36,6 +36,7 @@ from haui_compass.api.schemas.recommendations import (
 )
 from haui_compass.api.schemas.tasks import CreateStudyTaskRequestDTO, StudyTaskResponse
 from haui_compass.application.academic_import import AcademicSource, dataset_from_values
+from haui_compass.application.lms_mapping import assignment_id_for, student_id_for
 from haui_compass.application.ports.executions import ExecutionRecordId
 from haui_compass.application.ports.lms import SubmissionStatus
 from haui_compass.application.ports.reflections import ConfirmedReflectionRecordId
@@ -192,6 +193,60 @@ def clear_academic_data(
             ExternalRef(source.value, student_external_id)
         )
     )
+
+
+@router.get("/academic-data/context")
+def academic_data_context(
+    source: AcademicSource,
+    student_external_id: str,
+    container: AppContainer = container_dependency,
+) -> dict[str, object]:
+    """Development/pilot context only; routes the existing workspace away from mock data."""
+    from haui_compass.application.ports.lms import ExternalRef
+
+    student = ExternalRef(source.value, student_external_id)
+
+    def read() -> dict[str, object]:
+        assignments = {item.ref: item for item in container.lms.get_assignments(student)}
+        courses = {item.ref: item.name for item in container.lms.get_courses(student)}
+        tasks = []
+        for record in container.task_repository.list_for_student(student_id_for(student)):
+            assignment = next(
+                (
+                    item
+                    for item in assignments.values()
+                    if assignment_id_for(item.ref) == record.task.assignment_id
+                ),
+                None,
+            )
+            if assignment is None or assignment.deadline is None:
+                continue
+            tasks.append(
+                {
+                    "id": str(record.task.id),
+                    "title": record.task.title,
+                    "assignment_id": str(record.task.assignment_id),
+                    "assignment_title": assignment.title,
+                    "course": courses[assignment.course_ref],
+                    "deadline": assignment.deadline,
+                    "estimated_duration_seconds": int(
+                        record.task.estimated_duration.total_seconds()
+                    ),
+                    "status": record.task.status.value,
+                }
+            )
+        now = container.clock.now().astimezone(UTC)
+        period_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        return {
+            "mode": "imported_pilot_data",
+            "student": {"provider": student.provider, "id": student.id},
+            "period": {"start": period_start, "end": period_start + timedelta(days=7)},
+            "study_windows": [],
+            "now": now,
+            "tasks": tasks,
+        }
+
+    return container.transaction_manager.run(read)
 
 
 @router.post("/tasks", response_model=StudyTaskResponse)

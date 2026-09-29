@@ -32,7 +32,12 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     setLoading(true);
     setError("");
     try {
-      const ctx = await api<Context>("demo/context");
+      const source = window.localStorage.getItem("haui-compass-academic-source");
+      const ctx = await api<Context>(
+        source
+          ? `academic-data/context?source=${source}&student_external_id=pilot-student`
+          : "demo/context",
+      );
       const [plans, recommendation] = await Promise.all([
         api<Plan[]>("weekly-plans/history?" + scope(ctx)),
         api<Recommendation>("daily-recommendation", {
@@ -57,6 +62,11 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
       void refresh();
     }, 0);
     return () => clearTimeout(timer);
+  }, [refresh]);
+  useEffect(() => {
+    const changed = () => void refresh();
+    window.addEventListener("academic-data-changed", changed);
+    return () => window.removeEventListener("academic-data-changed", changed);
   }, [refresh]);
   return (
     <WorkspaceContext.Provider

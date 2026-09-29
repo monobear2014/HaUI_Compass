@@ -70,6 +70,8 @@ export default function AcademicPage() {
         submissions: [],
       });
       setNotice("Manual academic data imported. It is your planning input, not LMS data.");
+      window.localStorage.setItem("haui-compass-academic-source", "manual");
+      window.dispatchEvent(new Event("academic-data-changed"));
       await load("manual");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not import academic data.");
@@ -83,10 +85,12 @@ export default function AcademicPage() {
       if (file.name.endsWith(".csv")) {
         await api("academic-data/import/csv", { student_external_id: student, content });
         setSource("csv");
+        window.localStorage.setItem("haui-compass-academic-source", "csv");
         await load("csv");
       } else if (file.name.endsWith(".json")) {
         await api("academic-data/import", JSON.parse(content));
         setSource("json");
+        window.localStorage.setItem("haui-compass-academic-source", "json");
         await load("json");
       } else {
         throw new Error("Choose a .csv or .json academic-data file.");
@@ -106,6 +110,7 @@ export default function AcademicPage() {
         estimated_effort_minutes: item.estimated_effort_minutes || 60,
       });
       setNotice("Study task created. It can now be used by the existing planning loop.");
+      window.dispatchEvent(new Event("academic-data-changed"));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not create study task.");
     }

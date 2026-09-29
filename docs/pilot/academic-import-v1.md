@@ -1,7 +1,7 @@
 # Academic import v1
 
-**Status:** IMPLEMENTED in the in-memory development composition only. It is a
-student-provided pilot source, not direct HaUI LMS integration.
+**Status:** IMPLEMENTED for in-memory development and PostgreSQL composition. It is
+student-provided pilot input, not direct HaUI LMS integration.
 
 `haui-compass-academic-import-v1` normalizes manual, CSV, and JSON-shaped input
 into the existing `LMSCourseRecord`, `LMSAssignmentRecord`, and
@@ -50,9 +50,14 @@ submission record.
   enter student passwords, tokens, grades, submission files, or other students'
   data.
 
-## Current limitation
+## Persistence and tasks
 
-The first foundation stores the normalized source in memory. PostgreSQL persistence,
-manual-entry UI, task creation UI, upload UI, and restart validation are not yet
-implemented; therefore this is not yet the thesis/pilot-ready fallback described in
-the product request.
+PostgreSQL uses relational `academic_sources`, `imported_courses`,
+`imported_assignments`, and `imported_submissions` tables. Each source is scoped to a
+derived Compass student identity plus its `manual`/`csv`/`json` namespace. The import
+transaction either commits a complete normalized dataset or writes nothing.
+
+The Academic Data page supports manual entry, CSV/JSON selection, current-data display,
+and explicit **Create study task** actions. An assignment never creates a Task by itself.
+Clearing a source is refused when any existing Compass task refers to one of its
+assignments; tasks, plans, executions, and reflections are never deleted by reset.
