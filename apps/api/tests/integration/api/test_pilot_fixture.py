@@ -16,6 +16,16 @@ def test_reset_and_t2_creation():
             and before["assignments"] == 5
             and len(before["tasks"]) == 4
         )
+        academic = c.get("/api/v1/academic-data?source=manual&student_external_id=pilot-student")
+        assert academic.status_code == 200, academic.text
+        assert academic.json()["source"] == "manual"
+        assert academic.json()["courses"] == 4
+        assert academic.json()["assignments"] == 5
+        assert any(
+            item["title"] == "Reading response" and item["course_external_id"] == "academic-skills"
+            for item in academic.json()["assignments_data"]
+        )
+        assert not any(x["title"] == "Summarise two articles" for x in before["tasks"])
         assert (
             sum(
                 (
@@ -30,7 +40,7 @@ def test_reset_and_t2_creation():
             "/api/v1/tasks",
             json={
                 "student": before["student"],
-                "assignment": {"provider": "pilot-fixture", "id": "reading-response"},
+                "assignment": {"provider": "manual", "id": "reading-response"},
                 "task_id": task_id,
                 "title": "Summarise two articles",
                 "estimated_effort_minutes": 45,
@@ -38,7 +48,11 @@ def test_reset_and_t2_creation():
         )
         assert result.status_code == 200 and result.json()["status"] == "not_started"
         after = c.get("/api/v1/demo/context").json()
-        assert len(after["tasks"]) == 5
+        created = [x for x in after["tasks"] if x["title"] == "Summarise two articles"]
+        assert len(after["tasks"]) == 5 and len(created) == 1
+        assert created[0]["assignment_title"] == "Reading response"
+        assert created[0]["estimated_duration_seconds"] == 2700
+        assert created[0]["status"] == "not_started"
 
 
 def test_canonical_engine_flow():
@@ -50,7 +64,7 @@ def test_canonical_engine_flow():
                 "/api/v1/tasks",
                 json={
                     "student": ctx["student"],
-                    "assignment": {"provider": "pilot-fixture", "id": "reading-response"},
+                    "assignment": {"provider": "manual", "id": "reading-response"},
                     "task_id": reading,
                     "title": "Summarise two articles",
                     "estimated_effort_minutes": 45,

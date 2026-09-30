@@ -30,7 +30,9 @@ test("four screens are readable and responsive", async ({ page }, info) => {
   expect(errors).toEqual([]);
 });
 
-test("manual academic data becomes an explicit study task", async ({ page }) => {
+test("manual academic data becomes an explicit study task", async ({
+  page,
+}) => {
   await page.goto("/academic");
   await page.getByLabel("Course name").fill("Pilot Databases");
   await page.getByLabel("Course code").fill("DB-PILOT");
@@ -45,21 +47,46 @@ test("manual academic data becomes an explicit study task", async ({ page }) => 
     page.getByText("student-provided pilot data, never official HaUI data"),
   ).toBeVisible();
   await page.getByRole("button", { name: "Create study task" }).click();
+  await page.getByRole("button", { name: "Save study task" }).click();
   await expect(
-    page.getByText("Study task created. It can now be used by the existing planning loop."),
+    page.getByText(
+      "Study task created. It can now be used by the existing planning loop.",
+    ),
   ).toBeVisible();
   await page.getByRole("link", { name: "Today", exact: true }).click();
-  await expect(page.getByText("Work on Normalize the pilot schema")).toBeVisible();
-  await expect(page.getByRole("button", { name: "Record work", exact: true })).toBeVisible();
+  await expect(
+    page.getByText("Work on Normalize the pilot schema"),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Record work", exact: true }),
+  ).toBeVisible();
 });
 
 test("real HTTP learning loop preserves explicit student choices", async ({
   page,
 }) => {
+  let contextNow = "";
+  let contextWindows: { starts_at: string; ends_at: string }[] = [];
+  await page.route("**/compass-api/demo/context", async (route) => {
+    const response = await route.fetch();
+    const body = await response.json();
+    contextNow = body.now;
+    contextWindows = body.study_windows;
+    await route.fulfill({ response, json: body });
+  });
   await page.goto("/");
   await page.getByRole("button", { name: "Record work", exact: true }).click();
+  const executionRequest = page.waitForRequest((request) =>
+    request.url().includes("/compass-api/task-executions"),
+  );
   await expect(page.getByRole("dialog")).toBeVisible();
+  const executionNow = contextNow;
   await page.getByRole("button", { name: "Save execution" }).click();
+  expect(
+    Math.floor(
+      Date.parse((await executionRequest).postDataJSON().ended_at) / 60000,
+    ),
+  ).toBe(Math.floor(Date.parse(executionNow) / 60000));
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await page.getByRole("link", { name: "Reflect", exact: true }).click();
   await expect(page.locator('input[name="reflected"]')).toHaveCount(4);
@@ -109,8 +136,17 @@ test("real HTTP learning loop preserves explicit student choices", async ({
     ),
   );
   await remaining.fill(String(45 + revision));
+  await page.getByRole("button", { name: "Remove study window 2" }).click();
   await noOverflow(page);
+  const replanRequest = page.waitForRequest((request) =>
+    request.url().includes("/compass-api/weekly-plans/replan"),
+  );
+  const replanNow = contextNow;
   await page.getByRole("button", { name: "Create revised plan" }).click();
+  const replanPayload = (await replanRequest).postDataJSON();
+  expect(Date.parse(replanPayload.effective_at)).toBe(Date.parse(replanNow));
+  expect(replanPayload.study_windows).toHaveLength(2);
+  expect(replanPayload.study_windows).not.toContainEqual(contextWindows[1]);
   await expect(
     page.getByRole("heading", { name: "Plan updated" }),
   ).toBeVisible();

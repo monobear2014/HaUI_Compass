@@ -273,7 +273,7 @@ function RecordWork({ task, onClose }: { task: Task; onClose: () => void }) {
   const retry = useRef<{ signature: string; id: string } | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const now = new Date().toISOString();
+  const now = context?.now || new Date().toISOString();
   useEffect(() => {
     dialog.current?.showModal();
   }, []);
@@ -463,6 +463,9 @@ function PlanEditor({ plan, onDone }: { plan?: Plan; onDone: () => void }) {
   const { context, refresh, setRevision } = useWorkspace();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [windows, setWindows] = useState<Window[]>(
+    () => context?.study_windows || [],
+  );
   if (!context) return null;
   const ctx = context;
   async function submit(event: React.FormEvent<HTMLFormElement>) {
@@ -471,20 +474,20 @@ function PlanEditor({ plan, onDone }: { plan?: Plan; onDone: () => void }) {
     setBusy(true);
     setError("");
     try {
-      const windows: Window[] = ctx.study_windows.map((_, i) => ({
+      const submittedWindows: Window[] = windows.map((_, i) => ({
         starts_at: new Date(String(data.get("start-" + i))).toISOString(),
         ends_at: new Date(String(data.get("end-" + i))).toISOString(),
       }));
       const body = {
         student: ctx.student,
         period: ctx.period,
-        study_windows: windows,
+        study_windows: submittedWindows,
         record_id: crypto.randomUUID(),
       };
       if (plan) {
         const result = await api<Replan>("weekly-plans/replan", {
           ...body,
-          effective_at: new Date().toISOString(),
+          effective_at: ctx.now,
           remaining_efforts: ctx.tasks
             .filter((t) => t.status !== "completed")
             .map((t) => ({
@@ -516,8 +519,11 @@ function PlanEditor({ plan, onDone }: { plan?: Plan; onDone: () => void }) {
           Hanoi time.
         </p>
         <div className="window-inputs">
-          {ctx.study_windows.map((window, i) => (
-            <div className="window-input" key={i}>
+          {windows.map((window, i) => (
+            <div
+              className="window-input"
+              key={`${window.starts_at}:${window.ends_at}`}
+            >
               <span className="window-number">0{i + 1}</span>
               <label>
                 Start
@@ -537,6 +543,24 @@ function PlanEditor({ plan, onDone }: { plan?: Plan; onDone: () => void }) {
                   required
                 />
               </label>
+              {plan && (
+                <button
+                  aria-label={`Remove study window ${i + 1}`}
+                  className="secondary small"
+                  type="button"
+                  onClick={() =>
+                    setWindows((current) =>
+                      current.filter(
+                        (candidate) =>
+                          candidate.starts_at !== window.starts_at ||
+                          candidate.ends_at !== window.ends_at,
+                      ),
+                    )
+                  }
+                >
+                  Remove window
+                </button>
+              )}
             </div>
           ))}
         </div>

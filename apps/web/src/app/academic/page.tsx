@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useCallback, useEffect, useState } from "react";
 import { api, apiDelete } from "@/lib/api";
 
 type Source = "manual" | "csv" | "json";
@@ -34,25 +34,40 @@ export default function AcademicPage() {
   const [deadline, setDeadline] = useState("");
   const [effort, setEffort] = useState("60");
 
-  async function load(selected = source) {
-    try {
-      setError("");
-      setData(
-        await api<Academic>(
-          `academic-data?source=${selected}&student_external_id=${student}`,
-        ),
-      );
-    } catch (err) {
-      setData(null);
-      if ((err as { status?: number }).status !== 404) setError(String(err));
-    }
-  }
+  const load = useCallback(
+    async (selected = source) => {
+      try {
+        setError("");
+        setData(
+          await api<Academic>(
+            `academic-data?source=${selected}&student_external_id=${student}`,
+          ),
+        );
+      } catch (err) {
+        setData(null);
+        if ((err as { status?: number }).status !== 404) setError(String(err));
+      }
+    },
+    [source],
+  );
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      void load();
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [load]);
   async function importManual(event: FormEvent) {
     event.preventDefault();
     setError("");
     try {
-      const courseId = course.trim().toLowerCase().replaceAll(/[^a-z0-9]+/g, "-");
-      const assignmentId = assignment.trim().toLowerCase().replaceAll(/[^a-z0-9]+/g, "-");
+      const courseId = course
+        .trim()
+        .toLowerCase()
+        .replaceAll(/[^a-z0-9]+/g, "-");
+      const assignmentId = assignment
+        .trim()
+        .toLowerCase()
+        .replaceAll(/[^a-z0-9]+/g, "-");
       await api("academic-data/import", {
         schema_version: version,
         student_external_id: student,
@@ -69,12 +84,16 @@ export default function AcademicPage() {
         ],
         submissions: [],
       });
-      setNotice("Manual academic data imported. It is your planning input, not LMS data.");
+      setNotice(
+        "Manual academic data imported. It is your planning input, not LMS data.",
+      );
       window.localStorage.setItem("haui-compass-academic-source", "manual");
       window.dispatchEvent(new Event("academic-data-changed"));
       await load("manual");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not import academic data.");
+      setError(
+        err instanceof Error ? err.message : "Could not import academic data.",
+      );
     }
   }
   async function importFile() {
@@ -83,7 +102,10 @@ export default function AcademicPage() {
     try {
       const content = await file.text();
       if (file.name.endsWith(".csv")) {
-        await api("academic-data/import/csv", { student_external_id: student, content });
+        await api("academic-data/import/csv", {
+          student_external_id: student,
+          content,
+        });
         setSource("csv");
         window.localStorage.setItem("haui-compass-academic-source", "csv");
         await load("csv");
@@ -95,24 +117,34 @@ export default function AcademicPage() {
       } else {
         throw new Error("Choose a .csv or .json academic-data file.");
       }
-      setNotice(`Imported ${file.name}. Server validation accepted the complete dataset.`);
+      setNotice(
+        `Imported ${file.name}. Server validation accepted the complete dataset.`,
+      );
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not import file.");
     }
   }
-  async function createTask(item: Academic["assignments_data"][number]) {
+  async function createTask(
+    item: Academic["assignments_data"][number],
+    title: string,
+    estimatedEffortMinutes: number,
+  ) {
     try {
       await api("tasks", {
         student: { provider: source, id: student },
         assignment: { provider: source, id: item.external_id },
         task_id: crypto.randomUUID(),
-        title: `Work on ${item.title}`,
-        estimated_effort_minutes: item.estimated_effort_minutes || 60,
+        title,
+        estimated_effort_minutes: estimatedEffortMinutes,
       });
-      setNotice("Study task created. It can now be used by the existing planning loop.");
+      setNotice(
+        "Study task created. It can now be used by the existing planning loop.",
+      );
       window.dispatchEvent(new Event("academic-data-changed"));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not create study task.");
+      setError(
+        err instanceof Error ? err.message : "Could not create study task.",
+      );
     }
   }
   return (
@@ -120,37 +152,211 @@ export default function AcademicPage() {
       <section className="page-heading">
         <span className="eyebrow accent">ACADEMIC DATA</span>
         <h1>Bring your own academic workload.</h1>
-        <p>Manual entry and file imports are student-provided pilot data, never official HaUI data.</p>
+        <p>
+          Manual entry and file imports are student-provided pilot data, never
+          official HaUI data.
+        </p>
       </section>
       <div className="academic-grid">
         <section className="panel">
           <h2>Manual entry</h2>
           <form className="form-stack" onSubmit={importManual}>
-            <label>Course name<input required value={course} onChange={(e) => setCourse(e.target.value)} /></label>
-            <label>Course code <input value={code} onChange={(e) => setCode(e.target.value)} /></label>
-            <label>Assignment title<input required value={assignment} onChange={(e) => setAssignment(e.target.value)} /></label>
-            <label>Deadline (your device timezone)<input required type="datetime-local" value={deadline} onChange={(e) => setDeadline(e.target.value)} /></label>
-            <label>Planning estimate (minutes)<input required min="1" type="number" value={effort} onChange={(e) => setEffort(e.target.value)} /></label>
-            <p className="fine-print">This is your focused-study estimate, not an LMS value.</p>
+            <label>
+              Course name
+              <input
+                required
+                value={course}
+                onChange={(e) => setCourse(e.target.value)}
+              />
+            </label>
+            <label>
+              Course code{" "}
+              <input value={code} onChange={(e) => setCode(e.target.value)} />
+            </label>
+            <label>
+              Assignment title
+              <input
+                required
+                value={assignment}
+                onChange={(e) => setAssignment(e.target.value)}
+              />
+            </label>
+            <label>
+              Deadline (your device timezone)
+              <input
+                required
+                type="datetime-local"
+                value={deadline}
+                onChange={(e) => setDeadline(e.target.value)}
+              />
+            </label>
+            <label>
+              Planning estimate (minutes)
+              <input
+                required
+                min="1"
+                type="number"
+                value={effort}
+                onChange={(e) => setEffort(e.target.value)}
+              />
+            </label>
+            <p className="fine-print">
+              This is your focused-study estimate, not an LMS value.
+            </p>
             <button className="primary">Import manual data</button>
           </form>
         </section>
         <section className="panel">
           <h2>CSV or JSON import</h2>
-          <p>Choose a fictional or authorized academic-data file. Only .csv and .json are accepted.</p>
-          <input aria-label="Academic data file" type="file" accept=".csv,.json,application/json,text/csv" onChange={(e) => setFile(e.target.files?.[0] || null)} />
+          <p>
+            Choose a fictional or authorized academic-data file. Only .csv and
+            .json are accepted.
+          </p>
+          <input
+            aria-label="Academic data file"
+            type="file"
+            accept=".csv,.json,application/json,text/csv"
+            onChange={(e) => setFile(e.target.files?.[0] || null)}
+          />
           {file && <p className="fine-print">Selected: {file.name}</p>}
-          <button className="primary" disabled={!file} onClick={() => void importFile()}>Validate and import</button>
-          <p className="fine-print">The server validates the full file before committing it.</p>
+          <button
+            className="primary"
+            disabled={!file}
+            onClick={() => void importFile()}
+          >
+            Validate and import
+          </button>
+          <p className="fine-print">
+            The server validates the full file before committing it.
+          </p>
         </section>
       </div>
       <section className="panel academic-current">
-        <div className="section-heading"><h2>Current imported data</h2><select value={source} onChange={(e) => { const next = e.target.value as Source; setSource(next); void load(next); }}><option value="manual">Manual</option><option value="csv">CSV</option><option value="json">JSON</option></select></div>
-        <button className="secondary small" onClick={() => void load()}>Refresh</button>
+        <div className="section-heading">
+          <h2>Current imported data</h2>
+          <select
+            value={source}
+            onChange={(e) => {
+              const next = e.target.value as Source;
+              setSource(next);
+            }}
+          >
+            <option value="manual">Manual</option>
+            <option value="csv">CSV</option>
+            <option value="json">JSON</option>
+          </select>
+        </div>
+        <button className="secondary small" onClick={() => void load()}>
+          Refresh
+        </button>
         {notice && <p className="form-success">{notice}</p>}
-        {error && <p className="form-error" role="alert">{error}</p>}
-        {data ? <><p className="fine-print">Provenance: {data.source.toUpperCase()} · {data.courses} courses · {data.assignments} assignments · {data.submissions} submissions</p><ul className="academic-list">{data.assignments_data.map((item) => <li key={item.external_id}><div><strong>{item.title}</strong><span>{item.course_external_id} · {item.deadline ? new Date(item.deadline).toLocaleString() : "No deadline"}</span></div><button className="secondary small" onClick={() => void createTask(item)}>Create study task</button></li>)}</ul><button className="text-link" onClick={async () => { await apiDelete(`academic-data?source=${source}&student_external_id=${student}`); setData(null); setNotice("Imported data cleared. Existing study tasks are protected."); }}>Clear this imported source</button></> : <p>No imported data for this source yet.</p>}
+        {error && (
+          <p className="form-error" role="alert">
+            {error}
+          </p>
+        )}
+        {data ? (
+          <>
+            <p className="fine-print">
+              Provenance: {data.source.toUpperCase()} · {data.courses} courses ·{" "}
+              {data.assignments} assignments · {data.submissions} submissions
+            </p>
+            <ul className="academic-list">
+              {data.assignments_data.map((item) => (
+                <li key={item.external_id}>
+                  <div>
+                    <strong>{item.title}</strong>
+                    <span>
+                      {item.course_external_id} ·{" "}
+                      {item.deadline
+                        ? new Date(item.deadline).toLocaleString()
+                        : "No deadline"}
+                    </span>
+                  </div>
+                  <CreateTask item={item} onCreate={createTask} />
+                </li>
+              ))}
+            </ul>
+            <button
+              className="text-link"
+              onClick={async () => {
+                await apiDelete(
+                  `academic-data?source=${source}&student_external_id=${student}`,
+                );
+                setData(null);
+                setNotice(
+                  "Imported data cleared. Existing study tasks are protected.",
+                );
+              }}
+            >
+              Clear this imported source
+            </button>
+          </>
+        ) : (
+          <p>No imported data for this source yet.</p>
+        )}
       </section>
     </>
+  );
+}
+
+function CreateTask({
+  item,
+  onCreate,
+}: {
+  item: Academic["assignments_data"][number];
+  onCreate: (
+    item: Academic["assignments_data"][number],
+    title: string,
+    estimatedEffortMinutes: number,
+  ) => Promise<void>;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [title, setTitle] = useState(`Work on ${item.title}`);
+  const [effort, setEffort] = useState(
+    String(item.estimated_effort_minutes || 60),
+  );
+  if (!editing) {
+    return (
+      <button className="secondary small" onClick={() => setEditing(true)}>
+        Create study task
+      </button>
+    );
+  }
+  return (
+    <form
+      className="form-stack"
+      onSubmit={(event) => {
+        event.preventDefault();
+        void onCreate(item, title, Number(effort));
+      }}
+    >
+      <label>
+        Study task title
+        <input
+          required
+          value={title}
+          onChange={(event) => setTitle(event.target.value)}
+        />
+      </label>
+      <label>
+        Study task estimate (minutes)
+        <input
+          required
+          min="1"
+          type="number"
+          value={effort}
+          onChange={(event) => setEffort(event.target.value)}
+        />
+      </label>
+      <button className="secondary small">Save study task</button>
+      <button
+        className="text-link"
+        type="button"
+        onClick={() => setEditing(false)}
+      >
+        Cancel
+      </button>
+    </form>
   );
 }

@@ -7,6 +7,7 @@ from fastapi import FastAPI
 
 from haui_compass.api.dependencies import AppContainer, build_container
 from haui_compass.api.main import create_app
+from haui_compass.application.academic_import import AcademicDataSet, AcademicSource
 from haui_compass.application.lms_mapping import assignment_id_for, student_id_for
 from haui_compass.application.ports.lms import (
     ExternalRef,
@@ -32,11 +33,11 @@ class PilotLMS:
 
 HANOI = timezone(timedelta(hours=7))
 NOW = datetime(2026, 10, 5, 2, tzinfo=UTC)
-STUDENT = ExternalRef("pilot-fixture", "canonical-v1-3")
+STUDENT = ExternalRef("manual", "pilot-student")
 
 
 def r(x: str) -> ExternalRef:
-    return ExternalRef("pilot-fixture", x)
+    return ExternalRef(STUDENT.provider, x)
 
 
 def d(day: int, hour: int) -> datetime:
@@ -85,6 +86,15 @@ WINDOWS = tuple(
 def build() -> AppContainer:
     lms = PilotLMS()
     c = build_container(lms=lms, clock=Clock())
+    c.imported_academic_data.replace(
+        AcademicDataSet(
+            student=STUDENT,
+            source=AcademicSource.MANUAL,
+            courses=COURSES,
+            assignments=ASSIGNMENTS,
+            submissions=SUBMISSIONS,
+        )
+    )
     by = {a.ref.id: a for a in ASSIGNMENTS}
     for n, k, t, m, s in (
         (1, "problem-set-3", "Solve graph exercises", 120, TaskStatus.NOT_STARTED),
@@ -114,6 +124,7 @@ def snapshot(c: AppContainer) -> dict:
     assignments = {assignment_id_for(a.ref): a for a in ASSIGNMENTS}
     courses = {course.ref: course.name for course in COURSES}
     return {
+        "mode": "canonical_pilot_fixture",
         "courses": 4,
         "assignments": 5,
         "now": NOW,
@@ -121,7 +132,10 @@ def snapshot(c: AppContainer) -> dict:
         "period": {"start": d(5, 0), "end": d(10, 0)},
         "study_windows": [{"starts_at": x, "ends_at": y} for x, y in WINDOWS],
         "assignment_capacities": [
-            {"assignment_id": str(assignment_id_for(a.ref)), "available_minutes": 60 if a.ref.id == "problem-set-3" else 100}
+            {
+                "assignment_id": str(assignment_id_for(a.ref)),
+                "available_minutes": 60 if a.ref.id == "problem-set-3" else 100,
+            }
             for a in ASSIGNMENTS
         ],
         "tasks": [
