@@ -41,10 +41,15 @@ from haui_compass.application.use_cases.task_decomposition import (
     GenerateTaskDecomposition,
 )
 from haui_compass.infrastructure.clock import SystemClock
+from haui_compass.infrastructure.config.llm import LLMSettings
 from haui_compass.infrastructure.decomposition.template import (
     DeterministicTaskDecompositionProvider,
 )
 from haui_compass.infrastructure.explanation.template import TemplateExplanationProvider
+from haui_compass.infrastructure.llm.openai_responses import (
+    OpenAIResponsesAdapter,
+    ResponsesTransport,
+)
 from haui_compass.infrastructure.lms.mock import MockLMSProvider
 from haui_compass.infrastructure.persistence.memory.executions import (
     InMemoryTaskExecutionRepository,
@@ -97,6 +102,8 @@ def build_container(
     plan_repository: StudyPlanRepository | None = None,
     reflection_repository: ConfirmedReflectionRepository | None = None,
     task_decomposition_sessions: TaskDecompositionSessionStore | None = None,
+    llm_settings: LLMSettings | None = None,
+    llm_transport: ResponsesTransport | None = None,
 ) -> AppContainer:
     resolved_clock = clock or SystemClock()
     imported_academic_data = ImportedAcademicDataProvider()
@@ -109,6 +116,19 @@ def build_container(
     resolved_plans = plan_repository or InMemoryStudyPlanRepository()
     resolved_reflections = reflection_repository or InMemoryConfirmedReflectionRepository()
     resolved_decompositions = task_decomposition_sessions or InMemoryTaskDecompositionSessionStore()
+    llm_adapter = (
+        OpenAIResponsesAdapter(llm_settings, transport=llm_transport)
+        if llm_settings is not None and llm_settings.unavailable_reason is None
+        else None
+    )
+    resolved_explanation_provider = explanation_provider or llm_adapter
+    resolved_decomposition_provider = task_decomposition_provider or llm_adapter
+    unavailable_reason = (
+        llm_settings.unavailable_reason
+        if llm_settings is not None and llm_settings.unavailable_reason is not None
+        else "not_configured"
+    )
+    llm_timeout = llm_settings.timeout_seconds if llm_settings is not None else 2.0
     transaction_manager = InMemoryPersistenceTransactionManager(
         resolved_tasks, resolved_executions, imported_academic_data, resolved_decompositions
     )
@@ -126,14 +146,22 @@ def build_container(
     )
     return AppContainer(
         explain_recommendation=ExplainRecommendation(
-            template=TemplateExplanationProvider(), provider=explanation_provider
+            template=TemplateExplanationProvider(),
+            provider=resolved_explanation_provider,
+            timeout_seconds=llm_timeout,
+            unavailable_reason=unavailable_reason,
         ),
         generate_task_decomposition=GenerateTaskDecomposition(
             lms=resolved_lms,
             sessions=resolved_decompositions,
             fallback=DeterministicTaskDecompositionProvider(),
-            provider=task_decomposition_provider,
-            timeout_seconds=task_decomposition_timeout_seconds,
+            provider=resolved_decomposition_provider,
+            timeout_seconds=(
+                task_decomposition_timeout_seconds
+                if task_decomposition_provider is not None
+                else llm_timeout
+            ),
+            unavailable_reason=unavailable_reason,
         ),
         confirm_task_decomposition=ConfirmTaskDecomposition(
             sessions=resolved_decompositions,
@@ -179,3 +207,8 @@ def build_container(
         create_study_task=create_task,
         transaction_manager=transaction_manager,
     )
+
+
+def build_runtime_container() -> AppContainer:
+    """Read process configuration at the composition boundary used by normal startup."""
+    return build_container(llm_settings=LLMSettings.from_env())

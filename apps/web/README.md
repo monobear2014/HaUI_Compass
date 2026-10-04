@@ -32,6 +32,9 @@ to load Normal Week, Deadline Crunch or Disrupted Week. See the complete
 [presenter runbook](../../docs/demo/demo-showcase-v0.2.md).
 Normal Week also contains a taskless Database Mini Project for the
 [AI decomposition v0.3 flow](../../docs/demo/ai-task-decomposition-v0.3.md).
+The backend can optionally use an online model without changing the web configuration; see the
+[Real LLM Integration v0.4 runbook](../../docs/demo/real-llm-integration-v0.4.md). Provider keys
+must exist only in the API process.
 
 ## Checks
 
@@ -61,12 +64,14 @@ flow. Screenshots go to ignored `test-results/`.
 - Task decomposition stores validated candidates in an ephemeral server-side session.
   Editing/selecting candidates does not create tasks; **Add selected tasks** calls the
   existing task-creation use case for the confirmed subset. The showcase provider is a
-  deterministic offline fallback, and its estimates remain editable suggestions.
+  deterministic offline fallback, and its estimates remain editable suggestions. When configured,
+  the online adapter is labelled **AI · online**; fallback is labelled **Template · offline**.
 - Demo context supplies academic labels, status, period and authored availability;
   it is not a general LMS or task-management API.
 - Risk/NBA remain deterministic and use explicit per-assignment capacity supplied
   by the scenario context. Natural-language recommendation text is presentation
-  output from an offline template provider; raw reason codes/evidence remain visible.
+  output from an optional online adapter or offline template; raw reason codes/evidence remain
+  visible and authoritative.
   There is no standalone `risk_if_deferred` contract yet.
 - Record work converts device-local inputs to aware ISO timestamps; plan/deadline
   displays use Hanoi time. Exact execution retries reuse the record ID while the

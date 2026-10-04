@@ -462,12 +462,12 @@ function TaskDecomposition({
       <div className="section-heading">
         <strong>Candidate study tasks</strong>
         <span className="badge">
-          {session.source === "ai" ? "AI suggestion" : "Demo fallback"}
+          {session.source === "ai" ? "AI · online" : "Template · offline"}
         </span>
       </div>
       <p className="fine-print">
-        AI suggestions are not added until you confirm. Titles and estimates are
-        suggestions, not ground truth.
+        Suggestions are not added until you confirm. Titles and estimates are suggestions,
+        not ground truth.
       </p>
       {drafts.map((candidate, index) => (
         <div className="decomposition-candidate" key={candidate.id}>

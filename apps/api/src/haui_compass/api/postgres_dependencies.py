@@ -29,10 +29,12 @@ from haui_compass.application.use_cases.task_decomposition import (
 )
 from haui_compass.infrastructure.clock import SystemClock
 from haui_compass.infrastructure.config.database import DatabaseSettings
+from haui_compass.infrastructure.config.llm import LLMSettings
 from haui_compass.infrastructure.decomposition.template import (
     DeterministicTaskDecompositionProvider,
 )
 from haui_compass.infrastructure.explanation.template import TemplateExplanationProvider
+from haui_compass.infrastructure.llm.openai_responses import OpenAIResponsesAdapter
 from haui_compass.infrastructure.lms.mock import MockLMSProvider
 from haui_compass.infrastructure.persistence.memory.task_decompositions import (
     InMemoryTaskDecompositionSessionStore,
@@ -59,6 +61,7 @@ def build_postgres_container(
     settings: DatabaseSettings | None = None,
     lms: LMSProvider | None = None,
     clock: Clock | None = None,
+    llm_settings: LLMSettings | None = None,
 ) -> AppContainer:
     resolved_clock = clock or SystemClock()
     session_factory = PostgresSessionFactory((settings or DatabaseSettings.from_env()).url)
@@ -87,12 +90,31 @@ def build_postgres_container(
         clock=resolved_clock,
         transaction_manager=transaction_manager,
     )
+    llm_adapter = (
+        OpenAIResponsesAdapter(llm_settings)
+        if llm_settings is not None and llm_settings.unavailable_reason is None
+        else None
+    )
+    unavailable_reason = (
+        llm_settings.unavailable_reason
+        if llm_settings is not None and llm_settings.unavailable_reason is not None
+        else "not_configured"
+    )
+    llm_timeout = llm_settings.timeout_seconds if llm_settings is not None else 2.0
     return AppContainer(
-        explain_recommendation=ExplainRecommendation(template=TemplateExplanationProvider()),
+        explain_recommendation=ExplainRecommendation(
+            template=TemplateExplanationProvider(),
+            provider=llm_adapter,
+            timeout_seconds=llm_timeout,
+            unavailable_reason=unavailable_reason,
+        ),
         generate_task_decomposition=GenerateTaskDecomposition(
             lms=resolved_lms,
             sessions=decomposition_sessions,
             fallback=DeterministicTaskDecompositionProvider(),
+            provider=llm_adapter,
+            timeout_seconds=llm_timeout,
+            unavailable_reason=unavailable_reason,
         ),
         confirm_task_decomposition=ConfirmTaskDecomposition(
             sessions=decomposition_sessions,

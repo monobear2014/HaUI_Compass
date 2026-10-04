@@ -2,7 +2,7 @@ from typing import cast
 
 from fastapi import FastAPI
 
-from haui_compass.api.dependencies import AppContainer, build_container
+from haui_compass.api.dependencies import AppContainer, build_container, build_runtime_container
 from haui_compass.api.errors import register_error_handlers
 from haui_compass.api.v1.routes import container_from_app, router
 
@@ -21,4 +21,4 @@ def create_app(container: AppContainer | None = None) -> FastAPI:
     return app
 
 
-app = create_app()
+app = create_app(build_runtime_container())

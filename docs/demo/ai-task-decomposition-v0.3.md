@@ -6,7 +6,8 @@ Show that AI can turn a large fictional assignment into candidate actions while 
 control. Only confirmed edits become task facts. Risk, Next Best Action and Weekly Planner remain
 deterministic consumers of those facts.
 
-The showcase uses the deterministic offline provider. It requires no API key or network access.
+The v0.3 showcase uses the deterministic offline provider. v0.4 can optionally compose the real
+adapter, while this offline path still requires no API key or network access.
 
 ## Exact presenter flow
 
@@ -16,8 +17,8 @@ The showcase uses the deterministic offline provider. It requires no API key or 
 3. Open **Academic Data** and find **Databases / Database Mini Project**. This assignment starts
    with “No confirmed study tasks yet.”
 4. Click **Suggest tasks with AI**.
-5. Point out four candidates, their editable estimates/rationales and the **Demo fallback** badge.
-6. Explain the notice: “AI suggestions are not added until you confirm.” At this point the task
+5. Point out four candidates, their editable estimates/rationales and the **Template · offline** badge.
+6. Explain the notice: “Suggestions are not added until you confirm.” At this point the task
    repository and deterministic learning loop are unchanged.
 7. Change candidate 1 to `Clarify rubric and project scope` and its estimate to `40` minutes.
 8. Uncheck candidate 2, leaving three selected candidates.
@@ -52,7 +53,7 @@ than persisting partial or fabricated tasks.
 
 ## Boundaries and limitations
 
-- No vendor LLM adapter or real API call is configured in v0.3.
+- v0.3 itself introduced no vendor adapter; see the opt-in v0.4 runbook for online configuration.
 - Candidate sessions are in-memory and reset with the selected scenario.
 - There is no authentication, production expiry policy or cross-process candidate session store.
 - The provider suggests steps only; it does not write graded answers or submission artifacts.

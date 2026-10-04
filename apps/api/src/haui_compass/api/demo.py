@@ -21,6 +21,7 @@ from haui_compass.application.ports.tasks import StoredTask
 from haui_compass.application.use_cases.persisted_learning_loop import (
     GeneratePersistedWeeklyPlanRequest,
 )
+from haui_compass.infrastructure.config.llm import LLMSettings
 from haui_compass.infrastructure.demo.scenarios import (
     LABELS as DEMO_LABELS,
 )
@@ -83,6 +84,7 @@ class DemoSession:
 def build_demo_container(
     identifier: ScenarioId,
     clock: Clock | None = None,
+    llm_settings: LLMSettings | None = None,
 ) -> tuple[AppContainer, Scenario]:
     """Compose one isolated fixture at the opt-in demo boundary."""
     resolved_clock = DemoClock((clock or DemoClock()).now())
@@ -90,6 +92,7 @@ def build_demo_container(
     container = build_container(
         clock=resolved_clock,
         lms=MockLMSProvider({scenario.student: scenario.records}),
+        llm_settings=llm_settings,
     )
     for task in scenario.tasks:
         container.task_repository.save(
@@ -180,8 +183,8 @@ def snapshot(session: DemoSession) -> DemoContextDTO:
     )
 
 
-def create_demo_app(clock: Clock | None = None) -> FastAPI:
-    container, scenario = build_demo_container(ScenarioId.CRUNCH, clock)
+def create_demo_app(clock: Clock | None = None, llm_settings: LLMSettings | None = None) -> FastAPI:
+    container, scenario = build_demo_container(ScenarioId.CRUNCH, clock, llm_settings)
     app = create_app(container)
     app.state.demo = DemoSession(container, scenario, 1)
 
@@ -202,7 +205,7 @@ def create_demo_app(clock: Clock | None = None) -> FastAPI:
     @app.post("/api/v1/demo/scenarios/select", response_model=DemoContextDTO)
     async def select(request: SelectScenarioDTO) -> DemoContextDTO:
         # Build first, swap only on success. Single process, single presenter, in-memory only.
-        fresh, selected = build_demo_container(request.scenario_id, clock)
+        fresh, selected = build_demo_container(request.scenario_id, clock, llm_settings)
         next_session = DemoSession(fresh, selected, session().generation + 1)
         result = snapshot(next_session)
         app.state.demo = next_session
@@ -211,4 +214,4 @@ def create_demo_app(clock: Clock | None = None) -> FastAPI:
     return app
 
 
-app = create_demo_app()
+app = create_demo_app(llm_settings=LLMSettings.from_env())

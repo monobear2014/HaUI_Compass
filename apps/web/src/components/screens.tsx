@@ -137,7 +137,7 @@ export function Today() {
                   <h3>Recommendation explanation</h3>
                   <Badge>
                     {recommendation?.explanation?.source === "ai"
-                      ? "AI explanation"
+                      ? "AI · online"
                       : "Template · offline"}
                   </Badge>
                   <p lang="vi">

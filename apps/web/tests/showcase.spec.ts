@@ -169,11 +169,11 @@ test("AI task candidates require review and confirmation before deterministic pl
     .getByRole("button", { name: "Suggest tasks with AI" })
     .click();
   await expect(
-    assignment.getByText("Demo fallback", { exact: true }),
+    assignment.getByText("Template · offline", { exact: true }),
   ).toBeVisible();
   await expect(assignment.locator(".decomposition-candidate")).toHaveCount(4);
   await expect(assignment).toContainText(
-    "AI suggestions are not added until you confirm",
+    "Suggestions are not added until you confirm",
   );
 
   const before = await page.request.get("/compass-api/demo/context");

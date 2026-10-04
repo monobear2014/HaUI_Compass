@@ -1,11 +1,13 @@
 """Generate bounded candidates, then persist only explicitly confirmed edits."""
 
 import asyncio
+import logging
 from dataclasses import dataclass
 from datetime import timedelta
 from enum import StrEnum
 from uuid import uuid5
 
+from haui_compass.application.ports.llm import InvalidLLMOutputError
 from haui_compass.application.ports.lms import ExternalRef, LMSProvider
 from haui_compass.application.ports.task_decomposition import (
     CandidateSource,
@@ -34,6 +36,8 @@ MAX_TITLE_LENGTH = 120
 MIN_DURATION_MINUTES = 15
 MAX_DURATION_MINUTES = 480
 MAX_RATIONALE_LENGTH = 240
+
+logger = logging.getLogger(__name__)
 
 
 class TaskDecompositionErrorCode(StrEnum):
@@ -65,6 +69,7 @@ class GenerateTaskDecomposition:
         fallback: TaskDecompositionProvider,
         provider: TaskDecompositionProvider | None = None,
         timeout_seconds: float = 2.0,
+        unavailable_reason: FallbackReason = "not_configured",
     ) -> None:
         if timeout_seconds <= 0:
             raise ValueError("task decomposition timeout must be positive")
@@ -73,6 +78,7 @@ class GenerateTaskDecomposition:
         self._fallback = fallback
         self._provider = provider
         self._timeout = timeout_seconds
+        self._unavailable_reason = unavailable_reason
 
     async def execute(self, request: GenerateTaskDecompositionRequest) -> TaskDecompositionSession:
         existing = self._sessions.get(request.session_id)
@@ -85,7 +91,7 @@ class GenerateTaskDecomposition:
             )
         context = self._context(request.student, request.assignment)
         source: CandidateSource = "demo_fallback"
-        reason: FallbackReason | None = "not_configured"
+        reason: FallbackReason | None = self._unavailable_reason
         rows: tuple[ProviderTaskCandidate, ...] | object
         if self._provider is not None:
             try:
@@ -95,13 +101,17 @@ class GenerateTaskDecomposition:
                 validated = _validate_provider_output(rows)
                 source = "ai"
                 reason = None
+                logger.info("llm_task_decomposition provider_success")
             except TimeoutError:
                 reason = "timeout"
+            except InvalidLLMOutputError:
+                reason = "invalid_output"
             except TaskDecompositionError:
                 reason = "invalid_output"
             except Exception:
                 reason = "provider_error"
         if source == "demo_fallback":
+            logger.info("llm_task_decomposition fallback reason=%s", reason)
             rows = await self._fallback.decompose(context)
             try:
                 validated = _validate_provider_output(rows)

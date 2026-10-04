@@ -24,7 +24,17 @@ class ExplanationText:
 class RecommendationExplanation:
     text: str
     source: Literal["template", "ai"]
-    fallback_reason: Literal["not_configured", "timeout", "provider_error", "invalid_output"] | None
+    fallback_reason: (
+        Literal[
+            "not_configured",
+            "disabled",
+            "missing_credential",
+            "timeout",
+            "provider_error",
+            "invalid_output",
+        ]
+        | None
+    )
 
 
 class RecommendationExplanationProvider(Protocol):

@@ -11,7 +11,14 @@ from haui_compass.application.ports.tasks import StoredTask
 TaskCandidateId = NewType("TaskCandidateId", UUID)
 TaskDecompositionSessionId = NewType("TaskDecompositionSessionId", UUID)
 CandidateSource = Literal["ai", "demo_fallback"]
-FallbackReason = Literal["not_configured", "timeout", "provider_error", "invalid_output"]
+FallbackReason = Literal[
+    "not_configured",
+    "disabled",
+    "missing_credential",
+    "timeout",
+    "provider_error",
+    "invalid_output",
+]
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)

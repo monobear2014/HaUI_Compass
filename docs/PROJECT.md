@@ -87,8 +87,15 @@ five bounded task candidates from an application-owned provider, review/edit/sel
 explicitly confirm them through the existing task-creation boundary. Candidate sessions are
 ephemeral and never enter risk/planning before confirmation. The deterministic offline fallback is
 required; timeout, provider exception and invalid output cannot make the demo depend on a vendor.
-The current implementation uses only assignment/course fields already present and includes no
-vendor LLM adapter.
+The current implementation uses only assignment/course fields already present.
+**Real LLM Integration v0.4 is IMPLEMENTED, opt-in and development-only:** server composition can
+connect both existing language ports to an OpenAI Responses API infrastructure adapter using strict
+JSON Schema output. Configuration is disabled by default, secrets remain server-side, and missing
+credentials, timeout, HTTP/provider failure, malformed output or authoritative validation failure
+return to the existing deterministic fallback. UI provenance distinguishes online model output
+from offline templates. Risk, NBA, Planner and Replanner are unchanged and remain deterministic;
+confirmed selection remains the only candidate-to-task transition. There is no production AI
+operations claim, provider retry policy or model-quality evaluation dataset.
 The frontend calls existing application use cases through HTTP; it does not duplicate
 planning or ranking. Risk may be unknown without assignment capacity. Execution time
 does not imply remaining effort; confirmed reflection remains informational in v0.
@@ -235,9 +242,9 @@ Next.js + TypeScript web
  │ Students · Courses · Assignments · Tasks    │
  │ Plans · Reflections · Recommendations       │
  ├──────────────────────────────────────────────┤
- │ AI capabilities                             │
- │ Planning · Retrieval · Reflection · Risk    │
- │ Memory · Guardrails · Provider abstraction  │
+│ AI capabilities                             │
+│ Bounded suggestions/explanations            │
+│ Guardrails · OpenAI adapter · provider ports│
  ├──────────────────────────────────────────────┤
  │ Integrations                                │
  │ LMS provider interface → Mock provider      │
