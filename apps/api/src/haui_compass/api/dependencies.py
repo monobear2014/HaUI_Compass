@@ -9,13 +9,19 @@ from haui_compass.application.academic_import import (
 )
 from haui_compass.application.ports.clock import Clock
 from haui_compass.application.ports.executions import TaskExecutionRepository
+from haui_compass.application.ports.explanation import RecommendationExplanationProvider
 from haui_compass.application.ports.lms import LMSProvider
 from haui_compass.application.ports.reflections import ConfirmedReflectionRepository
 from haui_compass.application.ports.study_plans import StudyPlanRepository
+from haui_compass.application.ports.task_decomposition import (
+    TaskDecompositionProvider,
+    TaskDecompositionSessionStore,
+)
 from haui_compass.application.ports.tasks import TaskRepository
 from haui_compass.application.ports.transactions import PersistenceTransactionManager
 from haui_compass.application.use_cases.confirm_reflection_signals import ConfirmReflectionSignals
 from haui_compass.application.use_cases.create_study_task import CreateStudyTask
+from haui_compass.application.use_cases.explain_recommendation import ExplainRecommendation
 from haui_compass.application.use_cases.generate_daily_recommendation import (
     GenerateDailyRecommendation,
 )
@@ -30,7 +36,15 @@ from haui_compass.application.use_cases.record_persisted_task_execution import (
     RecordPersistedTaskExecution,
 )
 from haui_compass.application.use_cases.submit_reflection import SubmitReflection
+from haui_compass.application.use_cases.task_decomposition import (
+    ConfirmTaskDecomposition,
+    GenerateTaskDecomposition,
+)
 from haui_compass.infrastructure.clock import SystemClock
+from haui_compass.infrastructure.decomposition.template import (
+    DeterministicTaskDecompositionProvider,
+)
+from haui_compass.infrastructure.explanation.template import TemplateExplanationProvider
 from haui_compass.infrastructure.lms.mock import MockLMSProvider
 from haui_compass.infrastructure.persistence.memory.executions import (
     InMemoryTaskExecutionRepository,
@@ -39,6 +53,9 @@ from haui_compass.infrastructure.persistence.memory.reflections import (
     InMemoryConfirmedReflectionRepository,
 )
 from haui_compass.infrastructure.persistence.memory.study_plans import InMemoryStudyPlanRepository
+from haui_compass.infrastructure.persistence.memory.task_decompositions import (
+    InMemoryTaskDecompositionSessionStore,
+)
 from haui_compass.infrastructure.persistence.memory.tasks import InMemoryTaskRepository
 from haui_compass.infrastructure.persistence.memory.transactions import (
     InMemoryPersistenceTransactionManager,
@@ -47,6 +64,10 @@ from haui_compass.infrastructure.persistence.memory.transactions import (
 
 @dataclass(frozen=True, slots=True)
 class AppContainer:
+    explain_recommendation: ExplainRecommendation
+    generate_task_decomposition: GenerateTaskDecomposition
+    confirm_task_decomposition: ConfirmTaskDecomposition
+    task_decomposition_sessions: TaskDecompositionSessionStore
     lms: LMSProvider
     imported_academic_data: AcademicDataStore
     clock: Clock
@@ -66,12 +87,16 @@ class AppContainer:
 
 def build_container(
     *,
+    explanation_provider: RecommendationExplanationProvider | None = None,
+    task_decomposition_provider: TaskDecompositionProvider | None = None,
+    task_decomposition_timeout_seconds: float = 2.0,
     lms: LMSProvider | None = None,
     clock: Clock | None = None,
     task_repository: TaskRepository | None = None,
     execution_repository: TaskExecutionRepository | None = None,
     plan_repository: StudyPlanRepository | None = None,
     reflection_repository: ConfirmedReflectionRepository | None = None,
+    task_decomposition_sessions: TaskDecompositionSessionStore | None = None,
 ) -> AppContainer:
     resolved_clock = clock or SystemClock()
     imported_academic_data = ImportedAcademicDataProvider()
@@ -83,8 +108,9 @@ def build_container(
     resolved_executions = execution_repository or InMemoryTaskExecutionRepository()
     resolved_plans = plan_repository or InMemoryStudyPlanRepository()
     resolved_reflections = reflection_repository or InMemoryConfirmedReflectionRepository()
+    resolved_decompositions = task_decomposition_sessions or InMemoryTaskDecompositionSessionStore()
     transaction_manager = InMemoryPersistenceTransactionManager(
-        resolved_tasks, resolved_executions, imported_academic_data
+        resolved_tasks, resolved_executions, imported_academic_data, resolved_decompositions
     )
     generator = GenerateDailyRecommendation(lms=resolved_lms, clock=resolved_clock)
     reflection_candidates = GenerateReflectionCandidates(
@@ -92,7 +118,28 @@ def build_container(
         execution_repository=resolved_executions,
         submit_reflection=SubmitReflection(clock=resolved_clock),
     )
+    create_task = CreateStudyTask(
+        lms=resolved_lms,
+        tasks=resolved_tasks,
+        clock=resolved_clock,
+        transaction_manager=transaction_manager,
+    )
     return AppContainer(
+        explain_recommendation=ExplainRecommendation(
+            template=TemplateExplanationProvider(), provider=explanation_provider
+        ),
+        generate_task_decomposition=GenerateTaskDecomposition(
+            lms=resolved_lms,
+            sessions=resolved_decompositions,
+            fallback=DeterministicTaskDecompositionProvider(),
+            provider=task_decomposition_provider,
+            timeout_seconds=task_decomposition_timeout_seconds,
+        ),
+        confirm_task_decomposition=ConfirmTaskDecomposition(
+            sessions=resolved_decompositions,
+            create_task=create_task,
+        ),
+        task_decomposition_sessions=resolved_decompositions,
         lms=resolved_lms,
         imported_academic_data=imported_academic_data,
         clock=resolved_clock,
@@ -129,11 +176,6 @@ def build_container(
             lms=resolved_lms,
             clock=resolved_clock,
         ),
-        create_study_task=CreateStudyTask(
-            lms=resolved_lms,
-            tasks=resolved_tasks,
-            clock=resolved_clock,
-            transaction_manager=transaction_manager,
-        ),
+        create_study_task=create_task,
         transaction_manager=transaction_manager,
     )

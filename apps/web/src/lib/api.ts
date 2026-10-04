@@ -10,14 +10,31 @@ export type Task = {
   estimated_duration_seconds: number;
   status: "not_started" | "in_progress" | "completed";
 };
+export type Assignment = {
+  assignment_id: string;
+  provider: string;
+  external_id: string;
+  title: string;
+  course: string;
+  deadline: string;
+  existing_task_count: number;
+};
 export type Context = {
   mode: string;
+  scenario_id?: string;
+  scenario_label?: string;
+  generation?: number;
+  available_minutes?: number;
   now: string;
   student: { provider: string; id: string };
   period: Period;
   study_windows: Window[];
+  assignments?: Assignment[];
   tasks: Task[];
-  assignment_capacities?: { assignment_id: string; available_minutes: number }[];
+  assignment_capacities?: {
+    assignment_id: string;
+    available_minutes: number;
+  }[];
 };
 export type Block = Window & { task_id: string };
 export type Plan = {
@@ -36,6 +53,11 @@ export type Plan = {
   }[];
 };
 export type Recommendation = {
+  explanation?: {
+    text: string;
+    source: "template" | "ai";
+    fallback_reason: string | null;
+  } | null;
   recommendation: {
     kind: "recommendation" | "no_recommendation";
     task_id?: string;
@@ -45,12 +67,19 @@ export type Recommendation = {
       deadline: string;
       estimated_duration_seconds: number;
       risk_reason_codes: string[];
+      deciding_dimension: string;
     };
   };
   assignment_risks: {
     assignment_id: string;
     level: string;
     reason_codes: string[];
+    evidence: {
+      remaining_effort_seconds: number | null;
+      available_capacity_seconds: number | null;
+      slack_seconds: number | null;
+      slack_ratio: number | null;
+    };
   }[];
 };
 export type Candidate =

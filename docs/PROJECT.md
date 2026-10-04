@@ -77,7 +77,18 @@ self-reported candidates, explicit confirmation), and History (revision snapshot
 Desktop and mobile share four navigation destinations and our own light visual tokens.
 
 The opt-in `haui_compass.api.demo` entrypoint seeds fictional in-memory tasks and a
-plan, and exposes development context labels. Normal API startup remains unseeded.
+plan, and exposes three reproducible showcase scenarios with atomic in-memory reset.
+Today separates deterministic decision evidence from a bounded natural-language
+explanation. The required offline template provider is implemented behind an
+application port; invalid/failed/timed-out optional providers fall back to it.
+Normal API startup remains unseeded and exposes no demo routes.
+**AI Task Decomposition v0.3 is IMPLEMENTED, development-only:** Academic Data can request one to
+five bounded task candidates from an application-owned provider, review/edit/select them, and
+explicitly confirm them through the existing task-creation boundary. Candidate sessions are
+ephemeral and never enter risk/planning before confirmation. The deterministic offline fallback is
+required; timeout, provider exception and invalid output cannot make the demo depend on a vendor.
+The current implementation uses only assignment/course fields already present and includes no
+vendor LLM adapter.
 The frontend calls existing application use cases through HTTP; it does not duplicate
 planning or ranking. Risk may be unknown without assignment capacity. Execution time
 does not imply remaining effort; confirmed reflection remains informational in v0.
@@ -98,7 +109,8 @@ All features below are **PLANNED**:
 
 - Course, assignment, deadline, and workload management.
 - Weekly goals and feasible weekly/daily study plans.
-- Decomposition of large assignments into actionable tasks.
+- Production decomposition of large assignments into actionable tasks. The bounded development
+  demo flow is implemented above.
 - Study-session and task-progress tracking.
 - Transparent deadline-risk detection.
 - A daily Next Best Action with rationale and skip risk.

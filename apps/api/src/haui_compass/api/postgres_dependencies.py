@@ -8,6 +8,7 @@ from haui_compass.application.ports.clock import Clock
 from haui_compass.application.ports.lms import LMSProvider
 from haui_compass.application.use_cases.confirm_reflection_signals import ConfirmReflectionSignals
 from haui_compass.application.use_cases.create_study_task import CreateStudyTask
+from haui_compass.application.use_cases.explain_recommendation import ExplainRecommendation
 from haui_compass.application.use_cases.generate_daily_recommendation import (
     GenerateDailyRecommendation,
 )
@@ -22,9 +23,20 @@ from haui_compass.application.use_cases.record_persisted_task_execution import (
     RecordPersistedTaskExecution,
 )
 from haui_compass.application.use_cases.submit_reflection import SubmitReflection
+from haui_compass.application.use_cases.task_decomposition import (
+    ConfirmTaskDecomposition,
+    GenerateTaskDecomposition,
+)
 from haui_compass.infrastructure.clock import SystemClock
 from haui_compass.infrastructure.config.database import DatabaseSettings
+from haui_compass.infrastructure.decomposition.template import (
+    DeterministicTaskDecompositionProvider,
+)
+from haui_compass.infrastructure.explanation.template import TemplateExplanationProvider
 from haui_compass.infrastructure.lms.mock import MockLMSProvider
+from haui_compass.infrastructure.persistence.memory.task_decompositions import (
+    InMemoryTaskDecompositionSessionStore,
+)
 from haui_compass.infrastructure.persistence.postgres.academic_data import (
     PostgresImportedAcademicDataProvider,
 )
@@ -68,7 +80,25 @@ def build_postgres_container(
         submit_reflection=SubmitReflection(clock=resolved_clock),
         transaction_manager=transaction_manager,
     )
+    decomposition_sessions = InMemoryTaskDecompositionSessionStore()
+    create_task = CreateStudyTask(
+        lms=resolved_lms,
+        tasks=tasks,
+        clock=resolved_clock,
+        transaction_manager=transaction_manager,
+    )
     return AppContainer(
+        explain_recommendation=ExplainRecommendation(template=TemplateExplanationProvider()),
+        generate_task_decomposition=GenerateTaskDecomposition(
+            lms=resolved_lms,
+            sessions=decomposition_sessions,
+            fallback=DeterministicTaskDecompositionProvider(),
+        ),
+        confirm_task_decomposition=ConfirmTaskDecomposition(
+            sessions=decomposition_sessions,
+            create_task=create_task,
+        ),
+        task_decomposition_sessions=decomposition_sessions,
         lms=resolved_lms,
         imported_academic_data=imported_academic_data,
         clock=resolved_clock,
@@ -108,11 +138,6 @@ def build_postgres_container(
             clock=resolved_clock,
             transaction_manager=transaction_manager,
         ),
-        create_study_task=CreateStudyTask(
-            lms=resolved_lms,
-            tasks=tasks,
-            clock=resolved_clock,
-            transaction_manager=transaction_manager,
-        ),
+        create_study_task=create_task,
         transaction_manager=transaction_manager,
     )

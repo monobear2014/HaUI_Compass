@@ -75,7 +75,7 @@ export function Today() {
           day: "numeric",
           month: "long",
         })}
-        title="A clear direction for today."
+        title="What should I do now?"
         description="One useful next step. Everything else in perspective."
         action={
           <button
@@ -134,17 +134,50 @@ export function Today() {
                   </span>
                 </div>
                 <div className="why-box">
-                  <h3>Why now</h3>
-                  <ul>
-                    {rec.reason_codes?.map((code) => (
-                      <li key={code}>{label(code)}</li>
-                    ))}
-                  </ul>
-                  {rec.evidence.risk_reason_codes.length > 0 && (
-                    <p className="evidence-note">
-                      {rec.evidence.risk_reason_codes.map(label).join(" ")}
+                  <h3>Recommendation explanation</h3>
+                  <Badge>
+                    {recommendation?.explanation?.source === "ai"
+                      ? "AI explanation"
+                      : "Template · offline"}
+                  </Badge>
+                  <p lang="vi">
+                    {recommendation?.explanation?.text ||
+                      rec.reason_codes?.map(label).join(" ")}
+                  </p>
+                  <p className="fine-print">
+                    The engine chooses the task and risk. This text only
+                    explains its decision.
+                  </p>
+                  <details className="decision-evidence">
+                    <summary>Decision evidence</summary>
+                    <p>
+                      Ranking deciding dimension:{" "}
+                      <code>{rec.evidence.deciding_dimension}</code>
                     </p>
-                  )}
+                    <ul>
+                      {rec.reason_codes?.map((code) => (
+                        <li key={code}>
+                          <code>{code}</code> · {label(code)}
+                        </li>
+                      ))}
+                    </ul>
+                    <ul>
+                      {rec.evidence.risk_reason_codes.map((code) => (
+                        <li key={code}>
+                          <code>{code}</code> · {label(code)}
+                        </li>
+                      ))}
+                    </ul>
+                    <pre>
+                      {JSON.stringify(
+                        recommendation?.assignment_risks.find(
+                          (risk) => risk.assignment_id === task.assignment_id,
+                        )?.evidence,
+                        null,
+                        2,
+                      )}
+                    </pre>
+                  </details>
                 </div>
                 <div className="action-bottom">
                   <button
@@ -222,6 +255,31 @@ export function Today() {
                 not started
               </span>
             </div>
+          </section>
+          <section className="panel">
+            <h2>Assignment risk</h2>
+            <p className="fine-print">
+              Uses original task estimates and scenario capacity. Replan inputs
+              affect the plan only.
+            </p>
+            {recommendation?.assignment_risks.map((risk) => (
+              <details className="risk-row" key={risk.assignment_id}>
+                <summary>
+                  {
+                    context.tasks.find(
+                      (t) => t.assignment_id === risk.assignment_id,
+                    )?.assignment_title
+                  }{" "}
+                  · <strong>{risk.level.toUpperCase()}</strong>
+                </summary>
+                {risk.reason_codes.map((code) => (
+                  <p key={code}>
+                    <code>{code}</code> · {label(code)}
+                  </p>
+                ))}
+                <pre>{JSON.stringify(risk.evidence, null, 2)}</pre>
+              </details>
+            ))}
           </section>
           <section className="panel">
             <div className="section-heading">
@@ -675,6 +733,30 @@ function ChangeReview({
           Your existing blocks still fit. They have been preserved in this
           revision.
         </p>
+      )}
+      {baseline && (
+        <details className="preserved-blocks">
+          <summary>Blocks kept unchanged</summary>
+          {baseline.blocks
+            .filter((before) =>
+              result.plan.blocks.some(
+                (after) =>
+                  after.task_id === before.task_id &&
+                  after.starts_at === before.starts_at &&
+                  after.ends_at === before.ends_at,
+              ),
+            )
+            .map((block, index) => (
+              <BlockRow
+                key={index}
+                block={block}
+                task={context.tasks.find((task) => task.id === block.task_id)}
+              />
+            ))}
+          <p className="fine-print">
+            Exact block matches between the saved snapshots.
+          </p>
+        </details>
       )}
       <p className="fine-print">
         {result.informational_reflection_signals.length

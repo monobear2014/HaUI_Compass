@@ -8,11 +8,18 @@ HaUI Compass is a planned adaptive AI learning companion for students at Hanoi U
 
 **Current phase: Project foundation / architecture design.**
 
-**Latest implemented milestone:** deterministic Learning Loop API v0, PostgreSQL
-persistence foundation, and a development-only Next.js workspace (Today, Weekly Plan,
-Reflect, History). See [frontend setup and boundaries](apps/web/README.md) and
+**Latest implemented milestone:** Demo Showcase v0.2 over the deterministic Learning
+Loop API, PostgreSQL persistence foundation, and development-only Next.js workspace.
+It includes three resettable fictional scenarios and bounded offline recommendation
+explanations with visible decision evidence. See the [demo runbook](docs/demo/demo-showcase-v0.2.md),
+[frontend setup and boundaries](apps/web/README.md) and
 [product implementation status](docs/PROJECT.md). The opt-in demo uses fictional,
 in-memory data; authentication, real LMS and production deployment remain planned.
+
+**AI Task Decomposition v0.3 is IMPLEMENTED, development-only:** a student can generate bounded
+offline candidates for a fictional assignment, edit/select them, and confirm the chosen subset
+through the existing task-creation boundary before deterministic recommendation and planning.
+See the [v0.3 presenter flow](docs/demo/ai-task-decomposition-v0.3.md).
 
 The foundation descriptions below describe earlier milestones, not production readiness.
 

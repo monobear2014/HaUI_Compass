@@ -6,7 +6,7 @@ from fastapi.testclient import TestClient
 from haui_compass.api.pilot_fixture import create_pilot_fixture_app
 
 
-def test_reset_and_t2_creation():
+def test_reset_and_t2_creation() -> None:
     with TestClient(create_pilot_fixture_app()) as c:
         before = c.post("/api/v1/pilot-fixture/reset").json()
         again = c.post("/api/v1/pilot-fixture/reset").json()
@@ -55,7 +55,7 @@ def test_reset_and_t2_creation():
         assert created[0]["status"] == "not_started"
 
 
-def test_canonical_engine_flow():
+def test_canonical_engine_flow() -> None:
     with TestClient(create_pilot_fixture_app()) as c:
         ctx = c.post("/api/v1/pilot-fixture/reset").json()
         reading = str(UUID(int=99))

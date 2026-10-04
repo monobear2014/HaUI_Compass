@@ -1,5 +1,12 @@
 import { test, expect, Page } from "@playwright/test";
 
+test.beforeEach(async ({ request }) => {
+  const reset = await request.post("/compass-api/demo/scenarios/select", {
+    data: { scenario_id: "crunch" },
+  });
+  expect(reset.ok()).toBeTruthy();
+});
+
 async function noOverflow(page: Page) {
   expect(
     await page.evaluate(

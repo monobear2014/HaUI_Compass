@@ -1,8 +1,9 @@
 # HaUI Compass web MVP
 
 **IMPLEMENTED, development-only:** Next.js/React/TypeScript workspace with Today,
-Weekly Plan, Reflect, and History. All learning-loop operations call real
-FastAPI/application use cases; the browser does not reproduce ranking or scheduling.
+Weekly Plan, Reflect, History, Academic Data and a resettable three-scenario showcase.
+All learning-loop operations call real FastAPI/application use cases; the browser
+does not reproduce risk, ranking, scheduling or replanning decisions.
 
 ## Run locally
 
@@ -26,6 +27,12 @@ Open http://127.0.0.1:3000. Next.js forwards `/compass-api/*` to `/api/v1/*`.
 default targets port 8000. Restart Next.js after changing it. For production
 builds, supply it at build time as well.
 
+The demo starts on **Deadline Crunch**. Use the selector at the top of the workspace
+to load Normal Week, Deadline Crunch or Disrupted Week. See the complete
+[presenter runbook](../../docs/demo/demo-showcase-v0.2.md).
+Normal Week also contains a taskless Database Mini Project for the
+[AI decomposition v0.3 flow](../../docs/demo/ai-task-decomposition-v0.3.md).
+
 ## Checks
 
 ```bash
@@ -39,21 +46,28 @@ npm test
 Playwright starts the demo on 8001 and web on 3000 if absent. Locally it may reuse
 existing servers: ensure the frontend points at this demo, not an unrelated API.
 CI requires free ports. Tests run sequentially against the same fictional workspace
-and intentionally append revisions. Twelve Chromium cases cover desktop (1280×900)
+and intentionally append revisions. Chromium cases cover desktop (1280×900)
 and mobile (390×844), the real HTTP learning loop, explicit candidate selection,
 error/retry (including identical execution payloads/IDs), loading, empty states and
-overflow. Screenshots go to ignored `test-results/`.
+overflow. The showcase spec also covers scenario reset plus the end-to-end disrupted
+flow. Screenshots go to ignored `test-results/`.
 
 ## Data and behavior boundaries
 
-- Four fictional tasks and three editable availability windows are seeded only
-  by `haui_compass.api.demo`. Restarting that API discards all data. The default
-  API remains unseeded and does not expose `/api/v1/demo/context`.
+- Three reproducible fictional scenarios are seeded only by
+  `haui_compass.api.demo`. Selecting/resetting a scenario atomically swaps its
+  isolated in-memory container. Restarting the API discards all data. The default
+  API remains unseeded and exposes no demo routes.
+- Task decomposition stores validated candidates in an ephemeral server-side session.
+  Editing/selecting candidates does not create tasks; **Add selected tasks** calls the
+  existing task-creation use case for the confirmed subset. The showcase provider is a
+  deterministic offline fallback, and its estimates remain editable suggestions.
 - Demo context supplies academic labels, status, period and authored availability;
   it is not a general LMS or task-management API.
-- Risk can be **UNKNOWN** because per-assignment capacity is not supplied. The UI
-  displays the backend result, never fabricated urgency/probabilities. There is
-  no standalone `risk_if_deferred` contract yet.
+- Risk/NBA remain deterministic and use explicit per-assignment capacity supplied
+  by the scenario context. Natural-language recommendation text is presentation
+  output from an offline template provider; raw reason codes/evidence remain visible.
+  There is no standalone `risk_if_deferred` contract yet.
 - Record work converts device-local inputs to aware ISO timestamps; plan/deadline
   displays use Hanoi time. Exact execution retries reuse the record ID while the
   dialog stays open. No mutation is automatically retried.

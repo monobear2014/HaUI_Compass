@@ -39,6 +39,16 @@ class CreateStudyTask:
             return self._transactions.run(lambda: self._execute(request))
         return self._execute(request)
 
+    def execute_many(self, requests: tuple[CreateStudyTaskRequest, ...]) -> tuple[StoredTask, ...]:
+        """Create a validated batch through the same boundary and one transaction."""
+
+        def operation() -> tuple[StoredTask, ...]:
+            return tuple(self._execute(request) for request in requests)
+
+        if self._transactions is not None:
+            return self._transactions.run(operation)
+        return operation()
+
     def _execute(self, request: CreateStudyTaskRequest) -> StoredTask:
         # The provider validates both student scope and assignment ownership; no assignment-to-task
         # conversion happens unless the student calls this explicit use case.

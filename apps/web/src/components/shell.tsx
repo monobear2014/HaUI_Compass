@@ -14,7 +14,15 @@ const links = [
 ];
 export function Shell({ children }: { children: React.ReactNode }) {
   const path = usePathname();
-  const { context, error, loading, refresh } = useWorkspace();
+  const {
+    context,
+    error,
+    loading,
+    refresh,
+    scenarios,
+    switching,
+    selectScenario,
+  } = useWorkspace();
   return (
     <div className="app-shell">
       <a className="skip-link" href="#main">
@@ -76,6 +84,43 @@ export function Shell({ children }: { children: React.ReactNode }) {
           </div>
         </header>
         <main id="main" className="workspace">
+          {scenarios.length > 0 && (
+            <section className="demo-selector panel" aria-label="Demo controls">
+              <label>
+                Demo scenario
+                <select
+                  aria-label="Demo scenario"
+                  value={context?.scenario_id || ""}
+                  disabled={loading || switching}
+                  onChange={(event) => void selectScenario(event.target.value)}
+                >
+                  <option value="" disabled>
+                    Select a fictional scenario
+                  </option>
+                  {scenarios.map((scenario) => (
+                    <option key={scenario.id} value={scenario.id}>
+                      {scenario.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <button
+                className="secondary small"
+                disabled={loading || switching || !context?.scenario_id}
+                onClick={() =>
+                  context?.scenario_id &&
+                  void selectScenario(context.scenario_id)
+                }
+              >
+                Reset this scenario
+              </button>
+              <p className="fine-print">
+                Fictional data · fixed demo clock · selecting or resetting
+                clears this in-memory demo session, including imports.
+              </p>
+            </section>
+          )}
+
           {error && (
             <div className="message error" role="alert">
               <Icon name="alert" />
@@ -88,7 +133,9 @@ export function Shell({ children }: { children: React.ReactNode }) {
               </button>
             </div>
           )}
-          {loading && !context ? (
+          {switching ? (
+            <p role="status">Loading fictional scenario…</p>
+          ) : loading && !context ? (
             <div className="loading-state" role="status">
               <div className="skeleton wide" />
               <div className="skeleton hero-skeleton" />

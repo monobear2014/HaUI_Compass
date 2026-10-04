@@ -1,5 +1,6 @@
 """Development-only, resettable fixture for Controlled Thesis Pilot Protocol v1.3."""
 
+from collections.abc import Collection
 from datetime import UTC, datetime, timedelta, timezone
 from uuid import UUID
 
@@ -21,13 +22,23 @@ from haui_compass.domain.tasks.task import Task, TaskId, TaskStatus
 
 
 class PilotLMS:
-    def get_courses(self, student):
+    def get_courses(self, student: ExternalRef) -> tuple[LMSCourseRecord, ...]:
         return COURSES
 
-    def get_assignments(self, student, *, courses=None):
+    def get_assignments(
+        self,
+        student: ExternalRef,
+        *,
+        courses: Collection[ExternalRef] | None = None,
+    ) -> tuple[LMSAssignmentRecord, ...]:
         return ASSIGNMENTS
 
-    def get_submission_statuses(self, student, *, assignments=None):
+    def get_submission_statuses(
+        self,
+        student: ExternalRef,
+        *,
+        assignments: Collection[ExternalRef] | None = None,
+    ) -> tuple[LMSSubmissionRecord, ...]:
         return SUBMISSIONS
 
 
@@ -119,7 +130,7 @@ def build() -> AppContainer:
     return c
 
 
-def snapshot(c: AppContainer) -> dict:
+def snapshot(c: AppContainer) -> dict[str, object]:
     ts = c.task_repository.list_for_student(student_id_for(STUDENT))
     assignments = {assignment_id_for(a.ref): a for a in ASSIGNMENTS}
     courses = {course.ref: course.name for course in COURSES}
@@ -158,12 +169,12 @@ def create_pilot_fixture_app() -> FastAPI:
     app = create_app(build())
 
     @app.post("/api/v1/pilot-fixture/reset")
-    def reset() -> dict:
+    def reset() -> dict[str, object]:
         app.state.container = build()
         return snapshot(app.state.container)
 
     @app.get("/api/v1/demo/context")
-    def context() -> dict:
+    def context() -> dict[str, object]:
         return snapshot(app.state.container)
 
     return app

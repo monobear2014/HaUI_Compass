@@ -1,7 +1,9 @@
 "use client";
 
 import { FormEvent, useCallback, useEffect, useState } from "react";
-import { api, apiDelete } from "@/lib/api";
+import { api, apiDelete, Assignment, date, minutes } from "@/lib/api";
+import { useWorkspace } from "@/components/workspace";
+import Link from "next/link";
 
 type Source = "manual" | "csv" | "json";
 type Academic = {
@@ -19,10 +21,25 @@ type Academic = {
   }[];
   submissions_data: { assignment_external_id: string; status: string }[];
 };
+type DecompositionCandidate = {
+  id: string;
+  title: string;
+  estimated_duration_minutes: number;
+  rationale: string | null;
+  source: "ai" | "demo_fallback";
+};
+type Decomposition = {
+  session_id: string;
+  assignment_title: string;
+  source: "ai" | "demo_fallback";
+  fallback_reason: string | null;
+  candidates: DecompositionCandidate[];
+};
 const student = "pilot-student";
 const version = "haui-compass-academic-import-v1";
 
 export default function AcademicPage() {
+  const { context, refresh } = useWorkspace();
   const [source, setSource] = useState<Source>("manual");
   const [data, setData] = useState<Academic | null>(null);
   const [notice, setNotice] = useState("");
@@ -157,6 +174,59 @@ export default function AcademicPage() {
           official HaUI data.
         </p>
       </section>
+      {context?.scenario_id && (
+        <section className="panel academic-current">
+          <h2>{context.scenario_label} · Academic data → Tasks</h2>
+          <p>
+            Three fictional courses. AI decomposition creates editable
+            candidates; only your confirmation creates study tasks.
+          </p>
+          <ul className="academic-list">
+            {context.assignments?.map((assignment) => {
+              const tasks = context.tasks.filter(
+                (task) => task.assignment_id === assignment.assignment_id,
+              );
+              return (
+                <li key={assignment.external_id} className="assignment-card">
+                  <div>
+                    <strong>
+                      {assignment.course} / {assignment.title}
+                    </strong>
+                    <span>
+                      Deadline:{" "}
+                      {date(assignment.deadline, {
+                        day: "numeric",
+                        month: "short",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </span>
+                    {tasks.length ? (
+                      tasks.map((task) => (
+                        <span key={task.id}>
+                          Task: {task.title} ·{" "}
+                          {minutes(task.estimated_duration_seconds)} min ·{" "}
+                          {task.status.replaceAll("_", " ")}
+                        </span>
+                      ))
+                    ) : (
+                      <span>No confirmed study tasks yet.</span>
+                    )}
+                  </div>
+                  <TaskDecomposition
+                    assignment={assignment}
+                    student={context.student}
+                    onConfirmed={refresh}
+                  />
+                </li>
+              );
+            })}
+          </ul>
+          <Link className="secondary" href="/">
+            Today → Risk & next action
+          </Link>
+        </section>
+      )}
       <div className="academic-grid">
         <section className="panel">
           <h2>Manual entry</h2>
@@ -297,6 +367,188 @@ export default function AcademicPage() {
         )}
       </section>
     </>
+  );
+}
+
+function TaskDecomposition({
+  assignment,
+  student,
+  onConfirmed,
+}: {
+  assignment: Assignment;
+  student: { provider: string; id: string };
+  onConfirmed: () => Promise<void>;
+}) {
+  const [session, setSession] = useState<Decomposition | null>(null);
+  const [drafts, setDrafts] = useState<DecompositionCandidate[]>([]);
+  const [selected, setSelected] = useState<string[]>([]);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [created, setCreated] = useState<string[]>([]);
+
+  async function suggest() {
+    setBusy(true);
+    setError("");
+    setCreated([]);
+    try {
+      const result = await api<Decomposition>("task-decompositions", {
+        session_id: crypto.randomUUID(),
+        student,
+        assignment: {
+          provider: assignment.provider,
+          id: assignment.external_id,
+        },
+      });
+      setSession(result);
+      setDrafts(result.candidates);
+      setSelected(result.candidates.map((candidate) => candidate.id));
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Could not suggest study tasks.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function confirm() {
+    if (!session) return;
+    setBusy(true);
+    setError("");
+    try {
+      const result = await api<{
+        created_tasks: { id: string; title: string }[];
+      }>(`task-decompositions/${session.session_id}/confirm`, {
+        student,
+        selection: drafts
+          .filter((candidate) => selected.includes(candidate.id))
+          .map((candidate) => ({
+            candidate_id: candidate.id,
+            title: candidate.title,
+            estimated_duration_minutes: candidate.estimated_duration_minutes,
+          })),
+      });
+      setCreated(result.created_tasks.map((task) => task.title));
+      await onConfirmed();
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Could not add selected tasks.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (!session) {
+    return (
+      <div className="decomposition-actions">
+        <button
+          className="secondary small"
+          disabled={busy}
+          onClick={() => void suggest()}
+        >
+          {busy ? "Generating suggestions…" : "Suggest tasks with AI"}
+        </button>
+        {error && <span className="form-error">{error}</span>}
+      </div>
+    );
+  }
+
+  return (
+    <section
+      className="decomposition-review"
+      aria-label={`Task suggestions for ${assignment.title}`}
+    >
+      <div className="section-heading">
+        <strong>Candidate study tasks</strong>
+        <span className="badge">
+          {session.source === "ai" ? "AI suggestion" : "Demo fallback"}
+        </span>
+      </div>
+      <p className="fine-print">
+        AI suggestions are not added until you confirm. Titles and estimates are
+        suggestions, not ground truth.
+      </p>
+      {drafts.map((candidate, index) => (
+        <div className="decomposition-candidate" key={candidate.id}>
+          <label className="choice">
+            <input
+              type="checkbox"
+              aria-label={`Select ${candidate.title}`}
+              checked={selected.includes(candidate.id)}
+              disabled={created.length > 0}
+              onChange={(event) =>
+                setSelected((current) =>
+                  event.target.checked
+                    ? [...current, candidate.id]
+                    : current.filter((id) => id !== candidate.id),
+                )
+              }
+            />
+            Include this candidate
+          </label>
+          <label>
+            Suggested task title
+            <input
+              aria-label={`Candidate ${index + 1} title`}
+              value={candidate.title}
+              minLength={3}
+              maxLength={120}
+              disabled={created.length > 0}
+              onChange={(event) =>
+                setDrafts((current) =>
+                  current.map((row) =>
+                    row.id === candidate.id
+                      ? { ...row, title: event.target.value }
+                      : row,
+                  ),
+                )
+              }
+            />
+          </label>
+          <label>
+            Suggested estimate (minutes)
+            <input
+              aria-label={`Candidate ${index + 1} estimate`}
+              type="number"
+              min={15}
+              max={480}
+              value={candidate.estimated_duration_minutes}
+              disabled={created.length > 0}
+              onChange={(event) =>
+                setDrafts((current) =>
+                  current.map((row) =>
+                    row.id === candidate.id
+                      ? {
+                          ...row,
+                          estimated_duration_minutes: Number(
+                            event.target.value,
+                          ),
+                        }
+                      : row,
+                  ),
+                )
+              }
+            />
+          </label>
+          {candidate.rationale && <p>{candidate.rationale}</p>}
+        </div>
+      ))}
+      {created.length ? (
+        <p className="form-success" role="status">
+          Added {created.length} confirmed tasks: {created.join("; ")}
+        </p>
+      ) : (
+        <button
+          className="primary"
+          disabled={busy || selected.length === 0}
+          onClick={() => void confirm()}
+        >
+          {busy ? "Adding selected tasks…" : "Add selected tasks"}
+        </button>
+      )}
+      {error && <p className="form-error">{error}</p>}
+    </section>
   );
 }
 

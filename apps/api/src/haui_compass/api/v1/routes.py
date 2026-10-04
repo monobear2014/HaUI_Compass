@@ -32,7 +32,16 @@ from haui_compass.api.schemas.learning_loop import (
 from haui_compass.api.schemas.recommendations import (
     DailyRecommendationRequest,
     DailyRecommendationResponse,
+    ExplanationDTO,
     recommendation_response,
+)
+from haui_compass.api.schemas.task_decomposition import (
+    ConfirmTaskDecompositionRequestDTO,
+    ConfirmTaskDecompositionResponse,
+    GenerateTaskDecompositionRequestDTO,
+    TaskDecompositionResponse,
+    confirmation_response,
+    decomposition_response,
 )
 from haui_compass.api.schemas.tasks import CreateStudyTaskRequestDTO, StudyTaskResponse
 from haui_compass.application.academic_import import AcademicSource, dataset_from_values
@@ -41,6 +50,7 @@ from haui_compass.application.ports.executions import ExecutionRecordId
 from haui_compass.application.ports.lms import SubmissionStatus
 from haui_compass.application.ports.reflections import ConfirmedReflectionRecordId
 from haui_compass.application.ports.study_plans import PlanRecordId
+from haui_compass.application.ports.task_decomposition import TaskDecompositionSessionId
 from haui_compass.application.use_cases.create_study_task import CreateStudyTaskRequest
 from haui_compass.application.use_cases.get_daily_recommendation import (
     GetDailyRecommendationRequest,
@@ -53,6 +63,10 @@ from haui_compass.application.use_cases.persisted_learning_loop import (
 )
 from haui_compass.application.use_cases.record_persisted_task_execution import (
     RecordPersistedTaskExecutionRequest,
+)
+from haui_compass.application.use_cases.task_decomposition import (
+    ConfirmTaskDecompositionRequest,
+    GenerateTaskDecompositionRequest,
 )
 from haui_compass.domain.tasks.execution import ExecutionOutcome
 from haui_compass.domain.tasks.task import TaskId
@@ -243,6 +257,23 @@ def academic_data_context(
             "period": {"start": period_start, "end": period_start + timedelta(days=7)},
             "study_windows": [],
             "now": now,
+            "assignments": [
+                {
+                    "assignment_id": str(assignment_id_for(assignment.ref)),
+                    "provider": assignment.ref.provider,
+                    "external_id": assignment.ref.id,
+                    "title": assignment.title,
+                    "course": courses[assignment.course_ref],
+                    "deadline": assignment.deadline,
+                    "existing_task_count": sum(
+                        1
+                        for task in tasks
+                        if task["assignment_id"] == str(assignment_id_for(assignment.ref))
+                    ),
+                }
+                for assignment in assignments.values()
+                if assignment.deadline is not None
+            ],
             "tasks": tasks,
         }
 
@@ -272,19 +303,68 @@ def create_study_task(
     )
 
 
+@router.post("/task-decompositions", response_model=TaskDecompositionResponse)
+async def generate_task_decomposition(
+    request: GenerateTaskDecompositionRequestDTO,
+    container: AppContainer = container_dependency,
+) -> TaskDecompositionResponse:
+    result = await container.generate_task_decomposition.execute(
+        GenerateTaskDecompositionRequest(
+            session_id=TaskDecompositionSessionId(request.session_id),
+            student=request.student.to_domain(),
+            assignment=request.assignment.to_domain(),
+        )
+    )
+    return decomposition_response(result)
+
+
+@router.post(
+    "/task-decompositions/{session_id}/confirm",
+    response_model=ConfirmTaskDecompositionResponse,
+)
+def confirm_task_decomposition(
+    session_id: UUID,
+    request: ConfirmTaskDecompositionRequestDTO,
+    container: AppContainer = container_dependency,
+) -> ConfirmTaskDecompositionResponse:
+    result = container.confirm_task_decomposition.execute(
+        ConfirmTaskDecompositionRequest(
+            session_id=TaskDecompositionSessionId(session_id),
+            student=request.student.to_domain(),
+            selection=tuple(item.to_application() for item in request.selection),
+        )
+    )
+    return confirmation_response(result)
+
+
 @router.post("/daily-recommendation", response_model=DailyRecommendationResponse)
-def daily_recommendation(
+async def daily_recommendation(
     request: DailyRecommendationRequest,
     container: AppContainer = container_dependency,
 ) -> DailyRecommendationResponse:
-    result = container.get_daily_recommendation.execute(
+    from starlette.concurrency import run_in_threadpool
+
+    result = await run_in_threadpool(
+        container.get_daily_recommendation.execute,
         GetDailyRecommendationRequest(
             student=request.student.to_domain(),
             available_capacity=timedelta(minutes=request.available_minutes),
             assignment_capacities=tuple(item.to_domain() for item in request.assignment_capacities),
-        )
+        ),
     )
-    return recommendation_response(result)
+    response = recommendation_response(result)
+    explanation = await container.explain_recommendation.execute(result)
+    if explanation is not None:
+        response = response.model_copy(
+            update={
+                "explanation": ExplanationDTO(
+                    text=explanation.text,
+                    source=explanation.source,
+                    fallback_reason=explanation.fallback_reason,
+                )
+            }
+        )
+    return response
 
 
 @router.post("/task-executions", response_model=TaskExecutionResponse)

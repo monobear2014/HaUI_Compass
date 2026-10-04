@@ -9,8 +9,13 @@ boundary on `feat/api-learning-loop`.
 
 FastAPI is confined to `haui_compass.api`. Pydantic models are DTOs at the HTTP boundary only;
 domain, engines, and application use cases remain framework-independent. `create_app(container=...)`
-is the explicit application factory. `api.dependencies` is the sole composition root and wires LMS,
-clock, repository ports, and use cases without a dependency-injection framework.
+is the explicit application factory. `api.dependencies` wires LMS, clock, repository ports, and use
+cases without a dependency-injection framework.
+
+Demo Showcase v0.2 adds `api.demo` as an explicit, opt-in composition root for fictional scenario
+fixtures. It may wire infrastructure adapters, but normal API startup never imports it and its
+reset/selector routes exist only on `haui_compass.api.demo:app`. The import-boundary test lists this
+module explicitly; other API modules still cannot import infrastructure.
 
 The API supports both explicit in-memory and explicit PostgreSQL composition roots. The PostgreSQL
 root runs repository access through its transaction boundary; execution and plan-revision writes
