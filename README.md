@@ -8,7 +8,14 @@ HaUI Compass is a planned adaptive AI learning companion for students at Hanoi U
 
 **Current phase: Technical MVP / council demo system, development-only.**
 
-**Latest implemented milestone:** Demo Evaluation & Council Hardening v0.5, building on the
+**Data & Knowledge Corpus v1 is IMPLEMENTED as offline repository assets:** three synthetic
+student/scenario snapshots with compatible JSON/CSV imports, three public HaUI document snapshots,
+and three fictional Vietnamese course packs. Versioned metadata records source, time, authority,
+rights and SHA-256. Offline validation checks corpus integrity and compatibility with existing
+fixtures/import contracts. See [corpus inventory](data/README.md) and
+[council corpus runbook](docs/demo/data-knowledge-corpus-v1.md). Runtime RAG/retrieval remains planned.
+
+**Latest implemented runtime demo milestone:** Demo Evaluation & Council Hardening v0.5, building on the
 deterministic Learning Loop API, PostgreSQL persistence foundation, and development-only Next.js
 workspace. It includes three resettable fictional scenarios and bounded offline recommendation
 explanations with visible decision evidence. See the
@@ -90,6 +97,7 @@ apps/
   web/                          Next.js development workspace MVP
 packages/shared/                Planned generated or shared contracts
 evals/                          Versioned fictional evaluation assets (not deployable application code)
+data/                           Offline synthetic data and provenance-labelled knowledge corpus
 tests/                          Reserved for cross-app end-to-end tests
 docs/                           Product source of truth, architecture, ADRs, and research
 scripts/                        Repository automation

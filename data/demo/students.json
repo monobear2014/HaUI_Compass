@@ -1,0 +1,42 @@
+{
+  "schema_version": "haui-compass-corpus-v1",
+  "fictional_only": true,
+  "students": [
+    {
+      "id": "showcase-normal",
+      "scenario_id": "normal",
+      "display_name": "Sinh viên demo 1",
+      "year": 2,
+      "learning_goal": "Chia công việc lớn thành bước học cụ thể",
+      "course_ids": [
+        "db",
+        "ml",
+        "en"
+      ]
+    },
+    {
+      "id": "showcase-crunch",
+      "scenario_id": "crunch",
+      "display_name": "Sinh viên demo 2",
+      "year": 2,
+      "learning_goal": "Nhìn rõ phần việc không vừa thời gian rảnh",
+      "course_ids": [
+        "db",
+        "ml",
+        "en"
+      ]
+    },
+    {
+      "id": "showcase-disrupted",
+      "scenario_id": "disrupted",
+      "display_name": "Sinh viên demo 3",
+      "year": 2,
+      "learning_goal": "Ghi lại thực tế và điều chỉnh kế hoạch",
+      "course_ids": [
+        "db",
+        "ml",
+        "en"
+      ]
+    }
+  ]
+}

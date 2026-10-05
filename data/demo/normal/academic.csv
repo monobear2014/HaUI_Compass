@@ -1,0 +1,6 @@
+course_id,course_name,course_code,assignment_id,assignment_title,deadline,submission_status,submitted_at,estimated_effort_minutes
+normal-db,Databases,FICTION-DB,normal-assignment-0,Database Schema,2026-10-08T02:00:00+00:00,not_submitted,,45
+normal-ml,Machine Learning,FICTION-ML,normal-assignment-1,Regression Lab,2026-10-09T02:00:00+00:00,not_submitted,,60
+normal-ml,Machine Learning,FICTION-ML,normal-assignment-2,Evaluation Report,2026-10-10T02:00:00+00:00,not_submitted,,90
+normal-en,Communication,FICTION-EN,normal-assignment-3,Project Presentation,2026-10-11T02:00:00+00:00,not_submitted,,30
+normal-db,Databases,FICTION-DB,normal-assignment-capstone,Database Mini Project,2026-10-07T14:00:00+00:00,not_submitted,,180

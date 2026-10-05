@@ -225,6 +225,18 @@ The in-memory adapters are development/test infrastructure only: they provide no
 
 ## RAG
 
+**Data & Knowledge Corpus v1 is IMPLEMENTED, offline/development-only:** `data/demo` contains
+fixed-clock snapshots of the three existing fictional scenarios, student profiles and academic
+JSON/CSV artifacts compatible with the current import contract. `data/knowledge/haui` contains
+three normalized public HaUI article snapshots with source URLs, collection/publication dates,
+temporal limitations and rights notes. `data/knowledge/courses` contains three original fictional
+Vietnamese course packs linked to existing demo courses and assignments. A versioned manifest
+records identity, provenance and SHA-256; an offline validator checks integrity, source boundaries,
+fixture drift and existing academic import schemas. These files are not loaded by the runtime;
+course briefs are not supplied to current AI providers, and no engine or business semantics change.
+This is a bounded source collection, not a complete set of verified current HaUI regulations.
+See [corpus inventory and limitations](../data/README.md).
+
 **PLANNED:** Retrieval-augmented generation is a supporting course-learning capability, not the product's central architecture. The intended flow is document ingestion, source-aware chunking, embedding/indexing, retrieval with authorization filters, answer generation constrained to retrieved evidence, and traceable citations.
 
 Course-material answers must distinguish supported answers from uncertainty. If evidence is missing or conflicting, the assistant should say so instead of hallucinating. Citation correctness, context precision/recall, faithfulness, and answer relevance will require dedicated evaluation datasets.
