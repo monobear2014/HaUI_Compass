@@ -7,6 +7,21 @@ test.beforeEach(async ({ request }) => {
   expect(response.ok()).toBeTruthy();
 });
 
+test("presentation preferences switch language and theme without changing the workspace", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "VI", exact: true }).click();
+  await expect(page.getByRole("link", { name: "Hôm nay", exact: true })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Tôi nên làm gì ngay bây giờ?" }),
+  ).toBeVisible();
+  await expect(page.locator("html")).toHaveAttribute("lang", "vi");
+
+  await page.getByRole("button", { name: "Chuyển sang giao diện tối" }).click();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+});
+
 test("showcase: normal → crunch → execute, reflect and replan disrupted week", async ({
   page,
 }, info) => {

@@ -78,13 +78,27 @@ class FakeProvider:
             return ExplanationText("  ")
         if self.mode == "oversized":
             return ExplanationText("x" * 2001)
+        if self.mode == "technical_dump":
+            return ExplanationText(
+                'recommended_task_id: 00000000-0000-0000-0000-000000000065; '
+                'risk_level: high'
+            )
         if self.mode == "wrong_type":
             return cast(ExplanationText, {"risk_level": "low"})
         return await TemplateExplanationProvider().explain(facts)
 
 
 @pytest.mark.parametrize(
-    "mode", ["provider_error", "timeout", "invalid_output", "oversized", "wrong_type", "ok"]
+    "mode",
+    [
+        "provider_error",
+        "timeout",
+        "invalid_output",
+        "oversized",
+        "technical_dump",
+        "wrong_type",
+        "ok",
+    ],
 )
 def test_provider_boundary_falls_back_without_modifying_the_decision(mode: str) -> None:
     result = decision()
@@ -99,7 +113,9 @@ def test_provider_boundary_falls_back_without_modifying_the_decision(mode: str) 
     assert provider.input == explanation_input(result)
     assert "HIGH" in output.text and "150 phút" in output.text
     assert output.source == ("ai" if mode == "ok" else "template")
-    expected = "invalid_output" if mode in {"oversized", "wrong_type"} else mode
+    expected = (
+        "invalid_output" if mode in {"oversized", "technical_dump", "wrong_type"} else mode
+    )
     assert output.fallback_reason == (None if mode == "ok" else expected)
 
 

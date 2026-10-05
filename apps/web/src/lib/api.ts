@@ -187,14 +187,22 @@ export function scope(context: Context) {
 export function minutes(seconds: number) {
   return Math.round(seconds / 60);
 }
-export function date(value: string, options: Intl.DateTimeFormatOptions = {}) {
-  return new Intl.DateTimeFormat("en-GB", {
+export function date(
+  value: string,
+  options: Intl.DateTimeFormatOptions = {},
+  locale = "en-GB",
+) {
+  return new Intl.DateTimeFormat(locale, {
     timeZone: "Asia/Ho_Chi_Minh",
     ...options,
   }).format(new Date(value));
 }
-export function time(value: string) {
-  return date(value, { hour: "2-digit", minute: "2-digit", hour12: false });
+export function time(value: string, locale = "en-GB") {
+  return date(
+    value,
+    { hour: "2-digit", minute: "2-digit", hour12: false },
+    locale,
+  );
 }
 export function dayKey(value: string) {
   return new Intl.DateTimeFormat("en-CA", {

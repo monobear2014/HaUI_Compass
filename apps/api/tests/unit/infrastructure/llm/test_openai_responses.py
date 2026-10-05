@@ -329,7 +329,8 @@ def test_valid_structured_explanation_only_contains_supplied_decision_facts() ->
     prompt_facts = json.loads(cast(str, payload["input"]))
     assert prompt_facts["risk_level"] == "high"
     assert "recommended_task_id" in prompt_facts
-    assert "Do not change the recommendation" in cast(str, payload["instructions"])
+    assert "student-facing explanation" in cast(str, payload["instructions"])
+    assert "do not repeat input field names" in cast(str, payload["instructions"]).lower()
 
 
 @pytest.mark.parametrize(

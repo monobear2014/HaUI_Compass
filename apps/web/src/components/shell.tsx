@@ -3,17 +3,19 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { date } from "@/lib/api";
 import { Icon } from "./icons";
+import { usePreferences } from "./preferences";
 import { useWorkspace } from "./workspace";
 
 const links = [
-  { href: "/", title: "Today", icon: "today" },
-  { href: "/plan", title: "Weekly Plan", icon: "plan" },
-  { href: "/reflect", title: "Reflect", icon: "reflect" },
-  { href: "/history", title: "History", icon: "history" },
-  { href: "/academic", title: "Academic Data", icon: "book" },
+  { href: "/", title: "today", icon: "today" },
+  { href: "/plan", title: "weeklyPlan", icon: "plan" },
+  { href: "/reflect", title: "reflect", icon: "reflect" },
+  { href: "/history", title: "history", icon: "history" },
+  { href: "/academic", title: "academicData", icon: "book" },
 ];
 export function Shell({ children }: { children: React.ReactNode }) {
   const path = usePathname();
+  const { language, setLanguage, theme, toggleTheme, t } = usePreferences();
   const {
     context,
     error,
@@ -26,7 +28,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
   return (
     <div className="app-shell">
       <a className="skip-link" href="#main">
-        Skip to content
+        {t("skipContent")}
       </a>
       <aside className="sidebar">
         <Link href="/" className="brand">
@@ -37,8 +39,12 @@ export function Shell({ children }: { children: React.ReactNode }) {
             HaUI <strong>Compass</strong>
           </span>
         </Link>
-        <p className="brand-tagline">Know what to do next.</p>
-        <span className="nav-label">YOUR WORKSPACE</span>
+        <p className="brand-tagline">
+          {language === "vi"
+            ? "Biết việc nên làm tiếp theo."
+            : "Know what to do next."}
+        </p>
+        <span className="nav-label">{t("workspace")}</span>
         <nav aria-label="Primary navigation">
           {links.map((item) => (
             <Link
@@ -48,7 +54,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
               className={path === item.href ? "nav-link active" : "nav-link"}
             >
               <Icon name={item.icon} />
-              <span>{item.title}</span>
+              <span>{t(item.title)}</span>
               {path === item.href && <span className="nav-active-dot" />}
             </Link>
           ))}
@@ -56,18 +62,18 @@ export function Shell({ children }: { children: React.ReactNode }) {
         <div className="sidebar-bottom">
           <div className="demo-note">
             <span className="demo-dot" />
-            Demo workspace
+            {t("demoWorkspace")}
             <p>
-              Fictional student · Mock LMS
+              {t("fictionalData")}
               <br />
-              Data resets when API restarts.
+              {t("resetsOnRestart")}
             </p>
           </div>
           <div className="profile">
             <span className="avatar">AN</span>
             <div>
               <strong>An Nguyen</strong>
-              <span>HaUI · Demo student</span>
+              <span>{t("demoStudent")}</span>
             </div>
           </div>
         </div>
@@ -75,19 +81,49 @@ export function Shell({ children }: { children: React.ReactNode }) {
       <div className="main-shell">
         <header className="topbar">
           <span>
-            Student workspace <span className="topbar-divider">/</span>{" "}
-            <strong>{links.find((item) => item.href === path)?.title}</strong>
+            {t("studentWorkspace")} <span className="topbar-divider">/</span>{" "}
+            <strong>
+              {t(links.find((item) => item.href === path)?.title || "today")}
+            </strong>
           </span>
           <div className="topbar-right">
             <span className="timezone">Asia/Ho_Chi_Minh</span>
             <span className="demo-badge">DEMO</span>
+            <div className="preferences" aria-label={t("language")}>
+              <button
+                className={
+                  language === "en" ? "preference active" : "preference"
+                }
+                onClick={() => setLanguage("en")}
+                aria-pressed={language === "en"}
+              >
+                EN
+              </button>
+              <button
+                className={
+                  language === "vi" ? "preference active" : "preference"
+                }
+                onClick={() => setLanguage("vi")}
+                aria-pressed={language === "vi"}
+              >
+                VI
+              </button>
+              <button
+                className="preference theme-toggle"
+                onClick={toggleTheme}
+                aria-label={theme === "light" ? t("darkMode") : t("lightMode")}
+                title={theme === "light" ? t("darkMode") : t("lightMode")}
+              >
+                <Icon name={theme === "light" ? "moon" : "sun"} size={16} />
+              </button>
+            </div>
           </div>
         </header>
         <main id="main" className="workspace">
           {scenarios.length > 0 && (
             <section className="demo-selector panel" aria-label="Demo controls">
               <label>
-                Demo scenario
+                {t("demoScenario")}
                 <select
                   aria-label="Demo scenario"
                   value={context?.scenario_id || ""}
@@ -95,7 +131,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
                   onChange={(event) => void selectScenario(event.target.value)}
                 >
                   <option value="" disabled>
-                    Select a fictional scenario
+                    {t("selectScenario")}
                   </option>
                   {scenarios.map((scenario) => (
                     <option key={scenario.id} value={scenario.id}>
@@ -112,12 +148,9 @@ export function Shell({ children }: { children: React.ReactNode }) {
                   void selectScenario(context.scenario_id)
                 }
               >
-                Reset this scenario
+                {t("resetScenario")}
               </button>
-              <p className="fine-print">
-                Fictional data · fixed demo clock · selecting or resetting
-                clears this in-memory demo session, including imports.
-              </p>
+              <p className="fine-print">{t("scenarioNotice")}</p>
             </section>
           )}
 
@@ -125,22 +158,22 @@ export function Shell({ children }: { children: React.ReactNode }) {
             <div className="message error" role="alert">
               <Icon name="alert" />
               <div>
-                <strong>Workspace unavailable</strong>
+                <strong>{t("unavailable")}</strong>
                 <p>{error}</p>
               </div>
               <button onClick={() => void refresh()} disabled={loading}>
-                Retry
+                {t("retry")}
               </button>
             </div>
           )}
           {switching ? (
-            <p role="status">Loading fictional scenario…</p>
+            <p role="status">{t("loadingScenario")}</p>
           ) : loading && !context ? (
             <div className="loading-state" role="status">
               <div className="skeleton wide" />
               <div className="skeleton hero-skeleton" />
               <div className="skeleton wide" />
-              Loading your workspace…
+              {t("loadingWorkspace")}
             </div>
           ) : (
             children
@@ -148,10 +181,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
         </main>
         <footer className="workspace-footer">
           <span>
-            HaUI Compass{" "}
-            <span className="muted">
-              · A little clarity, a better direction.
-            </span>
+            HaUI Compass <span className="muted">· {t("footer")}</span>
           </span>
           <span>
             {context
@@ -160,7 +190,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
                   month: "short",
                   year: "numeric",
                 })
-              : "Learning Loop v0"}
+              : t("learningLoop")}
           </span>
         </footer>
       </div>

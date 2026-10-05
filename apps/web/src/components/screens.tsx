@@ -25,6 +25,7 @@ import {
   PlanDays,
   Status,
 } from "./ui";
+import { usePreferences } from "./preferences";
 import { useWorkspace } from "./workspace";
 
 function message(error: unknown) {
@@ -56,6 +57,8 @@ function Feedback({ error, success }: { error: string; success?: string }) {
 
 export function Today() {
   const { context, recommendation, history, refresh, loading } = useWorkspace();
+  const { language, t } = usePreferences();
+  const locale = language === "vi" ? "vi-VN" : "en-GB";
   const [recording, setRecording] = useState<Task | null>(null);
   if (!context) return null;
   const rec = recommendation?.recommendation;
@@ -70,13 +73,13 @@ export function Today() {
   return (
     <>
       <PageHeading
-        eyebrow={date(context.now, {
-          weekday: "long",
-          day: "numeric",
-          month: "long",
-        })}
-        title="What should I do now?"
-        description="One useful next step. Everything else in perspective."
+        eyebrow={date(
+          context.now,
+          { weekday: "long", day: "numeric", month: "long" },
+          locale,
+        )}
+        title={t("whatNow")}
+        description={t("whatNowDescription")}
         action={
           <button
             className="secondary small"
@@ -84,7 +87,7 @@ export function Today() {
             onClick={() => void refresh()}
           >
             <Icon name="refresh" size={16} />
-            Refresh
+            {t("refresh")}
           </button>
         }
       />
@@ -94,7 +97,7 @@ export function Today() {
             <div className="section-heading">
               <span className="eyebrow accent inline">
                 <Icon name="compass" size={17} />
-                YOUR NEXT BEST ACTION
+                {t("nextBestAction")}
               </span>
               <span className="step-index">01 / DO</span>
             </div>
@@ -119,39 +122,40 @@ export function Today() {
                   </Badge>
                   <span>
                     <Icon name="plan" size={16} />
-                    Due{" "}
-                    {date(task.deadline, {
-                      day: "numeric",
-                      month: "short",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
+                    {t("due")}{" "}
+                    {date(
+                      task.deadline,
+                      {
+                        day: "numeric",
+                        month: "short",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      },
+                      locale,
+                    )}
                   </span>
                   <span>
                     <Icon name="clock" size={16} />
                     {minutes(rec.evidence.estimated_duration_seconds)} min
-                    estimated
+                    {t("minutesEstimated")}
                   </span>
                 </div>
                 <div className="why-box">
-                  <h3>Recommendation explanation</h3>
+                  <h3>{t("recommendationExplanation")}</h3>
                   <Badge>
                     {recommendation?.explanation?.source === "ai"
-                      ? "AI · online"
-                      : "Template · offline"}
+                      ? t("aiOnline")
+                      : t("templateOffline")}
                   </Badge>
                   <p lang="vi">
                     {recommendation?.explanation?.text ||
                       rec.reason_codes?.map(label).join(" ")}
                   </p>
-                  <p className="fine-print">
-                    The engine chooses the task and risk. This text only
-                    explains its decision.
-                  </p>
+                  <p className="fine-print">{t("decisionText")}</p>
                   <details className="decision-evidence">
-                    <summary>Decision evidence</summary>
+                    <summary>{t("decisionEvidence")}</summary>
                     <p>
-                      Ranking deciding dimension:{" "}
+                      {t("rankingDimension")}{" "}
                       <code>{rec.evidence.deciding_dimension}</code>
                     </p>
                     <ul>
@@ -184,20 +188,17 @@ export function Today() {
                     className="primary"
                     onClick={() => setRecording(task)}
                   >
-                    Record work
+                    {t("recordWork")}
                     <Icon name="arrow" size={17} />
                   </button>
-                  <span>Make progress, then tell Compass what happened.</span>
+                  <span>{t("recordWorkHint")}</span>
                 </div>
               </>
             ) : (
-              <Empty title="You're clear for now.">
-                <p>
-                  There are no open tasks to recommend. Review your plan or
-                  reflect on your recent work.
-                </p>
+              <Empty title={t("clearForNow")}>
+                <p>{t("clearForNowText")}</p>
                 <Link className="secondary" href="/reflect">
-                  Reflect on your work
+                  {t("reflectWork")}
                   <Icon name="arrow" size={16} />
                 </Link>
               </Empty>
@@ -205,9 +206,9 @@ export function Today() {
           </section>
           <section className="panel">
             <div className="section-heading">
-              <h2>Today&apos;s study plan</h2>
+              <h2>{t("todaysPlan")}</h2>
               <Link href="/plan" className="text-link">
-                View week
+                {t("viewWeek")}
                 <Icon name="arrow" size={15} />
               </Link>
             </div>
@@ -220,11 +221,8 @@ export function Today() {
                 />
               ))
             ) : (
-              <Empty title="Space for a fresh start">
-                <p>
-                  No study blocks today. Your weekly plan keeps upcoming work
-                  visible.
-                </p>
+              <Empty title={t("freshStart")}>
+                <p>{t("freshStartText")}</p>
               </Empty>
             )}
           </section>
@@ -232,14 +230,14 @@ export function Today() {
         <div className="today-secondary">
           <section className="panel progress-panel">
             <div className="section-heading">
-              <h2>Your progress</h2>
+              <h2>{t("progress")}</h2>
               <Icon name="check" size={18} />
             </div>
             <div className="progress-count">
               {completed}
               <span> / {context.tasks.length}</span>
             </div>
-            <p>tasks completed in this workspace</p>
+            <p>{t("tasksCompleted")}</p>
             <progress
               aria-label="Tasks completed"
               value={completed}
@@ -248,20 +246,17 @@ export function Today() {
             <div className="progress-legend">
               <span>
                 {context.tasks.filter((t) => t.status === "in_progress").length}{" "}
-                in progress
+                {t("inProgress")}
               </span>
               <span>
                 {context.tasks.filter((t) => t.status === "not_started").length}{" "}
-                not started
+                {t("notStarted")}
               </span>
             </div>
           </section>
           <section className="panel">
-            <h2>Assignment risk</h2>
-            <p className="fine-print">
-              Uses original task estimates and scenario capacity. Replan inputs
-              affect the plan only.
-            </p>
+            <h2>{t("assignmentRisk")}</h2>
+            <p className="fine-print">{t("riskNote")}</p>
             {recommendation?.assignment_risks.map((risk) => (
               <details className="risk-row" key={risk.assignment_id}>
                 <summary>
@@ -283,7 +278,7 @@ export function Today() {
           </section>
           <section className="panel">
             <div className="section-heading">
-              <h2>Coming up</h2>
+              <h2>{t("comingUp")}</h2>
               <Icon name="plan" size={18} />
             </div>
             {[...context.tasks]
@@ -293,7 +288,7 @@ export function Today() {
                 <div className="deadline-row" key={t.id}>
                   <span className="deadline-date">
                     <strong>{date(t.deadline, { day: "2-digit" })}</strong>
-                    {date(t.deadline, { month: "short" })}
+                    {date(t.deadline, { month: "short" }, locale)}
                   </span>
                   <div>
                     <strong>{t.assignment_title}</strong>
@@ -305,13 +300,10 @@ export function Today() {
           <div className="loop-note">
             <Icon name="reflect" size={19} />
             <div>
-              <strong>A plan is a starting point.</strong>
-              <p>
-                Record what you do. Reflect on what you learn. Adjust with
-                intention.
-              </p>
+              <strong>{t("planStartingPoint")}</strong>
+              <p>{t("planStartingPointText")}</p>
               <Link href="/reflect" className="text-link">
-                Make time to reflect
+                {t("makeTimeReflect")}
                 <Icon name="arrow" size={15} />
               </Link>
             </div>

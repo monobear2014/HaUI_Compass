@@ -2,6 +2,7 @@
 
 import asyncio
 import logging
+import re
 from typing import Literal
 
 from haui_compass.application.ports.explanation import (
@@ -15,6 +16,20 @@ from haui_compass.application.use_cases.daily_recommendation import DailyRecomme
 from haui_compass.domain.recommendations.recommendation import NoRecommendation
 
 logger = logging.getLogger(__name__)
+
+_PRESENTATION_LEAK = re.compile(
+    r"(?:recommended_task_id|recommendation_reason_codes|risk_reason_codes|"
+    r"deciding_dimension|risk_level|available_capacity_minutes|"
+    r"remaining_effort_minutes|slack_minutes|task_estimate_minutes|"
+    r"\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b|"
+    r"\b\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})",
+    re.IGNORECASE,
+)
+
+
+def _is_student_facing_explanation(text: str) -> bool:
+    """Reject serialized provider input before it reaches the presentation layer."""
+    return not _PRESENTATION_LEAK.search(text)
 
 
 def explanation_input(result: DailyRecommendationResult) -> RecommendationExplanationInput | None:
@@ -65,6 +80,7 @@ class ExplainRecommendation:
                     isinstance(output, ExplanationText)
                     and isinstance(output.text, str)
                     and 1 <= len(output.text.strip()) <= 2000
+                    and _is_student_facing_explanation(output.text)
                 ):
                     logger.info("llm_explanation provider_success")
                     return RecommendationExplanation(output.text.strip(), "ai", None)

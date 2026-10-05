@@ -111,10 +111,12 @@ class OpenAIResponsesAdapter:
             name="recommendation_explanation",
             schema=_EXPLANATION_SCHEMA,
             instructions=(
-                "Explain the supplied deterministic recommendation in clear Vietnamese. You may "
-                "only verbalize the supplied task, deadline, risk, reason codes, evidence, and "
-                "deciding dimension. Do not change the recommendation or risk, and do not invent "
-                "capacity, deadlines, evidence, or another action."
+                "Write a student-facing explanation in clear Vietnamese, in two or three concise "
+                "sentences (maximum 90 words). Use natural language only: do not repeat input "
+                "field names, IDs, JSON, arrays, reason-code strings, ISO timestamps, or raw "
+                "numeric evidence. Mention the assignment title, a natural deadline reference, "
+                "the supplied risk, and one concise reason. Do not change the recommendation or "
+                "risk, and do not invent capacity, deadlines, evidence, or another action."
             ),
             input_text=json.dumps(
                 {

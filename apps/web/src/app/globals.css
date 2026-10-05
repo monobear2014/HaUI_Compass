@@ -1493,6 +1493,9 @@ input[type="radio"] {
   color: #d7dcff;
   border-color: rgba(255, 255, 255, 0.2);
 }
+.next-action .fine-print {
+  color: #d7dcff;
+}
 .next-action .secondary {
   border-color: transparent;
 }
@@ -1636,6 +1639,105 @@ input[type="radio"] {
   color: var(--muted);
   font-size: 13px;
 }
+
+/* User presentation preferences are local-only and do not affect decisions. */
+.preferences {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--background);
+}
+.preference {
+  min-height: 27px;
+  min-width: 29px;
+  padding: 4px 7px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--secondary);
+  font-size: 10px;
+  font-weight: 700;
+}
+.preference:hover {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.preference.active {
+  background: var(--surface);
+  box-shadow: 0 1px 2px rgba(25, 25, 25, 0.12);
+  color: var(--text);
+}
+.theme-toggle {
+  margin-left: 2px;
+  border-left: 1px solid var(--border);
+  border-radius: 0 999px 999px 0;
+}
+
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --background: #131722;
+  --surface: #1d2330;
+  --border: #313a4d;
+  --text: #f1f4fb;
+  --secondary: #bac4d5;
+  --accent: #72b7ff;
+  --accent-soft: #1e3554;
+  --danger: #ff9d95;
+  --danger-soft: #48272b;
+  --warning: #f1c783;
+  --warning-soft: #45371f;
+  --success: #7cd99e;
+}
+html[data-theme="dark"] .sidebar,
+html[data-theme="dark"] .topbar,
+html[data-theme="dark"] .day-panel {
+  background: #171c27;
+}
+html[data-theme="dark"] .nav-link:hover,
+html[data-theme="dark"] .nav-link.active {
+  background: #252e3d;
+}
+html[data-theme="dark"] .nav-link.active {
+  color: var(--text);
+}
+html[data-theme="dark"] .demo-badge,
+html[data-theme="dark"] .timeline-node,
+html[data-theme="dark"] .choice-tile:has(input:checked) {
+  border-color: #365b85;
+  background: #1b3554;
+  color: #a8d4ff;
+}
+html[data-theme="dark"] .badge,
+html[data-theme="dark"] .why-box,
+html[data-theme="dark"] .decomposition-review {
+  background: #252c39;
+  border-color: var(--border);
+}
+html[data-theme="dark"] .next-action,
+html[data-theme="dark"] .next-action .why-box {
+  background: #172866;
+  border-color: #314587;
+}
+html[data-theme="dark"] .next-action .why-box {
+  background: rgba(255, 255, 255, 0.1);
+}
+html[data-theme="dark"] .preference.active {
+  background: #303a4b;
+}
+html[data-theme="dark"] .brand-mark {
+  background: #f1f4fb;
+  color: #172866;
+}
+html[data-theme="dark"] input,
+html[data-theme="dark"] select,
+html[data-theme="dark"] textarea,
+html[data-theme="dark"] button.secondary {
+  background: #1d2330;
+  color: var(--text);
+}
 @media (max-width: 700px) {
   .decomposition-candidate {
     grid-template-columns: 1fr;
@@ -1643,5 +1745,11 @@ input[type="radio"] {
   .decomposition-candidate .choice,
   .decomposition-candidate p {
     grid-column: auto;
+  }
+  .topbar-right {
+    gap: 8px;
+  }
+  .demo-badge {
+    display: none;
   }
 }
