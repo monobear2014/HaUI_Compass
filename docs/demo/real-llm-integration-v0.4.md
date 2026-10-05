@@ -29,7 +29,7 @@ export HAUI_COMPASS_LLM_ENABLED=true
 export OPENAI_API_KEY='<your server-side key>'
 # Optional overrides:
 export HAUI_COMPASS_LLM_MODEL='gpt-5-mini-2025-08-07'
-export HAUI_COMPASS_LLM_TIMEOUT_SECONDS='8'
+export HAUI_COMPASS_LLM_TIMEOUT_SECONDS='30'
 
 cd apps/api
 uv run --extra dev uvicorn haui_compass.api.demo:app --host 127.0.0.1 --port 8001

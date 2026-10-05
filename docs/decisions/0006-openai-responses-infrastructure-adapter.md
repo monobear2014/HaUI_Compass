@@ -31,7 +31,7 @@ HAUI_COMPASS_LLM_ENABLED=true
 OPENAI_API_KEY=<server secret>
 HAUI_COMPASS_LLM_MODEL=gpt-5-mini-2025-08-07
 HAUI_COMPASS_LLM_BASE_URL=https://api.openai.com/v1
-HAUI_COMPASS_LLM_TIMEOUT_SECONDS=8
+HAUI_COMPASS_LLM_TIMEOUT_SECONDS=30
 ```
 
 The default model is pinned for repeatable demo behavior and can be overridden at deployment. If

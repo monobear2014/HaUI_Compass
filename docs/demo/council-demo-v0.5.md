@@ -44,6 +44,7 @@ provider probe explicit:
 export HAUI_COMPASS_LLM_ENABLED=true
 # Load a real secret from your secure shell/secret manager; never paste it into this runbook.
 export OPENAI_API_KEY="$YOUR_SERVER_SIDE_OPENAI_KEY"
+export HAUI_COMPASS_LLM_TIMEOUT_SECONDS=30
 cd apps/api
 uv run --extra dev uvicorn haui_compass.api.demo:app --host 127.0.0.1 --port 8001
 uv run --extra dev python -m haui_compass.api.demo_preflight --live-provider-check
