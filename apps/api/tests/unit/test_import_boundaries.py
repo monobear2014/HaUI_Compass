@@ -28,6 +28,7 @@ COMPOSITION_ROOTS = frozenset(
     {
         "haui_compass.api.dependencies",
         "haui_compass.api.demo",
+        "haui_compass.api.demo_preflight",
         "haui_compass.api.postgres_dependencies",
     }
 )

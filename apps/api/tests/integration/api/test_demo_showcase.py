@@ -2,7 +2,7 @@
 
 from datetime import datetime, timedelta
 from typing import Any, cast
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import pytest
 from fastapi import FastAPI
@@ -11,6 +11,7 @@ from fastapi.testclient import TestClient
 from haui_compass.api.demo import create_demo_app
 from haui_compass.api.main import create_app
 from haui_compass.domain.students.ids import StudentId
+from haui_compass.domain.tasks.task import TaskId
 
 
 def select(client: TestClient, name: str) -> dict[str, Any]:
@@ -314,3 +315,129 @@ def test_scenario_reset_discards_unconfirmed_candidate_session() -> None:
         )
         assert response.status_code == 404
         assert all(task["title"] != "Should never be persisted" for task in reset["tasks"])
+
+
+def test_golden_flow_reset_clears_confirmed_decomposition_and_learning_loop_mutations() -> None:
+    """One reset replaces candidate, task, execution, reflection and plan state together."""
+    with TestClient(create_demo_app()) as client:
+        baseline = select(client, "normal")
+        baseline_history = history(client, baseline)
+        assignment = next(
+            row for row in baseline["assignments"] if row["title"] == "Database Mini Project"
+        )
+        session_id = str(uuid4())
+        generated = client.post(
+            "/api/v1/task-decompositions",
+            json={
+                "session_id": session_id,
+                "student": baseline["student"],
+                "assignment": {
+                    "provider": assignment["provider"],
+                    "id": assignment["external_id"],
+                },
+            },
+        ).json()
+        selected = generated["candidates"][:2]
+        confirmed = client.post(
+            f"/api/v1/task-decompositions/{session_id}/confirm",
+            json={
+                "student": baseline["student"],
+                "selection": [
+                    {
+                        "candidate_id": row["id"],
+                        "title": f"Council confirmed step {index}",
+                        "estimated_duration_minutes": 30,
+                    }
+                    for index, row in enumerate(selected, start=1)
+                ],
+            },
+        )
+        assert confirmed.status_code == 200, confirmed.text
+
+        task = baseline["tasks"][0]
+        now = datetime.fromisoformat(baseline["now"])
+        execution = client.post(
+            "/api/v1/task-executions",
+            json={
+                "student": baseline["student"],
+                "task_id": task["id"],
+                "record_id": str(uuid4()),
+                "started_at": (now - timedelta(minutes=30)).isoformat(),
+                "ended_at": now.isoformat(),
+                "outcome": "partial",
+            },
+        )
+        assert execution.status_code == 200, execution.text
+        reflection_request = {
+            "student": baseline["student"],
+            "period": baseline["period"],
+            "responses": {
+                "reflected_task_ids": [task["id"]],
+                "workload_feedback": "too_heavy",
+                "difficult_topics": ["Fictional normalization"],
+            },
+        }
+        candidates = client.post("/api/v1/reflections/candidates", json=reflection_request).json()[
+            "candidates"
+        ]
+        saved = client.post(
+            "/api/v1/reflections/confirm",
+            json={
+                **reflection_request,
+                "record_id": str(uuid4()),
+                "selected_signal_ids": [row["id"] for row in candidates],
+            },
+        )
+        assert saved.status_code == 200, saved.text
+        mutated = client.get("/api/v1/demo/context").json()
+        revised = client.post(
+            "/api/v1/weekly-plans/replan",
+            json={
+                "student": mutated["student"],
+                "record_id": str(uuid4()),
+                "period": mutated["period"],
+                "study_windows": mutated["study_windows"],
+                "effective_at": mutated["now"],
+                "remaining_efforts": [
+                    {
+                        "task_id": row["id"],
+                        "remaining_duration_seconds": row["estimated_duration_seconds"],
+                    }
+                    for row in mutated["tasks"]
+                ],
+            },
+        )
+        assert revised.status_code == 200, revised.text
+        assert len(mutated["tasks"]) == len(baseline["tasks"]) + 2
+        assert len(history(client, baseline)) == 2
+
+        reset = select(client, "normal")
+        reset_without_generation = dict(reset)
+        baseline_without_generation = dict(baseline)
+        reset_without_generation.pop("generation")
+        baseline_without_generation.pop("generation")
+        assert reset_without_generation == baseline_without_generation
+        assert history(client, reset) == baseline_history
+        stale_confirmation = client.post(
+            f"/api/v1/task-decompositions/{session_id}/confirm",
+            json={
+                "student": reset["student"],
+                "selection": [
+                    {
+                        "candidate_id": selected[0]["id"],
+                        "title": "Must not survive reset",
+                        "estimated_duration_minutes": 30,
+                    }
+                ],
+            },
+        )
+        assert stale_confirmation.status_code == 404
+        session = cast(FastAPI, client.app).state.demo
+        student_id = baseline_student_id(reset)
+        assert (
+            session.container.execution_repository.list_for_task(
+                student_id, TaskId(UUID(reset["tasks"][0]["id"]))
+            )
+            == ()
+        )
+        assert session.container.reflection_repository.list_for_student(student_id) == ()
