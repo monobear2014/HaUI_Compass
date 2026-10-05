@@ -27,9 +27,18 @@ Open http://127.0.0.1:3000. Next.js forwards `/compass-api/*` to `/api/v1/*`.
 default targets port 8000. Restart Next.js after changing it. For production
 builds, supply it at build time as well.
 
+If port 3000 is occupied, leave the other process running and use the documented fallback:
+
+```bash
+COMPASS_API_URL=http://127.0.0.1:8001 npm run dev:3100
+```
+
+Open http://127.0.0.1:3100. To run Playwright against this port, use
+`PLAYWRIGHT_WEB_PORT=3100 npm test` only when the demo API is already running on port 8001.
+
 The demo starts on **Deadline Crunch**. Use the selector at the top of the workspace
 to load Normal Week, Deadline Crunch or Disrupted Week. See the complete
-[presenter runbook](../../docs/demo/demo-showcase-v0.2.md).
+[canonical council runbook](../../docs/demo/council-demo-v0.5.md).
 Normal Week also contains a taskless Database Mini Project for the
 [AI decomposition v0.3 flow](../../docs/demo/ai-task-decomposition-v0.3.md).
 The backend can optionally use an online model without changing the web configuration; see the

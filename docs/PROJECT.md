@@ -96,6 +96,12 @@ return to the existing deterministic fallback. UI provenance distinguishes onlin
 from offline templates. Risk, NBA, Planner and Replanner are unchanged and remain deterministic;
 confirmed selection remains the only candidate-to-task transition. There is no production AI
 operations claim, provider retry policy or model-quality evaluation dataset.
+**Demo Evaluation & Council Hardening v0.5 is IMPLEMENTED, development-only:** a canonical,
+resettable council runbook covers candidate confirmation, deterministic decision evidence, planning
+and adaptation; presenter preflight makes offline readiness explicit. A versioned LLM capability
+dataset contains fictional cases only. Its runner is reproducible offline and supports explicitly
+opted-in live contract evaluation with non-secret metadata. This is guardrail evidence, not a
+claim of general model quality or student outcomes.
 The frontend calls existing application use cases through HTTP; it does not duplicate
 planning or ranking. Risk may be unknown without assignment capacity. Execution time
 does not imply remaining effort; confirmed reflection remains informational in v0.

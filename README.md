@@ -29,6 +29,12 @@ No model chooses risk, NBA, scheduling or replanning, and task candidates still 
 confirmation. See the [v0.4 configuration and demo flow](docs/demo/real-llm-integration-v0.4.md)
 and [ADR-0006](docs/decisions/0006-openai-responses-infrastructure-adapter.md).
 
+**Demo Evaluation & Council Hardening v0.5 is IMPLEMENTED, development-only:** the canonical
+[council runbook](docs/demo/council-demo-v0.5.md) provides an offline and optional-live presenter
+path, reset verification, and a safe preflight command. The versioned fictional LLM dataset and
+runner provide reproducible offline contract evidence; they do not make a general model-quality or
+student-outcome claim. See the [technical evidence summary](docs/demo/council-technical-evidence.md).
+
 The foundation descriptions below describe earlier milestones, not production readiness.
 
 **IMPLEMENTED:** repository foundation, source-of-truth documentation, working protocol, directory structure, and the backend Python package foundation (core domain types `Course`/`Assignment`/`Task`, typed identifiers, `Clock`/`SystemClock`, `StudentState` v0 with its pure derivation engine, a deterministic rule-based `RiskEngine` v0 (not a probability; thresholds are unvalidated MVP heuristics), a deterministic `NextBestActionEngine` v0 (ordered comparison, no score, no LLM; no `risk_if_deferred` yet), the `LMSProvider` port with a deterministic `MockLMSProvider` (development/test infrastructure only) and record-to-domain mapping, the first end-to-end use case `GenerateDailyRecommendation` (LMS + explicit tasks/capacity -> StudentState -> Risk -> NextBestAction, no FastAPI/database/UI yet), Execution Tracking v0 (`TaskExecution`, task state transitions, and `RecordTaskExecution`, proven to update `StudentState` and NBA eligibility), Structured Reflection v0 (`Reflection`, typed `ReflectionSignal`s with a candidate/confirmed split, and the `SubmitReflection`/`ConfirmReflectionSignals` use cases; no LLM, no `StudentState` field yet), Weekly Planner v0 (`StudyPlan`, explicit `StudyWindow`s, deterministic deadline-first allocation, typed unplanned effort, and `GenerateWeeklyPlan`), Adaptive Replanning v0 (explicit baseline/current facts, strict valid-block preservation, explicit remaining effort, typed plan changes and objective churn facts; confirmed reflections are informational only), and Persistence Foundation v0 (application repository ports plus deterministic in-memory adapters for task state, execution facts, confirmed reflections, and append-only typed plan revisions), tests, and an import-boundary check).
@@ -82,7 +88,7 @@ apps/
     tests/                      Backend unit and integration tests
   web/                          Next.js development workspace MVP
 packages/shared/                Planned generated or shared contracts
-evals/                          Planned AI and product evaluation assets (not unit tests)
+evals/                          Versioned fictional evaluation assets (not deployable application code)
 tests/                          Reserved for cross-app end-to-end tests
 docs/                           Product source of truth, architecture, ADRs, and research
 scripts/                        Repository automation
@@ -100,6 +106,9 @@ The backend lives in `apps/api`. Run the fictional learning-loop demo using the
 Real LLM access is server-side and opt-in. The default configuration is offline. Set
 `HAUI_COMPASS_LLM_ENABLED=true` and `OPENAI_API_KEY` in the API process to compose the OpenAI
 Responses adapter; see the v0.4 runbook for all optional settings. Never expose this key to Next.js.
+
+Before a council presentation, run `uv run --extra dev python -m haui_compass.api.demo_preflight`
+from `apps/api`; it confirms the reproducible offline path without calling an external provider.
 
 Requires Python 3.12 or newer (developed on 3.12; [uv](https://docs.astral.sh/uv/) is convenient but optional).
 
