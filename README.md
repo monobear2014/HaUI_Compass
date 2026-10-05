@@ -6,12 +6,13 @@ HaUI Compass is a planned adaptive AI learning companion for students at Hanoi U
 
 ## Current status
 
-**Current phase: Project foundation / architecture design.**
+**Current phase: Technical MVP / council demo system, development-only.**
 
 **Latest implemented milestone:** Demo Evaluation & Council Hardening v0.5, building on the
 deterministic Learning Loop API, PostgreSQL persistence foundation, and development-only Next.js
 workspace. It includes three resettable fictional scenarios and bounded offline recommendation
-explanations with visible decision evidence. See the [demo runbook](docs/demo/demo-showcase-v0.2.md),
+explanations with visible decision evidence. See the
+[canonical council runbook](docs/demo/council-demo-v0.5.md),
 [frontend setup and boundaries](apps/web/README.md) and
 [product implementation status](docs/PROJECT.md). The opt-in demo uses fictional,
 in-memory data; authentication, real LMS and production deployment remain planned.
@@ -46,7 +47,7 @@ grounded RAG, behaviour-aware risk, `risk_if_deferred`, weekly goals, LLM-assist
 reflection summaries, evidence-backed reflection effects, estimate calibration,
 real LMS providers, lecturer dashboards, authentication and evaluation suites.
 
-No product feature is claimed to be operational yet.
+No production product capability, real HaUI deployment, or validated educational outcome is claimed.
 
 ## High-level architecture
 
@@ -135,7 +136,7 @@ Dependency direction between layers is enforced by `apps/api/tests/unit/test_imp
 
 ## Development status
 
-The deterministic backend, HTTP learning loop, PostgreSQL adapters/migrations, development
-frontend and bounded opt-in OpenAI language adapter are implemented. Authenticated production
-integration, real LMS access and broader AI capabilities remain planned; the demo is not a
-deployed product.
+The technical MVP includes a deterministic backend and learning loop, development frontend,
+PostgreSQL adapters/migrations, bounded opt-in OpenAI language adapter, offline evaluation tooling,
+and council-demo hardening. Authenticated production integration, real LMS access, real-user
+validation and broader AI capabilities remain planned; the demo is not a deployed product.

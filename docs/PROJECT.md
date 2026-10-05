@@ -4,9 +4,11 @@
 
 **Document status:** Product source of truth
 
-**Project phase:** Foundation and architecture design
+**Project phase:** Technical MVP / council demo system, development-only
 
-**Implementation status:** Unless explicitly labeled **IMPLEMENTED**, every product capability in this document is **PLANNED**.
+**Implementation status:** This document distinguishes **IMPLEMENTED** development/demo
+capabilities from **PLANNED** product capabilities. Implemented status does not imply a production
+deployment, real HaUI LMS integration, or validated educational outcome.
 
 ## Vision
 
@@ -51,7 +53,8 @@ Administration will remain minimal initially. Potential later responsibilities i
 
 ## Core Learning Loop
 
-**PLANNED:**
+**PLANNED for the product experience; a bounded development-only implementation is described in
+the HTTP Walking Skeleton status below:**
 
 ```text
 PLAN → DO → MONITOR → REFLECT → ADAPT → PLAN AGAIN
@@ -236,7 +239,9 @@ The boundary should normalize courses, enrollments, assignments, deadlines, and 
 
 ## High-Level Architecture
 
-**PLANNED initial direction:** a modular monolith with deployable web and API applications and explicit internal module boundaries.
+**IMPLEMENTED as a development-only technical MVP:** a modular monolith with explicit internal
+module boundaries and separately runnable web/API applications. Production deployment, identity,
+authorization, real LMS integration and operational policy remain **PLANNED**.
 
 ```text
 Next.js + TypeScript web
