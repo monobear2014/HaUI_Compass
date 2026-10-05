@@ -1,5 +1,7 @@
 """Explicit PostgreSQL composition; never selected implicitly by API startup."""
 
+from pathlib import Path
+
 from haui_compass.api.dependencies import AppContainer
 from haui_compass.application.academic_import import (
     AcademicDataRoutingProvider,
@@ -19,6 +21,7 @@ from haui_compass.application.use_cases.persisted_learning_loop import (
     GenerateReflectionCandidates,
     ReplanPersistedStudyPlan,
 )
+from haui_compass.application.use_cases.query_knowledge import QueryKnowledge
 from haui_compass.application.use_cases.record_persisted_task_execution import (
     RecordPersistedTaskExecution,
 )
@@ -54,6 +57,9 @@ from haui_compass.infrastructure.persistence.postgres.session import (
     PostgresSessionFactory,
 )
 from haui_compass.infrastructure.persistence.postgres.tasks import PostgresTaskRepository
+from haui_compass.infrastructure.retrieval.ingestion import ingest_manifest
+from haui_compass.infrastructure.retrieval.lexical import LocalLexicalKnowledgeRetriever
+from haui_compass.infrastructure.retrieval.template_answer import TemplateGroundedAnswerProvider
 
 
 def build_postgres_container(
@@ -101,7 +107,15 @@ def build_postgres_container(
         else "not_configured"
     )
     llm_timeout = llm_settings.timeout_seconds if llm_settings is not None else 2.0
+    corpus_root = Path(__file__).resolve().parents[5] / "data"
     return AppContainer(
+        query_knowledge=QueryKnowledge(
+            retriever=LocalLexicalKnowledgeRetriever(ingest_manifest(corpus_root)),
+            template=TemplateGroundedAnswerProvider(),
+            provider=llm_adapter,
+            timeout_seconds=llm_timeout,
+            unavailable_reason=unavailable_reason,
+        ),
         explain_recommendation=ExplainRecommendation(
             template=TemplateExplanationProvider(),
             provider=llm_adapter,

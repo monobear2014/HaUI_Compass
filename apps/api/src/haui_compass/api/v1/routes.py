@@ -15,6 +15,11 @@ from haui_compass.api.schemas.academic_data import (
     parse_canonical_csv,
 )
 from haui_compass.api.schemas.executions import TaskExecutionRequest, TaskExecutionResponse
+from haui_compass.api.schemas.knowledge import (
+    KnowledgeQueryRequestDTO,
+    KnowledgeQueryResponseDTO,
+    knowledge_response,
+)
 from haui_compass.api.schemas.learning_loop import (
     ConfirmedReflectionResponse,
     ConfirmReflectionRequest,
@@ -61,6 +66,7 @@ from haui_compass.application.use_cases.persisted_learning_loop import (
     GenerateReflectionCandidatesRequest,
     ReplanPersistedStudyPlanRequest,
 )
+from haui_compass.application.use_cases.query_knowledge import KnowledgeQueryRequest
 from haui_compass.application.use_cases.record_persisted_task_execution import (
     RecordPersistedTaskExecutionRequest,
 )
@@ -84,6 +90,21 @@ container_dependency = Depends(container_from_app)
 @router.get("/health")
 def health() -> dict[str, str]:
     return {"status": "ok"}
+
+
+@router.post("/knowledge/query", response_model=KnowledgeQueryResponseDTO)
+async def query_knowledge(
+    request: KnowledgeQueryRequestDTO,
+    container: AppContainer = container_dependency,
+) -> KnowledgeQueryResponseDTO:
+    result = await container.query_knowledge.execute(
+        KnowledgeQueryRequest(
+            question=request.question,
+            scope=request.scope,
+            course_id=request.course_id,
+        )
+    )
+    return knowledge_response(result)
 
 
 def _academic_response(

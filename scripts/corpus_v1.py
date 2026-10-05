@@ -328,7 +328,7 @@ def validate(root: Path) -> dict[str, int]:
         ):
             raise ValueError("fictional provenance mismatch")
         if group == "courses" and (
-            entry["course_id"] not in {"db", "ml", "en"}
+            entry["course_id"] not in {"db", "ml", "en", "se"}
             or "HƯ CẤU" not in content.decode()
             or not entry["path"].startswith(f"knowledge/courses/{entry['course_id']}/")
         ):
@@ -432,6 +432,9 @@ def validate(root: Path) -> dict[str, int]:
                     not in seen_paths
                 ):
                     raise ValueError("incomplete course pack")
+    for kind in ("syllabus", "notes", "assignments", "rubric", "faq"):
+        if f"knowledge/courses/se/{kind}.md" not in seen_paths:
+            raise ValueError("incomplete software-engineering RAG course pack")
     return counts
 
 

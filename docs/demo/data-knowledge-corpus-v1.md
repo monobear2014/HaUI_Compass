@@ -1,7 +1,8 @@
 # Data & Knowledge Corpus v1 — council runbook
 
 **IMPLEMENTED:** corpus offline có version, provenance, checksums và validation tooling.
-**PLANNED:** ingestion, chunking, embeddings, retrieval, citations runtime và RAG evaluation.
+**IMPLEMENTED separately in RAG v1:** ingestion, chunking, local retrieval, citations runtime và
+RAG evaluation. Embeddings/persisted vector index vẫn planned; xem `docs/rag/rag-v1.md`.
 
 ## Preflight
 
@@ -12,7 +13,7 @@ apps/api/.venv/bin/python scripts/corpus_v1.py
 apps/api/.venv/bin/python scripts/test_corpus_v1.py
 ```
 
-Kỳ vọng validator: PASS, demo 10, haui 3, courses 15. Regression tests thay đổi bản copy tạm,
+Kỳ vọng validator: PASS, demo 10, haui 3, courses 20. Regression tests thay đổi bản copy tạm,
 không sửa corpus gốc hoặc API đang trình bày. Vẫn chạy demo_preflight và canonical council
 runbook hiện có để kiểm tra ứng dụng; corpus validator không thay thế app preflight.
 
@@ -26,8 +27,8 @@ runbook hiện có để kiểm tra ứng dụng; corpus validator không thay t
 3. Mở `data/knowledge/courses/db/assignments.md` và `rubric.md`. Chỉ ra nhãn HƯ CẤU và rubric
    hỗ trợ tự đánh giá; đây không phải lời giải bài nộp hoặc tài liệu chính thức HaUI.
 4. Mở README nguồn HaUI, chỉ ra URL và phạm vi thời gian. Bản tuyển sinh 2025 chỉ là lịch sử.
-5. Nói: “Corpus đã sẵn sàng để review nguồn và thiết kế RAG tiếp theo. Demo hiện chưa retrieve
-   những file này; Risk, NBA và scheduling vẫn chạy qua core hiện có.”
+5. Nói: “RAG v1 chỉ retrieve knowledge subset qua manifest. Risk, NBA và scheduling vẫn chạy qua
+   core hiện có và không nhận nội dung course pack.”
 
 ## Import tùy chọn
 
@@ -38,24 +39,26 @@ reset/clear trên session presenter đang sử dụng để kiểm tra corpus.
 
 ## Câu hỏi thường gặp
 
-- **Đã triển khai RAG chưa?** Chưa. Không embeddings, vector store, chatbot hoặc retrieval pipeline.
+- **Đã triển khai RAG chưa?** Có bounded RAG v1 với lexical fallback/citation; chưa có embeddings,
+  vector store, chat memory hoặc private corpus.
 - **Tài liệu official có nghĩa còn hiệu lực?** Chỉ chứng minh nguồn công khai HaUI tại mốc thu thập;
   cần kiểm tra riêng hiệu lực/applicability của từng văn bản và bản mới nhất.
 - **Đã có LMS thật chưa?** Chưa; import là input student-provided, scenario là hư cấu.
-- **Dataset eval có thay đổi không?** Không. `evals/datasets/mvp-v1.json` và
-  `llm-capabilities-v1.json` vẫn là evaluation assets riêng; corpus không thay holdout hay claim metrics.
-- **Corpus tự làm demo phong phú hơn trên UI không?** Không. UI vẫn dùng seed hiện có. Corpus bổ sung
-  artifact để hội đồng kiểm tra và chuẩn bị bước knowledge tiếp theo.
+- **Dataset eval có thay đổi không?** Dataset cũ giữ nguyên; RAG bổ sung riêng
+  `evals/datasets/rag-v1.json`, không thay holdout hoặc claim của benchmark cũ.
+- **Corpus tự làm demo phong phú hơn trên UI không?** Knowledge subset phục vụ trang `/knowledge`;
+  dữ liệu scenario/LMS và các learning engine vẫn dùng boundary cũ.
 
 ## Acceptance
 
 File có metadata và checksum; fixture/JSON/CSV nhất quán với implementation; course mapping đúng;
 source official và fictional tách biệt; regression kiểm tra lỗi; runbook hướng dẫn truthful claims.
-Không có runtime loader mới hoặc thay đổi business semantics. Xem [data README](../../data/README.md).
+Có runtime loader chỉ cho bounded knowledge query; không thay đổi learning-engine semantics. Xem
+[data README](../../data/README.md).
 
 ## Verification record — 2026-10-05
 
-- Offline corpus validation: PASS — 10 demo, 3 HaUI, 15 course documents.
+- Offline corpus validation: PASS — 10 demo, 3 HaUI, 20 course documents.
 - Corpus regressions: 13 passed, using disposable corpus copies only.
 - Existing demo showcase, academic import, deterministic engine and import-boundary tests:
   1,168 passed. No live API reset or external provider call.

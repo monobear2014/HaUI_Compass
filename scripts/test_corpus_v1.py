@@ -30,7 +30,7 @@ class CorpusValidationTests(unittest.TestCase):
         self.save_manifest()
 
     def test_complete_offline_corpus(self):
-        self.assertEqual(validate(self.root), {"demo": 10, "haui": 3, "courses": 15})
+        self.assertEqual(validate(self.root), {"demo": 10, "haui": 3, "courses": 20})
 
     def test_tampered_content(self):
         (self.root / "demo/normal/academic.json").write_text("{}")

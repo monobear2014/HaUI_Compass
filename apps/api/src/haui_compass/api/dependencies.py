@@ -1,6 +1,7 @@
 """Composition root: construct the object graph once and inject it into routes."""
 
 from dataclasses import dataclass
+from pathlib import Path
 
 from haui_compass.application.academic_import import (
     AcademicDataRoutingProvider,
@@ -10,6 +11,7 @@ from haui_compass.application.academic_import import (
 from haui_compass.application.ports.clock import Clock
 from haui_compass.application.ports.executions import TaskExecutionRepository
 from haui_compass.application.ports.explanation import RecommendationExplanationProvider
+from haui_compass.application.ports.knowledge import GroundedAnswerProvider
 from haui_compass.application.ports.lms import LMSProvider
 from haui_compass.application.ports.reflections import ConfirmedReflectionRepository
 from haui_compass.application.ports.study_plans import StudyPlanRepository
@@ -32,6 +34,7 @@ from haui_compass.application.use_cases.persisted_learning_loop import (
     GenerateReflectionCandidates,
     ReplanPersistedStudyPlan,
 )
+from haui_compass.application.use_cases.query_knowledge import QueryKnowledge
 from haui_compass.application.use_cases.record_persisted_task_execution import (
     RecordPersistedTaskExecution,
 )
@@ -65,10 +68,14 @@ from haui_compass.infrastructure.persistence.memory.tasks import InMemoryTaskRep
 from haui_compass.infrastructure.persistence.memory.transactions import (
     InMemoryPersistenceTransactionManager,
 )
+from haui_compass.infrastructure.retrieval.ingestion import ingest_manifest
+from haui_compass.infrastructure.retrieval.lexical import LocalLexicalKnowledgeRetriever
+from haui_compass.infrastructure.retrieval.template_answer import TemplateGroundedAnswerProvider
 
 
 @dataclass(frozen=True, slots=True)
 class AppContainer:
+    query_knowledge: QueryKnowledge
     explain_recommendation: ExplainRecommendation
     generate_task_decomposition: GenerateTaskDecomposition
     confirm_task_decomposition: ConfirmTaskDecomposition
@@ -104,6 +111,8 @@ def build_container(
     task_decomposition_sessions: TaskDecompositionSessionStore | None = None,
     llm_settings: LLMSettings | None = None,
     llm_transport: ResponsesTransport | None = None,
+    grounded_answer_provider: GroundedAnswerProvider | None = None,
+    knowledge_root: Path | None = None,
 ) -> AppContainer:
     resolved_clock = clock or SystemClock()
     imported_academic_data = ImportedAcademicDataProvider()
@@ -123,6 +132,7 @@ def build_container(
     )
     resolved_explanation_provider = explanation_provider or llm_adapter
     resolved_decomposition_provider = task_decomposition_provider or llm_adapter
+    resolved_grounded_provider = grounded_answer_provider or llm_adapter
     unavailable_reason = (
         llm_settings.unavailable_reason
         if llm_settings is not None and llm_settings.unavailable_reason is not None
@@ -144,7 +154,16 @@ def build_container(
         clock=resolved_clock,
         transaction_manager=transaction_manager,
     )
+    corpus_root = knowledge_root or Path(__file__).resolve().parents[5] / "data"
+    knowledge_retriever = LocalLexicalKnowledgeRetriever(ingest_manifest(corpus_root))
     return AppContainer(
+        query_knowledge=QueryKnowledge(
+            retriever=knowledge_retriever,
+            template=TemplateGroundedAnswerProvider(),
+            provider=resolved_grounded_provider,
+            timeout_seconds=llm_timeout,
+            unavailable_reason=unavailable_reason,
+        ),
         explain_recommendation=ExplainRecommendation(
             template=TemplateExplanationProvider(),
             provider=resolved_explanation_provider,

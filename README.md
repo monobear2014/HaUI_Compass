@@ -10,10 +10,18 @@ HaUI Compass is a planned adaptive AI learning companion for students at Hanoi U
 
 **Data & Knowledge Corpus v1 is IMPLEMENTED as offline repository assets:** three synthetic
 student/scenario snapshots with compatible JSON/CSV imports, three public HaUI document snapshots,
-and three fictional Vietnamese course packs. Versioned metadata records source, time, authority,
+and four fictional Vietnamese course packs (three scenario-linked plus one RAG-only Software
+Engineering pack). Versioned metadata records source, time, authority,
 rights and SHA-256. Offline validation checks corpus integrity and compatibility with existing
 fixtures/import contracts. See [corpus inventory](data/README.md) and
-[council corpus runbook](docs/demo/data-knowledge-corpus-v1.md). Runtime RAG/retrieval remains planned.
+[council corpus runbook](docs/demo/data-knowledge-corpus-v1.md).
+
+**RAG Ingestion & Citation v1 is IMPLEMENTED, development/demo-only:** manifest-driven ingestion
+creates deterministic structural chunks; a local lexical retriever enforces institutional/course
+and course-ID isolation; grounded answers use backend-validated structural citations and abstain
+when evidence or provider output is unsafe. The default path is reproducible offline and does not
+claim semantic vector search. Optional OpenAI answer generation uses the existing server-side,
+opt-in adapter. See [RAG architecture](docs/rag/rag-v1.md) and [demo runbook](docs/demo/rag-demo-v1.md).
 
 **Latest implemented runtime demo milestone:** Demo Evaluation & Council Hardening v0.5, building on the
 deterministic Learning Loop API, PostgreSQL persistence foundation, and development-only Next.js
@@ -50,7 +58,8 @@ The foundation descriptions below describe earlier milestones, not production re
 **IMPLEMENTED:** FastAPI Walking Skeleton v0 on `feat/api-skeleton`: `/api/v1/health`, persisted-task daily recommendation, persisted task execution with explicit record-id idempotency, stable DTO/error envelopes, OpenAPI generation, and injectable in-memory composition root. This is development-only HTTP plumbing; it has no real authentication or durable database.
 
 **PLANNED:** production web integration, further domain behavior, additional AI workflows,
-grounded RAG, behaviour-aware risk, `risk_if_deferred`, weekly goals, LLM-assisted
+RAG persistence/embeddings beyond the bounded v1 fallback, behaviour-aware risk,
+`risk_if_deferred`, weekly goals, LLM-assisted
 reflection summaries, evidence-backed reflection effects, estimate calibration,
 real LMS providers, lecturer dashboards, authentication and evaluation suites.
 

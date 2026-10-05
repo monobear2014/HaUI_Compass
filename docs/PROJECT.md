@@ -230,18 +230,36 @@ fixed-clock snapshots of the three existing fictional scenarios, student profile
 JSON/CSV artifacts compatible with the current import contract. `data/knowledge/haui` contains
 three normalized public HaUI article snapshots with source URLs, collection/publication dates,
 temporal limitations and rights notes. `data/knowledge/courses` contains three original fictional
-Vietnamese course packs linked to existing demo courses and assignments. A versioned manifest
+Vietnamese course packs linked to existing demo courses and assignments plus one RAG-only Software
+Engineering pack. A versioned manifest
 records identity, provenance and SHA-256; an offline validator checks integrity, source boundaries,
-fixture drift and existing academic import schemas. These files are not loaded by the runtime;
-course briefs are not supplied to current AI providers, and no engine or business semantics change.
+fixture drift and existing academic import schemas. The knowledge subset is loaded only by the
+bounded RAG v1 composition; course briefs are not supplied to task-decomposition providers or
+learning engines, and no deterministic engine/business semantics change.
 This is a bounded source collection, not a complete set of verified current HaUI regulations.
 See [corpus inventory and limitations](../data/README.md).
 
-**PLANNED:** Retrieval-augmented generation is a supporting course-learning capability, not the product's central architecture. The intended flow is document ingestion, source-aware chunking, embedding/indexing, retrieval with authorization filters, answer generation constrained to retrieved evidence, and traceable citations.
+**RAG Ingestion & Citation v1 is IMPLEMENTED, development/demo-only:** manifest-registered public
+and fictional knowledge is hash-verified and structurally chunked into deterministic records. The
+application owns `KnowledgeRetriever` and `GroundedAnswerProvider`; infrastructure supplies an
+offline BM25-like lexical fallback and the optional existing OpenAI Responses adapter. Scope and
+course isolation happen before ranking. Model citation handles are mapped only to retrieved chunks;
+unknown/duplicate handles, malformed output, timeout/error and insufficient evidence abstain.
+The UI labels public HaUI snapshots separately from fictional course packs. The 25-case offline
+evaluation covers retrieval hits, isolation, citation validity, source separation, abstention and
+document prompt injection. See [RAG v1](rag/rag-v1.md),
+[ADR-0007](decisions/0007-bounded-local-rag-and-structural-citations.md) and the
+[demo runbook](demo/rag-demo-v1.md).
+
+**PLANNED:** embedding-based retrieval, a persisted/authorized index, a production PDF adapter and
+broader source/evaluation coverage. RAG remains a supporting course-learning capability, not the
+product's central architecture.
 
 Course-material answers must distinguish supported answers from uncertainty. If evidence is missing or conflicting, the assistant should say so instead of hallucinating. Citation correctness, context precision/recall, faithfulness, and answer relevance will require dedicated evaluation datasets.
 
-PostgreSQL with `pgvector` is the initial storage direction. A standalone vector database should be introduced only if measured scale or retrieval requirements justify it.
+PostgreSQL with `pgvector` remains the next persistence direction after a real migration and test
+path justify it. A standalone vector database should be introduced only if measured scale or
+retrieval requirements justify it.
 
 ## LMS Integration Strategy
 
@@ -400,10 +418,10 @@ Evaluation datasets must be versioned, privacy-safe, representative, and separat
 - Deterministic basic risk and first explainable Next Best Action.
 - Structured reflection and bounded adaptive replanning.
 
-### Phase 3 — Grounded learning support — PLANNED
+### Phase 3 — Grounded learning support — PARTIALLY IMPLEMENTED
 
-- Authorized document ingestion and retrieval.
-- Answers with traceable citations, abstention behavior, and RAG evaluations.
+- Bounded public/fictional document ingestion and local retrieval — IMPLEMENTED for demo.
+- Answers with traceable citations, abstention behavior, and RAG evaluations — IMPLEMENTED for demo.
 - Academic-integrity guardrails and test cases.
 
 ### Phase 4 — Lecturer insight and hardening — PLANNED

@@ -2,8 +2,8 @@
 
 **IMPLEMENTED — development/council-demo assets, version 1.0, collected 2026-10-05.**
 
-Corpus gồm 28 artifact được đăng ký trong `manifest.json`: 10 artifact dữ liệu synthetic,
-3 tài liệu công khai HaUI và 15 tài liệu trong ba course pack hư cấu. README là tài liệu hướng dẫn,
+Corpus gồm 33 artifact được đăng ký trong `manifest.json`: 10 artifact dữ liệu synthetic,
+3 tài liệu công khai HaUI và 20 tài liệu trong bốn course pack hư cấu. README là tài liệu hướng dẫn,
 không phải nội dung knowledge được đăng ký. Mỗi artifact có ID riêng, kể cả JSON và CSV cùng tên.
 
 ```text
@@ -20,6 +20,7 @@ data/
       db/         syllabus, notes, assignments, rubric, faq
       ml/         syllabus, notes, assignments, rubric, faq
       en/         syllabus, notes, assignments, rubric, faq
+      se/         syllabus, notes, assignments, rubric, faq (RAG demo)
 ```
 
 ## Kiểm tra offline
@@ -43,12 +44,13 @@ coverage manifest và đủ năm tài liệu cho mỗi course pack.
 | --- | --- | --- |
 | demo | Ba student profile hư cấu và snapshot của ba scenario hiện có | Fictional demo only |
 | haui | Text chuẩn hóa từ bài viết công khai trên domain HaUI | Public information snapshot có thời điểm |
-| courses | Tài liệu tiếng Việt do dự án soạn cho Databases, Machine Learning, Communication | Fictional demo only |
+| courses | Tài liệu tiếng Việt do dự án soạn cho Databases, Machine Learning, Communication và Software Engineering | Fictional demo only |
 
-Corpus không tự được load vào ứng dụng. Runtime scenario vẫn lấy từ
-`apps/api/src/haui_compass/infrastructure/demo/scenarios.py`; hiện chưa có RAG, embeddings,
-retrieval, vector DB hoặc chatbot dùng corpus. Description/rubric/course notes chưa được truyền
-cho provider decomposition. Không dùng nội dung corpus để thay đổi engine hoặc business semantics.
+Knowledge subset được RAG v1 load qua manifest; dữ liệu `data/demo` không đi vào knowledge index.
+Runtime scenario vẫn lấy từ `apps/api/src/haui_compass/infrastructure/demo/scenarios.py`.
+Description/rubric/course notes không được truyền cho provider decomposition hoặc learning engine.
+RAG v1 dùng lexical fallback, chưa có embeddings/vector DB/chat memory và không dùng nội dung corpus
+để thay đổi engine hoặc business semantics.
 
 ## Metadata contract
 
@@ -65,7 +67,7 @@ Mỗi document phải có:
 - `version`, `sha256`, `bytes`: version corpus artifact và checksum của bytes UTF-8 đã lưu.
 - `rights`: ghi nhận quyền nguồn; public access không đồng nghĩa open license.
 - `authority`, `temporal_scope`: phạm vi tin cậy và thời gian áp dụng.
-- `course_id`: `db`, `ml`, `en` cho course pack, null cho nhóm khác.
+- `course_id`: `db`, `ml`, `en`, `se` cho course pack, null cho nhóm khác.
 - `notes`: extraction/lossiness, nguồn fixture hoặc giới hạn sử dụng.
 
 Không có mốc hiệu lực được xác minh thì ghi rõ unknown trong temporal scope. Metadata không

@@ -1369,6 +1369,92 @@ input[type="radio"] {
     flex-wrap: wrap;
   }
 }
+
+/* Bounded knowledge Q&A: independent queries with explicit provenance. */
+.knowledge-page {
+  display: grid;
+  gap: 24px;
+  max-width: 920px;
+  margin: 0 auto;
+}
+.knowledge-query,
+.knowledge-answer {
+  padding: 24px;
+}
+.knowledge-query form {
+  display: grid;
+  gap: 16px;
+  margin-top: 18px;
+}
+.knowledge-query label {
+  display: grid;
+  gap: 7px;
+  font-weight: 650;
+}
+.knowledge-query textarea {
+  resize: vertical;
+  line-height: 1.55;
+}
+.scope-tabs {
+  display: flex;
+  gap: 8px;
+}
+.scope-tabs button.active {
+  background: var(--text);
+  color: var(--surface);
+}
+.answer-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+.knowledge-answer.abstained {
+  border-color: var(--warning);
+  background: var(--warning-soft);
+}
+.answer-text {
+  white-space: pre-line;
+  line-height: 1.75;
+}
+.citations {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+.citations ol {
+  display: grid;
+  gap: 10px;
+  padding-left: 22px;
+}
+.citations summary {
+  cursor: pointer;
+}
+.citations summary strong {
+  margin-right: 10px;
+}
+.source-badge {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 750;
+}
+.source-badge.official_public {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.source-badge.fictional_demo {
+  background: var(--warning-soft);
+  color: var(--text);
+}
+@media (max-width: 700px) {
+  .scope-tabs,
+  .answer-heading {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
 /* Notion-inspired application shell: paper canvas, quiet chrome, one blue action. */
 .sidebar {
   width: 240px;
