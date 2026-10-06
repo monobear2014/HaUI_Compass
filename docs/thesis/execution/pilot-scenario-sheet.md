@@ -10,14 +10,14 @@ Use this fictional study information for all tasks in this session. It is not ba
 | Databases | ER-model report — Thursday, 12:00 | Draft ER diagram — 90 minutes |
 | Machine Learning | Quiz revision — Tuesday, 17:00 | Review regularisation notes — 60 minutes; 20 minutes already recorded |
 | Machine Learning | Mini-project outline — Friday, 17:00 | Write project outline — 90 minutes |
-| Academic Skills | Reading response — Thursday, 17:00 | Summarise two articles — 45 minutes |
+| Academic Skills | Reading response — Thursday, 17:00 | No study task exists yet. You will create **Summarise two articles** — 45 minutes when instructed. |
 
-The study period is Monday–Friday. Your available study windows total 6.5 hours:
+The study period is Monday–Friday. Your authoritative available study windows total 5.0 hours:
 
-- Monday, 18:00–19:30
-- Tuesday, 18:00–19:30
+- Monday, 18:00–19:00
+- Tuesday, 18:00–19:00
 - Wednesday, 18:00–20:00
-- Thursday, 18:00–19:30
+- Thursday, 18:00–19:00
 
 Later in the session, Tuesday 18:00–19:30 will become unavailable. Use the information provided by the moderator when that happens.
 

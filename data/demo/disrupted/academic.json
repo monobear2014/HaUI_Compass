@@ -1,0 +1,86 @@
+{
+  "schema_version": "haui-compass-academic-import-v1",
+  "student_external_id": "pilot-student",
+  "source": "json",
+  "courses": [
+    {
+      "external_id": "disrupted-db",
+      "name": "Databases",
+      "code": "FICTION-DB"
+    },
+    {
+      "external_id": "disrupted-ml",
+      "name": "Machine Learning",
+      "code": "FICTION-ML"
+    },
+    {
+      "external_id": "disrupted-en",
+      "name": "Communication",
+      "code": "FICTION-EN"
+    }
+  ],
+  "assignments": [
+    {
+      "external_id": "disrupted-assignment-0",
+      "course_external_id": "disrupted-db",
+      "title": "Database Schema",
+      "deadline": "2026-10-06T02:00:00+00:00",
+      "estimated_effort_minutes": 45
+    },
+    {
+      "external_id": "disrupted-assignment-1",
+      "course_external_id": "disrupted-ml",
+      "title": "Regression Lab",
+      "deadline": "2026-10-07T02:00:00+00:00",
+      "estimated_effort_minutes": 60
+    },
+    {
+      "external_id": "disrupted-assignment-2",
+      "course_external_id": "disrupted-ml",
+      "title": "Evaluation Report",
+      "deadline": "2026-10-08T02:00:00+00:00",
+      "estimated_effort_minutes": 90
+    },
+    {
+      "external_id": "disrupted-assignment-3",
+      "course_external_id": "disrupted-en",
+      "title": "Project Presentation",
+      "deadline": "2026-10-09T02:00:00+00:00",
+      "estimated_effort_minutes": 30
+    },
+    {
+      "external_id": "disrupted-assignment-capstone",
+      "course_external_id": "disrupted-db",
+      "title": "Database Mini Project",
+      "deadline": "2026-10-07T14:00:00+00:00",
+      "estimated_effort_minutes": 180
+    }
+  ],
+  "submissions": [
+    {
+      "assignment_external_id": "disrupted-assignment-0",
+      "status": "not_submitted",
+      "submitted_at": null
+    },
+    {
+      "assignment_external_id": "disrupted-assignment-1",
+      "status": "not_submitted",
+      "submitted_at": null
+    },
+    {
+      "assignment_external_id": "disrupted-assignment-2",
+      "status": "not_submitted",
+      "submitted_at": null
+    },
+    {
+      "assignment_external_id": "disrupted-assignment-3",
+      "status": "not_submitted",
+      "submitted_at": null
+    },
+    {
+      "assignment_external_id": "disrupted-assignment-capstone",
+      "status": "not_submitted",
+      "submitted_at": null
+    }
+  ]
+}

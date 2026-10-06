@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import { WorkspaceProvider } from "@/components/workspace";
-import { Shell } from "@/components/shell";
+import { PreferencesProvider } from "@/components/preferences";
+import { ApplicationFrame } from "@/components/application-frame";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -11,11 +11,11 @@ export const metadata: Metadata = {
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body>
-        <WorkspaceProvider>
-          <Shell>{children}</Shell>
-        </WorkspaceProvider>
+        <PreferencesProvider>
+          <ApplicationFrame>{children}</ApplicationFrame>
+        </PreferencesProvider>
       </body>
     </html>
   );

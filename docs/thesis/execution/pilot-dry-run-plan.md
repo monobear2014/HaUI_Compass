@@ -1,4 +1,4 @@
-# Pilot Dry-Run Plan — Protocol v1
+# Pilot Dry-Run Plan — Protocol v1.3
 
 Conduct exactly one internal dry-run before recruiting or collecting from real participants. The dry-run operator is not assigned `P01`–`P15`, and all dry-run observations remain outside the participant dataset.
 

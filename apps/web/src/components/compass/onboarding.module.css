@@ -1,0 +1,195 @@
+@font-face {
+  font-family: Compass Onboarding Inter;
+  src: url("/fonts/inter-regular.ttf") format("truetype");
+  font-weight: 400;
+  font-display: swap;
+}
+.page {
+  --onboard-bg: #f8f7ef;
+  --onboard-card: #ffffff;
+  --onboard-ink: #1c2433;
+  --onboard-icon: #f3f4f6;
+  --onboard-muted: #636b78;
+  min-height: 100dvh;
+  position: relative;
+  display: grid;
+  place-items: center;
+  padding: 104px 24px 80px;
+  background: var(--onboard-bg);
+  color: var(--onboard-ink);
+  font-family:
+    Compass Onboarding Inter,
+    Arial,
+    sans-serif;
+}
+.page[data-theme="dark"] {
+  --onboard-bg: #191b18;
+  --onboard-card: #252923;
+  --onboard-ink: #f1f0e9;
+  --onboard-icon: #343a30;
+  --onboard-muted: #bec4b8;
+}
+.back {
+  position: absolute;
+  top: 24px;
+  left: 24px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 13px 18px;
+  min-height: 48px;
+  background: var(--onboard-card);
+  border: 1px solid var(--onboard-muted);
+  border-radius: 999px;
+  color: var(--onboard-ink);
+  font-size: 14px;
+  line-height: 20px;
+}
+.back:hover {
+  border-color: var(--onboard-ink);
+}
+.preferences {
+  position: absolute;
+  right: 24px;
+  top: 28px;
+}
+.preferences [role="radiogroup"] {
+  border: 1px solid var(--onboard-muted);
+}
+.page .preferences button {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 34px;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 7px;
+  font-size: 12px;
+  color: var(--onboard-ink);
+  background: transparent;
+}
+.page .preferences button[aria-checked="true"][role="radio"] {
+  background: var(--onboard-ink);
+  color: var(--onboard-bg);
+}
+.page .preferences button[role="switch"] {
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--onboard-muted);
+  border-radius: 50%;
+}
+.content {
+  width: 100%;
+  max-width: 448px;
+}
+.content h1 {
+  margin: 0 0 26px;
+  text-align: center;
+  font-family: inherit;
+  font-size: 30px;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.6px;
+}
+.roles {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+.page .card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  min-width: 0;
+  min-height: 148px;
+  padding: 22px 12px;
+  border: 1px solid transparent;
+  border-radius: 16px;
+  background: var(--onboard-card);
+  color: var(--onboard-ink);
+  font: inherit;
+  text-align: center;
+  transition:
+    border-color 150ms ease,
+    transform 150ms ease;
+}
+.page a.card:hover {
+  border-color: #b796cc;
+  transform: translateY(-2px);
+}
+.page .card:disabled {
+  opacity: 1;
+  cursor: not-allowed;
+}
+.icon {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  flex-shrink: 0;
+  background: var(--onboard-icon);
+  color: var(--onboard-muted);
+  border-radius: 50%;
+}
+.label {
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+.soon {
+  position: absolute;
+  right: 10px;
+  top: 10px;
+  font-size: 10px;
+  line-height: 1.2;
+  color: var(--onboard-muted);
+}
+.brand {
+  position: absolute;
+  bottom: 24px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 12px;
+  color: var(--onboard-muted);
+}
+.page :where(a, button):focus-visible {
+  outline: 3px solid #84609c;
+  outline-offset: 4px;
+}
+@media (max-width: 480px) {
+  .back {
+    left: 20px;
+    top: 20px;
+    padding: 11px 15px;
+  }
+  .preferences {
+    top: 23px;
+    right: 20px;
+    transform: scale(0.8);
+    transform-origin: right top;
+  }
+  .content h1 {
+    font-size: 28px;
+  }
+  .roles {
+    gap: 12px;
+  }
+  .page .card {
+    min-height: 146px;
+    padding: 22px 10px;
+  }
+  .icon {
+    width: 60px;
+    height: 60px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .page .card {
+    transition: none;
+  }
+}

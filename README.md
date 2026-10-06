@@ -6,13 +6,50 @@ HaUI Compass is a planned adaptive AI learning companion for students at Hanoi U
 
 ## Current status
 
-**Current phase: Project foundation / architecture design.**
+**Current phase: Technical MVP / council demo system, development-only.**
 
-**Latest implemented milestone:** deterministic Learning Loop API v0, PostgreSQL
-persistence foundation, and a development-only Next.js workspace (Today, Weekly Plan,
-Reflect, History). See [frontend setup and boundaries](apps/web/README.md) and
+**Data & Knowledge Corpus v1 is IMPLEMENTED as offline repository assets:** three synthetic
+student/scenario snapshots with compatible JSON/CSV imports, three public HaUI document snapshots,
+and four fictional Vietnamese course packs (three scenario-linked plus one RAG-only Software
+Engineering pack). Versioned metadata records source, time, authority,
+rights and SHA-256. Offline validation checks corpus integrity and compatibility with existing
+fixtures/import contracts. See [corpus inventory](data/README.md) and
+[council corpus runbook](docs/demo/data-knowledge-corpus-v1.md).
+
+**RAG Ingestion & Citation v1 is IMPLEMENTED, development/demo-only:** manifest-driven ingestion
+creates deterministic structural chunks; a local lexical retriever enforces institutional/course
+and course-ID isolation; grounded answers use backend-validated structural citations and abstain
+when evidence or provider output is unsafe. The default path is reproducible offline and does not
+claim semantic vector search. Optional OpenAI answer generation uses the existing server-side,
+opt-in adapter. See [RAG architecture](docs/rag/rag-v1.md) and [demo runbook](docs/demo/rag-demo-v1.md).
+
+**Latest implemented runtime demo milestone:** Demo Evaluation & Council Hardening v0.5, building on the
+deterministic Learning Loop API, PostgreSQL persistence foundation, and development-only Next.js
+workspace. It includes three resettable fictional scenarios and bounded offline recommendation
+explanations with visible decision evidence. See the
+[canonical council runbook](docs/demo/council-demo-v0.5.md),
+[frontend setup and boundaries](apps/web/README.md) and
 [product implementation status](docs/PROJECT.md). The opt-in demo uses fictional,
 in-memory data; authentication, real LMS and production deployment remain planned.
+
+**AI Task Decomposition v0.3 is IMPLEMENTED, development-only:** a student can generate bounded
+offline candidates for a fictional assignment, edit/select them, and confirm the chosen subset
+through the existing task-creation boundary before deterministic recommendation and planning.
+See the [v0.3 presenter flow](docs/demo/ai-task-decomposition-v0.3.md).
+
+**Real LLM Integration v0.4 is IMPLEMENTED, opt-in and development-only:** the existing
+recommendation-explanation and task-decomposition ports can use the OpenAI Responses API with
+strict structured output when server configuration and a credential are present. Disabled,
+missing-credential, timeout, HTTP and invalid-output paths retain deterministic fallback behavior.
+No model chooses risk, NBA, scheduling or replanning, and task candidates still require explicit
+confirmation. See the [v0.4 configuration and demo flow](docs/demo/real-llm-integration-v0.4.md)
+and [ADR-0006](docs/decisions/0006-openai-responses-infrastructure-adapter.md).
+
+**Demo Evaluation & Council Hardening v0.5 is IMPLEMENTED, development-only:** the canonical
+[council runbook](docs/demo/council-demo-v0.5.md) provides an offline and optional-live presenter
+path, reset verification, and a safe preflight command. The versioned fictional LLM dataset and
+runner provide reproducible offline contract evidence; they do not make a general model-quality or
+student-outcome claim. See the [technical evidence summary](docs/demo/council-technical-evidence.md).
 
 The foundation descriptions below describe earlier milestones, not production readiness.
 
@@ -20,12 +57,13 @@ The foundation descriptions below describe earlier milestones, not production re
 
 **IMPLEMENTED:** FastAPI Walking Skeleton v0 on `feat/api-skeleton`: `/api/v1/health`, persisted-task daily recommendation, persisted task execution with explicit record-id idempotency, stable DTO/error envelopes, OpenAPI generation, and injectable in-memory composition root. This is development-only HTTP plumbing; it has no real authentication or durable database.
 
-**PLANNED:** production web integration, further domain behavior, AI workflows,
-grounded RAG, behaviour-aware risk, `risk_if_deferred`, weekly goals, LLM-assisted
+**PLANNED:** production web integration, further domain behavior, additional AI workflows,
+RAG persistence/embeddings beyond the bounded v1 fallback, behaviour-aware risk,
+`risk_if_deferred`, weekly goals, LLM-assisted
 reflection summaries, evidence-backed reflection effects, estimate calibration,
 real LMS providers, lecturer dashboards, authentication and evaluation suites.
 
-No product feature is claimed to be operational yet.
+No production product capability, real HaUI deployment, or validated educational outcome is claimed.
 
 ## High-level architecture
 
@@ -67,7 +105,8 @@ apps/
     tests/                      Backend unit and integration tests
   web/                          Next.js development workspace MVP
 packages/shared/                Planned generated or shared contracts
-evals/                          Planned AI and product evaluation assets (not unit tests)
+evals/                          Versioned fictional evaluation assets (not deployable application code)
+data/                           Offline synthetic data and provenance-labelled knowledge corpus
 tests/                          Reserved for cross-app end-to-end tests
 docs/                           Product source of truth, architecture, ADRs, and research
 scripts/                        Repository automation
@@ -81,6 +120,13 @@ Start with [docs/PROJECT.md](docs/PROJECT.md) for product scope and architecture
 The backend lives in `apps/api`. Run the fictional learning-loop demo using the
 [frontend development guide](apps/web/README.md); the ordinary API factory is
 `haui_compass.api.main:create_app` and remains unseeded by default.
+
+Real LLM access is server-side and opt-in. The default configuration is offline. Set
+`HAUI_COMPASS_LLM_ENABLED=true` and `OPENAI_API_KEY` in the API process to compose the OpenAI
+Responses adapter; see the v0.4 runbook for all optional settings. Never expose this key to Next.js.
+
+Before a council presentation, run `uv run --extra dev python -m haui_compass.api.demo_preflight`
+from `apps/api`; it confirms the reproducible offline path without calling an external provider.
 
 Requires Python 3.12 or newer (developed on 3.12; [uv](https://docs.astral.sh/uv/) is convenient but optional).
 
@@ -107,6 +153,7 @@ Dependency direction between layers is enforced by `apps/api/tests/unit/test_imp
 
 ## Development status
 
-The deterministic backend, HTTP learning loop, PostgreSQL adapters/migrations and
-development frontend are implemented. AI capabilities, authenticated production
-integration and real LMS access remain planned; the demo is not a deployed product.
+The technical MVP includes a deterministic backend and learning loop, development frontend,
+PostgreSQL adapters/migrations, bounded opt-in OpenAI language adapter, offline evaluation tooling,
+and council-demo hardening. Authenticated production integration, real LMS access, real-user
+validation and broader AI capabilities remain planned; the demo is not a deployed product.

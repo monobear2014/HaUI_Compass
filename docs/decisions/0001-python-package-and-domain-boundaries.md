@@ -110,7 +110,7 @@ Differences from the candidate tree in the task brief:
 ## Dependency Direction
 
 ```text
-            api ──────────────► infrastructure   (only api/dependencies.py, as composition root)
+            api ──────────────► infrastructure   (only explicit composition/operational roots)
              │
              ▼
         application ─────────► ai
@@ -128,7 +128,7 @@ Allowed imports (everything else is forbidden):
 | `ai` | `domain`, `engines` (types/results only, never to recompute them) |
 | `application` | `domain`, `engines`, `ai`, and its own `ports` |
 | `infrastructure` | `domain`, `application.ports`, `ai.ports`, vendor/DB SDKs |
-| `api` | `application`, `domain` (for response mapping), and `infrastructure` **only** in `dependencies.py` |
+| `api` | `application`, `domain` (for response mapping), and `infrastructure` **only** in explicit, bounded composition/operational roots |
 | `config` | stdlib and settings library |
 
 Consequences of the rules:
@@ -137,6 +137,22 @@ Consequences of the rules:
 - `ai` never imports `application` or `infrastructure`; `infrastructure` implements `ai.ports`.
 - `engines` never import `ai`. An engine cannot call a model, by construction.
 - Enforcement: import-linter (or equivalent) contracts added with the walking skeleton and run in CI. Adding the tool is a dependency decision to be made at that time.
+
+### Explicit API composition and operational roots
+
+The normal API code does not freely import infrastructure. Wiring application ports to adapters is
+limited to named roots with a clear, bounded responsibility. The current implementation lists
+these modules explicitly in its import-boundary test:
+
+- `api.dependencies`: default in-memory application composition and normal runtime container.
+- `api.postgres_dependencies`: explicit PostgreSQL composition; never selected implicitly.
+- `api.demo`: opt-in fictional in-memory scenario composition for the council showcase.
+- `api.demo_preflight`: operational presenter tooling that composes/checks the demo and optionally
+  probes a fictional provider request only when explicitly requested.
+
+These modules may construct containers and read adapter settings, but they are not reusable
+business dependencies. Routes, schemas, domain types, engines and application use cases continue
+to depend inward and must not import infrastructure for ordinary behavior.
 
 ## Domain Responsibilities
 

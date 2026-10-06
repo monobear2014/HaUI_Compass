@@ -1,0 +1,5 @@
+Mô hình đào tạo
+Các cấp trình độ đào tạo:
+Tiến sỹ, Thạc sỹ, Đại học, Cao đẳng, đào tạo nghề
+Các loại hình đào tạo:
+Chính quy, vừa làm vừa học, liên thông, ngắn hạn, hợp tác liên kết đào tạo.

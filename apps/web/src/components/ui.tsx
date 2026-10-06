@@ -1,6 +1,7 @@
 "use client";
 import { Block, date, label, minutes, Plan, Task, time } from "@/lib/api";
 import { Icon } from "./icons";
+import { usePreferences } from "./preferences";
 
 export function Badge({
   children,
@@ -17,17 +18,17 @@ export function PageHeading({
   description,
   action,
 }: {
-  eyebrow: string;
+  eyebrow?: string;
   title: string;
-  description: string;
+  description?: string;
   action?: React.ReactNode;
 }) {
   return (
     <div className="page-heading">
       <div>
-        <div className="eyebrow">{eyebrow}</div>
+        {eyebrow && <div className="eyebrow">{eyebrow}</div>}
         <h1>{title}</h1>
-        <p>{description}</p>
+        {description && <p>{description}</p>}
       </div>
       {action && <div className="heading-action">{action}</div>}
     </div>
@@ -51,14 +52,16 @@ export function Empty({
   );
 }
 export function Status({ status }: { status: string }) {
+  const { language } = usePreferences();
   return (
     <Badge tone={status === "completed" ? "success" : "neutral"}>
       {status === "completed" && <Icon name="check" size={12} />}{" "}
-      {label(status)}
+      {label(status, language)}
     </Badge>
   );
 }
 export function BlockRow({ block, task }: { block: Block; task?: Task }) {
+  const { t } = usePreferences();
   const seconds =
     (Date.parse(block.ends_at) - Date.parse(block.starts_at)) / 1000;
   const clock = (value: string) =>
@@ -77,23 +80,39 @@ export function BlockRow({ block, task }: { block: Block; task?: Task }) {
         <span>{clock(block.ends_at)}</span>
       </div>
       <div className="block-detail">
-        <span className="course-label">{task?.course || "Study session"}</span>
-        <strong>{task?.title || "Task " + block.task_id.slice(0, 8)}</strong>
-        <span>{seconds < 60 ? "<1" : minutes(seconds)} min</span>
+        <span className="course-label">
+          {task?.course || t("common.studySession")}
+        </span>
+        <strong>
+          {task?.title || `${t("common.task")} ${block.task_id.slice(0, 8)}`}
+        </strong>
+        <span>
+          {seconds < 60 ? "<1" : minutes(seconds)} {t("common.minutes")}
+        </span>
       </div>
       {task && <Status status={task.status} />}
     </div>
   );
 }
 export function Attention({ plan, tasks }: { plan: Plan; tasks: Task[] }) {
+  const { language, t } = usePreferences();
+  if (!plan.unplanned_tasks.length)
+    return (
+      <p className="plan-fit-note">
+        <Icon name="check" size={16} />
+        {t("today.allFits")}
+      </p>
+    );
   return (
     <section className="panel attention">
       <div className="section-heading">
         <div className="inline">
           <Icon name="alert" size={18} />
-          <h2>Needs attention</h2>
+          <h2>{t("today.needsAttention")}</h2>
         </div>
-        <Badge>{plan.unplanned_tasks.length} unplanned</Badge>
+        <Badge>
+          {plan.unplanned_tasks.length} {t("plan.unplanned")}
+        </Badge>
       </div>
       {plan.unplanned_tasks.length ? (
         plan.unplanned_tasks.map((item) => (
@@ -103,15 +122,16 @@ export function Attention({ plan, tasks }: { plan: Plan; tasks: Task[] }) {
                 {tasks.find((t) => t.id === item.task_id)?.title ||
                   item.task_id}
               </strong>
-              <p>{label(item.reason)}</p>
+              <p>{label(item.reason, language)}</p>
             </div>
             <Badge tone="warning">
-              {minutes(item.remaining_duration_seconds)} min unplanned
+              {minutes(item.remaining_duration_seconds)}{" "}
+              {t("common.minUnplanned")}
             </Badge>
           </div>
         ))
       ) : (
-        <p className="muted">All requested work fits in your study windows.</p>
+        <p className="muted">{t("today.allFits")}</p>
       )}
     </section>
   );

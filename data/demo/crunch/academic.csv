@@ -1,0 +1,6 @@
+course_id,course_name,course_code,assignment_id,assignment_title,deadline,submission_status,submitted_at,estimated_effort_minutes
+crunch-db,Databases,FICTION-DB,crunch-assignment-0,Database Schema,2026-10-06T02:00:00+00:00,not_submitted,,150
+crunch-ml,Machine Learning,FICTION-ML,crunch-assignment-1,Regression Lab,2026-10-07T02:00:00+00:00,not_submitted,,105
+crunch-ml,Machine Learning,FICTION-ML,crunch-assignment-2,Evaluation Report,2026-10-08T02:00:00+00:00,not_submitted,,90
+crunch-en,Communication,FICTION-EN,crunch-assignment-3,Project Presentation,2026-10-09T02:00:00+00:00,not_submitted,,30
+crunch-db,Databases,FICTION-DB,crunch-assignment-capstone,Database Mini Project,2026-10-07T14:00:00+00:00,not_submitted,,180

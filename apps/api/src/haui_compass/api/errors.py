@@ -8,6 +8,8 @@ from haui_compass.application.ports.persistence import PersistenceError, Persist
 from haui_compass.application.use_cases.daily_recommendation import DailyRecommendationInputError
 from haui_compass.application.use_cases.generate_weekly_plan import WeeklyPlanInputError
 from haui_compass.application.use_cases.persisted_learning_loop import ReflectionSelectionError
+from haui_compass.application.use_cases.query_knowledge import KnowledgeQueryError
+from haui_compass.application.use_cases.task_decomposition import TaskDecompositionError
 from haui_compass.domain.shared.errors import DomainValidationError
 
 
@@ -51,6 +53,21 @@ def register_error_handlers(app: FastAPI) -> None:
     @app.exception_handler(ReflectionSelectionError)
     async def reflection_selection(_: Request, __: ReflectionSelectionError) -> JSONResponse:
         return _response(400, "invalid_reflection_selection", "selected signal was not generated")
+
+    @app.exception_handler(TaskDecompositionError)
+    async def task_decomposition_error(_: Request, exc: TaskDecompositionError) -> JSONResponse:
+        status = (
+            404
+            if exc.code.value.endswith("not_found")
+            else 409
+            if exc.code.value.endswith("conflict")
+            else 400
+        )
+        return _response(status, exc.code.value, str(exc))
+
+    @app.exception_handler(KnowledgeQueryError)
+    async def knowledge_query_error(_: Request, exc: KnowledgeQueryError) -> JSONResponse:
+        return _response(400, exc.code.value, str(exc))
 
     @app.exception_handler(DomainValidationError)
     async def domain_validation(_: Request, __: DomainValidationError) -> JSONResponse:

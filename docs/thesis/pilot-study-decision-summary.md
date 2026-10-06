@@ -1,4 +1,4 @@
-# Pilot Study Decision Summary — Controlled Thesis Pilot Protocol v1
+# Pilot Study Decision Summary — Controlled Thesis Pilot Protocol v1.3
 
 **Status: FROZEN FOR PILOT**
 **One moderated session per participant: 30–45 minutes**
@@ -48,7 +48,7 @@ Include university students aged 18+ with basic web-app familiarity who can prov
 | T9 | Apply a controlled unavailable-study-window change and replan. |
 | T10 | Compare revisions in History and explain changes. |
 
-The reproducible fixture has three courses, five assignments, overlapping deadlines, 6.5 hours capacity, high/medium risk, partial completion, reflection, and replanning.
+The reproducible fixture has four courses, five assignments, and four initial study tasks; the Academic Skills assignment has no task until T2 creates the fifth. Its four authoritative StudyWindows derive 5.0 hours capacity, with high/medium risk, partial completion, reflection, and replanning.
 
 ## Objective metrics
 

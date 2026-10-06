@@ -1,0 +1,79 @@
+.library {
+  margin-bottom: 20px;
+}
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 24px;
+}
+.header h2 {
+  font-size: 18px;
+  margin: 0 0 8px;
+}
+.library p {
+  font-size: 12px;
+  color: var(--secondary);
+  line-height: 1.6;
+  margin: 8px 0;
+}
+.header a {
+  white-space: nowrap;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 13px;
+  min-height: 44px;
+}
+.library details {
+  margin-top: 14px;
+  font-size: 13px;
+}
+.library summary {
+  cursor: pointer;
+}
+.library ul {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+  max-height: 250px;
+  overflow: auto;
+}
+.library li a {
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: inherit;
+}
+.library li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.library li > a:first-child {
+  flex: 1;
+  min-width: 0;
+}
+.library li > .studyLink {
+  flex: 0 0 auto;
+  justify-content: center;
+  padding-inline: 14px;
+  color: var(--accent);
+  font-weight: 650;
+}
+.library li span {
+  overflow-wrap: anywhere;
+}
+.library small {
+  white-space: nowrap;
+  color: var(--secondary);
+}
+@media (max-width: 600px) {
+  .header {
+    flex-direction: column;
+    gap: 8px;
+  }
+}

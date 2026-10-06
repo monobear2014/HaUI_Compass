@@ -2,12 +2,11 @@ import type { NextConfig } from "next";
 
 const config: NextConfig = {
   devIndicators: false,
-  async rewrites() {
+  poweredByHeader: false,
+  async redirects() {
+    // There is no account recovery service in the student demo.
     return [
-      {
-        source: "/compass-api/:path*",
-        destination: `${process.env.COMPASS_API_URL || "http://127.0.0.1:8000"}/api/v1/:path*`,
-      },
+      { source: "/forgot-password", destination: "/login", permanent: false },
     ];
   },
 };
