@@ -10,6 +10,10 @@ The canonical close is: **Plan → Execute → Reflect → Adapt → Plan Again*
 
 ## Before the room
 
+The optional [Data & Knowledge Corpus v1 appendix](data-knowledge-corpus-v1.md) shows offline
+synthetic records and provenance-labelled documents. It has its own validator and makes no runtime
+RAG claim; the application flow below remains the canonical learning-loop demonstration.
+
 Start the in-memory demo. The offline path is the default and needs neither a credential nor
 network.
 
@@ -54,6 +58,20 @@ If this warns or fails, restart in offline mode and present the same full flow. 
 in frontend variables, source files or slides.
 
 ## Presenter script (about five minutes)
+
+### Optional student entry / document demo
+
+1. Open `/login` and use `demo / haui123`.
+2. Choose Student, upload a TXT/Markdown sample, then choose Continue.
+3. Continue opens the uploaded file's study set in the shared bright HaUI Compass
+   frame. Read a topic, flip its source-based card, or use ungraded active recall.
+4. Open Read original material, then Back to study set. All study sets and the logo
+   return to the learning home at `/learn`; none returns to the public landing.
+5. Open Settings → Demo scenario for the reproducible planning scenarios below.
+
+Uploads and study-set progress belong to the signed-in account. The planning
+scenarios below remain fictional shared data. Cited Q&A does not yet search new
+uploads; PDF supports viewing but not text extraction or auto-generated study plans.
 
 ### A. AI-assisted task decomposition — 75 seconds
 

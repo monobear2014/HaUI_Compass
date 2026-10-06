@@ -2,7 +2,9 @@
 
 import { FormEvent, useState } from "react";
 import { usePreferences } from "@/components/preferences";
+import { DocumentLibrary } from "@/components/document-library";
 import { api } from "@/lib/api";
+import { PageHeading } from "@/components/ui";
 
 type Scope = "institutional" | "course";
 type CourseId = "db" | "ml" | "se";
@@ -41,7 +43,7 @@ export default function KnowledgePage() {
   const { language } = usePreferences();
   const [scope, setScope] = useState<Scope>("course");
   const [course, setCourse] = useState<CourseId>("db");
-  const [question, setQuestion] = useState(suggestions.db);
+  const [question, setQuestion] = useState("");
   const [result, setResult] = useState<KnowledgeAnswer | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -50,11 +52,7 @@ export default function KnowledgePage() {
   function chooseScope(value: Scope) {
     setScope(value);
     setResult(null);
-    setQuestion(
-      value === "institutional"
-        ? "HaUI có các cấp trình độ đào tạo nào?"
-        : suggestions[course],
-    );
+    setQuestion("");
   }
 
   async function submit(event: FormEvent) {
@@ -85,18 +83,16 @@ export default function KnowledgePage() {
 
   return (
     <div className="knowledge-page">
-      <header className="page-header">
-        <span className="eyebrow">
-          {vi ? "TÀI LIỆU · CÓ DẪN NGUỒN" : "KNOWLEDGE · CITED"}
-        </span>
-        <h1>{vi ? "Tài liệu & hỏi đáp" : "Documents & Q&A"}</h1>
-        <p>
-          {vi
-            ? "Mỗi câu hỏi độc lập. Hệ thống chỉ trả lời từ tài liệu đã retrieve và sẽ từ chối khi bằng chứng chưa đủ."
-            : "Each question is independent. Answers use retrieved documents only and abstain when evidence is insufficient."}
-        </p>
-      </header>
+      <PageHeading
+        title={vi ? "Hỏi tài liệu." : "Ask your documents."}
+        description={
+          vi
+            ? "Chọn nguồn, đặt câu hỏi và kiểm tra trích dẫn."
+            : "Choose a source, ask a question and check the citations."
+        }
+      />
 
+      <DocumentLibrary />
       <section
         className="panel knowledge-query"
         aria-label={vi ? "Hỏi từ tài liệu" : "Ask documents"}
@@ -133,7 +129,7 @@ export default function KnowledgePage() {
                 onChange={(event) => {
                   const selected = event.target.value as CourseId;
                   setCourse(selected);
-                  setQuestion(suggestions[selected]);
+                  setQuestion("");
                   setResult(null);
                 }}
               >
@@ -151,10 +147,15 @@ export default function KnowledgePage() {
               minLength={3}
               maxLength={500}
               rows={3}
+              placeholder={
+                vi
+                  ? "Bạn muốn tìm hiểu điều gì?"
+                  : "What would you like to know?"
+              }
               required
             />
           </label>
-          <button disabled={loading} type="submit">
+          <button className="primary" disabled={loading} type="submit">
             {loading
               ? vi
                 ? "Đang tìm trong tài liệu…"
@@ -163,6 +164,19 @@ export default function KnowledgePage() {
                 ? "Hỏi từ tài liệu"
                 : "Ask documents"}
           </button>
+          <button
+            type="button"
+            className="question-example"
+            onClick={() =>
+              setQuestion(
+                scope === "institutional"
+                  ? "HaUI có các cấp trình độ đào tạo nào?"
+                  : suggestions[course],
+              )
+            }
+          >
+            {vi ? "Thử câu hỏi mẫu" : "Try an example"}
+          </button>
         </form>
         <p className="fine-print">
           {scope === "institutional"
@@ -170,8 +184,8 @@ export default function KnowledgePage() {
               ? "Chỉ tìm trong snapshot nguồn công khai HaUI; cần kiểm tra lại tính hiện hành tại URL gốc."
               : "Searches public HaUI snapshots only; recheck current applicability at the source URL."
             : vi
-              ? "Course pack hư cấu phục vụ demo, không phải tài liệu chính thức HaUI."
-              : "Fictional demo course packs, not official HaUI material."}
+              ? "Tài liệu demo · không phải học liệu chính thức HaUI."
+              : "Demo material · not official HaUI course documents."}
         </p>
       </section>
 
@@ -203,26 +217,31 @@ export default function KnowledgePage() {
                     ? "Trả lời"
                     : "Answer"
                   : vi
-                    ? "Từ chối trả lời"
-                    : "Abstained"}
+                    ? "Chưa tìm thấy trong tài liệu"
+                    : "Not found in the documents"}
               </h2>
             </div>
-            <span className="badge">
+          </div>
+          <p className="answer-text">{result.answer}</p>
+          <details className="compact-disclosure retrieval-details">
+            <summary>
+              {vi ? "Cách tìm câu trả lời" : "How this answer was found"}
+            </summary>
+            <p className="fine-print">
+              {result.retrieval.chunk_count} chunks ·{" "}
+              {result.retrieval.source_count} sources ·{" "}
+              {result.retrieval.strategy === "lexical"
+                ? "lexical fallback"
+                : "embedding"}
+            </p>
+            <p className="fine-print">
               {result.source === "ai"
                 ? "AI · online"
                 : vi
                   ? "Mẫu · offline"
                   : "Template · offline"}
-            </span>
-          </div>
-          <p className="answer-text">{result.answer}</p>
-          <p className="fine-print">
-            {result.retrieval.chunk_count} chunks ·{" "}
-            {result.retrieval.source_count} sources ·{" "}
-            {result.retrieval.strategy === "lexical"
-              ? "lexical fallback"
-              : "embedding"}
-          </p>
+            </p>
+          </details>
 
           {result.citations.length > 0 && (
             <div className="citations">

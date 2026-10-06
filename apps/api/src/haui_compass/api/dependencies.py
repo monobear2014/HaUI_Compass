@@ -28,6 +28,7 @@ from haui_compass.application.use_cases.generate_daily_recommendation import (
     GenerateDailyRecommendation,
 )
 from haui_compass.application.use_cases.get_daily_recommendation import GetDailyRecommendation
+from haui_compass.application.use_cases.grounded_answer import GroundedAnswerService
 from haui_compass.application.use_cases.persisted_learning_loop import (
     ConfirmPersistedReflection,
     GeneratePersistedWeeklyPlan,
@@ -75,6 +76,7 @@ from haui_compass.infrastructure.retrieval.template_answer import TemplateGround
 
 @dataclass(frozen=True, slots=True)
 class AppContainer:
+    compass_answer: GroundedAnswerService
     query_knowledge: QueryKnowledge
     explain_recommendation: ExplainRecommendation
     generate_task_decomposition: GenerateTaskDecomposition
@@ -157,6 +159,12 @@ def build_container(
     corpus_root = knowledge_root or Path(__file__).resolve().parents[5] / "data"
     knowledge_retriever = LocalLexicalKnowledgeRetriever(ingest_manifest(corpus_root))
     return AppContainer(
+        compass_answer=GroundedAnswerService(
+            template=TemplateGroundedAnswerProvider(),
+            provider=resolved_grounded_provider,
+            timeout_seconds=llm_timeout,
+            unavailable_reason=unavailable_reason,
+        ),
         query_knowledge=QueryKnowledge(
             retriever=knowledge_retriever,
             template=TemplateGroundedAnswerProvider(),

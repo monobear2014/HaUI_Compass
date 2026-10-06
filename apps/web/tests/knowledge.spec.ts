@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 
 const courseAnswer = {
   answer:
@@ -30,6 +30,7 @@ test("Database RAG shows grounded answer and fictional badge", async ({
     route.fulfill({ status: 200, json: courseAnswer }),
   );
   await page.goto("/knowledge");
+  await page.getByRole("button", { name: "Try an example" }).click();
   await page.getByRole("button", { name: "Ask documents" }).click();
   await expect(page.getByText("GROUNDED ANSWER")).toBeVisible();
   await expect(page.getByText("Tài liệu môn học demo")).toBeVisible();
@@ -64,6 +65,7 @@ test("institutional RAG keeps official provenance visible", async ({
   );
   await page.goto("/knowledge");
   await page.getByRole("button", { name: "HaUI" }).click();
+  await page.getByRole("button", { name: "Try an example" }).click();
   await page.getByRole("button", { name: "Ask documents" }).click();
   await expect(page.getByText("Nguồn công khai HaUI")).toBeVisible();
   await page.getByText("Mô hình đào tạo").click();

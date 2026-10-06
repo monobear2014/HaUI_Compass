@@ -147,7 +147,7 @@ export async function api<T>(path: string, body?: unknown): Promise<T> {
   } catch {
     throw new ApiError(
       "connection_error",
-      "Could not reach Compass. Check the local API and try again.",
+      "Could not reach HaUI Compass. Check the local API and try again.",
       0,
     );
   }
@@ -244,6 +244,34 @@ export const labels: Record<string, string> = {
   appropriate: "About right",
   too_heavy: "Too heavy",
 };
-export function label(code: string) {
-  return labels[code] || code.replaceAll("_", " ");
+const viLabels: Record<string, string> = {
+  high_assignment_risk: "Bài tập có rủi ro hạn cao.",
+  medium_assignment_risk: "Bài tập có rủi ro hạn trung bình.",
+  unknown_assignment_risk: "Chưa đủ thông tin sức chứa để đánh giá rủi ro.",
+  earliest_deadline: "Có hạn sớm nhất trong nhóm công việc cùng hạng.",
+  continue_in_progress_task: "Tiếp tục công việc bạn đã bắt đầu.",
+  only_actionable_task: "Đây là công việc mở duy nhất.",
+  stable_tie_break: "Các công việc cùng hạng được sắp xếp ổn định.",
+  low_slack: "Thời gian dự phòng trước hạn còn ít.",
+  effort_exceeds_capacity: "Phần việc còn lại vượt quá sức chứa đã khai báo.",
+  deadline_passed: "Bài tập đã quá hạn.",
+  no_capacity_before_deadline: "Không có sức chứa học trước hạn.",
+  missing_capacity: "Chưa biết sức chứa học trước hạn.",
+  missing_effort_estimate: "Chưa có ước lượng phần việc còn lại.",
+  no_remaining_work: "Không còn phần việc.",
+  study_window_changed: "Khung giờ học đã thay đổi",
+  task_completed: "Công việc đã hoàn thành",
+  assignment_deadline_changed: "Hạn bài tập đã thay đổi",
+  remaining_effort_changed: "Phần việc còn lại đã thay đổi",
+  insufficient_capacity: "Sức chứa không đủ",
+  no_study_window_before_deadline: "Không có khung học trước hạn",
+  not_started: "Chưa bắt đầu",
+  in_progress: "Đang thực hiện",
+  completed: "Đã hoàn thành",
+  too_light: "Quá nhẹ",
+  appropriate: "Vừa phải",
+  too_heavy: "Quá nặng",
+};
+export function label(code: string, language: "en" | "vi" = "en") {
+  return (language === "vi" ? viLabels[code] : labels[code]) || code.replaceAll("_", " ");
 }

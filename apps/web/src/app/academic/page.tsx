@@ -1,9 +1,12 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useState } from "react";
-import { api, apiDelete, Assignment, date, minutes } from "@/lib/api";
+import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
+import { api, apiDelete, Assignment, date, label, minutes } from "@/lib/api";
 import { useWorkspace } from "@/components/workspace";
 import Link from "next/link";
+import { usePreferences } from "@/components/preferences";
+import { PageHeading } from "@/components/ui";
+import { Icon } from "@/components/icons";
 
 type Source = "manual" | "csv" | "json";
 type Academic = {
@@ -40,6 +43,7 @@ const version = "haui-compass-academic-import-v1";
 
 export default function AcademicPage() {
   const { context, refresh } = useWorkspace();
+  const { t, language } = usePreferences();
   const [source, setSource] = useState<Source>("manual");
   const [data, setData] = useState<Academic | null>(null);
   const [notice, setNotice] = useState("");
@@ -50,6 +54,8 @@ export default function AcademicPage() {
   const [assignment, setAssignment] = useState("");
   const [deadline, setDeadline] = useState("");
   const [effort, setEffort] = useState("60");
+  const [importMode, setImportMode] = useState<"manual" | "file">("manual");
+  const importDrawer = useRef<HTMLDetailsElement>(null);
 
   const load = useCallback(
     async (selected = source) => {
@@ -101,9 +107,7 @@ export default function AcademicPage() {
         ],
         submissions: [],
       });
-      setNotice(
-        "Manual academic data imported. It is your planning input, not LMS data.",
-      );
+      setNotice(t("academic.manualImported"));
       window.localStorage.setItem("haui-compass-academic-source", "manual");
       window.dispatchEvent(new Event("academic-data-changed"));
       await load("manual");
@@ -134,9 +138,7 @@ export default function AcademicPage() {
       } else {
         throw new Error("Choose a .csv or .json academic-data file.");
       }
-      setNotice(
-        `Imported ${file.name}. Server validation accepted the complete dataset.`,
-      );
+      setNotice(`${t("academic.fileImported")} (${file.name})`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not import file.");
     }
@@ -154,9 +156,7 @@ export default function AcademicPage() {
         title,
         estimated_effort_minutes: estimatedEffortMinutes,
       });
-      setNotice(
-        "Study task created. It can now be used by the existing planning loop.",
-      );
+      setNotice(t("academic.taskCreated"));
       window.dispatchEvent(new Event("academic-data-changed"));
     } catch (err) {
       setError(
@@ -166,21 +166,30 @@ export default function AcademicPage() {
   }
   return (
     <>
-      <section className="page-heading">
-        <span className="eyebrow accent">ACADEMIC DATA</span>
-        <h1>Bring your own academic workload.</h1>
-        <p>
-          Manual entry and file imports are student-provided pilot data, never
-          official HaUI data.
-        </p>
-      </section>
+      <PageHeading
+        title={t("academic.title")}
+        description={t("academic.description")}
+        action={
+          <button
+            className="primary"
+            onClick={() => {
+              if (importDrawer.current) {
+                importDrawer.current.open = true;
+                importDrawer.current.scrollIntoView({ block: "start" });
+              }
+            }}
+          >
+            <Icon name="plus" size={16} />
+            {language === "vi" ? "Thêm bài tập" : "Add assignment"}
+          </button>
+        }
+      />
       {context?.scenario_id && (
         <section className="panel academic-current">
-          <h2>{context.scenario_label} · Academic data → Tasks</h2>
-          <p>
-            Three fictional courses. AI decomposition creates editable
-            candidates; only your confirmation creates study tasks.
-          </p>
+          <div className="section-heading">
+            <h2>{t("academic.academicToTasks")}</h2>
+            <span className="badge">{t("common.demo")}</span>
+          </div>
           <ul className="academic-list">
             {context.assignments?.map((assignment) => {
               const tasks = context.tasks.filter(
@@ -193,7 +202,7 @@ export default function AcademicPage() {
                       {assignment.course} / {assignment.title}
                     </strong>
                     <span>
-                      Deadline:{" "}
+                      {t("academic.deadline")}:{" "}
                       {date(assignment.deadline, {
                         day: "numeric",
                         month: "short",
@@ -202,15 +211,21 @@ export default function AcademicPage() {
                       })}
                     </span>
                     {tasks.length ? (
-                      tasks.map((task) => (
-                        <span key={task.id}>
-                          Task: {task.title} ·{" "}
-                          {minutes(task.estimated_duration_seconds)} min ·{" "}
-                          {task.status.replaceAll("_", " ")}
-                        </span>
-                      ))
+                      <details className="assignment-steps">
+                        <summary>
+                          {tasks.length}{" "}
+                          {language === "vi" ? "công việc" : "study tasks"}
+                        </summary>
+                        {tasks.map((task) => (
+                          <span key={task.id}>
+                            {t("common.task")}: {task.title} ·{" "}
+                            {minutes(task.estimated_duration_seconds)} min ·{" "}
+                            {label(task.status, language)}
+                          </span>
+                        ))}
+                      </details>
                     ) : (
-                      <span>No confirmed study tasks yet.</span>
+                      <span>{t("academic.noConfirmedTasks")}</span>
                     )}
                   </div>
                   <TaskDecomposition
@@ -222,88 +237,117 @@ export default function AcademicPage() {
               );
             })}
           </ul>
-          <Link className="secondary" href="/">
-            Today → Risk & next action
+          <Link className="text-link" href="/today">
+            {t("academic.todayLink")}
           </Link>
         </section>
       )}
-      <div className="academic-grid">
-        <section className="panel">
-          <h2>Manual entry</h2>
-          <form className="form-stack" onSubmit={importManual}>
-            <label>
-              Course name
-              <input
-                required
-                value={course}
-                onChange={(e) => setCourse(e.target.value)}
-              />
-            </label>
-            <label>
-              Course code{" "}
-              <input value={code} onChange={(e) => setCode(e.target.value)} />
-            </label>
-            <label>
-              Assignment title
-              <input
-                required
-                value={assignment}
-                onChange={(e) => setAssignment(e.target.value)}
-              />
-            </label>
-            <label>
-              Deadline (your device timezone)
-              <input
-                required
-                type="datetime-local"
-                value={deadline}
-                onChange={(e) => setDeadline(e.target.value)}
-              />
-            </label>
-            <label>
-              Planning estimate (minutes)
-              <input
-                required
-                min="1"
-                type="number"
-                value={effort}
-                onChange={(e) => setEffort(e.target.value)}
-              />
-            </label>
-            <p className="fine-print">
-              This is your focused-study estimate, not an LMS value.
-            </p>
-            <button className="primary">Import manual data</button>
-          </form>
-        </section>
-        <section className="panel">
-          <h2>CSV or JSON import</h2>
-          <p>
-            Choose a fictional or authorized academic-data file. Only .csv and
-            .json are accepted.
-          </p>
-          <input
-            aria-label="Academic data file"
-            type="file"
-            accept=".csv,.json,application/json,text/csv"
-            onChange={(e) => setFile(e.target.files?.[0] || null)}
-          />
-          {file && <p className="fine-print">Selected: {file.name}</p>}
+      <details className="panel import-drawer" ref={importDrawer}>
+        <summary>
+          {language === "vi"
+            ? "Thêm môn học & bài tập"
+            : "Add courses & assignments"}
+          <Icon name="plus" size={16} />
+        </summary>
+        <div
+          className="scope-tabs import-tabs"
+          role="group"
+          aria-label={
+            language === "vi" ? "Cách thêm bài tập" : "Assignment entry method"
+          }
+        >
           <button
-            className="primary"
-            disabled={!file}
-            onClick={() => void importFile()}
+            type="button"
+            className={importMode === "manual" ? "active" : "secondary"}
+            aria-pressed={importMode === "manual"}
+            onClick={() => setImportMode("manual")}
           >
-            Validate and import
+            {t("academic.manual")}
           </button>
-          <p className="fine-print">
-            The server validates the full file before committing it.
-          </p>
-        </section>
-      </div>
+          <button
+            type="button"
+            className={importMode === "file" ? "active" : "secondary"}
+            aria-pressed={importMode === "file"}
+            onClick={() => setImportMode("file")}
+          >
+            {t("academic.fileImport")}
+          </button>
+        </div>
+        <div className="academic-grid">
+          <section hidden={importMode !== "manual"}>
+            <h2>{t("academic.manual")}</h2>
+            <form className="form-stack" onSubmit={importManual}>
+              <label>
+                {t("academic.courseName")}
+                <input
+                  required
+                  value={course}
+                  onChange={(e) => setCourse(e.target.value)}
+                />
+              </label>
+              <label>
+                {t("academic.courseCode")}{" "}
+                <input value={code} onChange={(e) => setCode(e.target.value)} />
+              </label>
+              <label>
+                {t("academic.assignmentTitle")}
+                <input
+                  required
+                  value={assignment}
+                  onChange={(e) => setAssignment(e.target.value)}
+                />
+              </label>
+              <label>
+                {t("academic.deviceDeadline")}
+                <input
+                  required
+                  type="datetime-local"
+                  value={deadline}
+                  onChange={(e) => setDeadline(e.target.value)}
+                />
+              </label>
+              <label>
+                {t("academic.estimate")}
+                <input
+                  required
+                  min="1"
+                  type="number"
+                  value={effort}
+                  onChange={(e) => setEffort(e.target.value)}
+                />
+              </label>
+              <p className="fine-print">{t("academic.estimateHint")}</p>
+              <button className="primary">{t("academic.importManual")}</button>
+            </form>
+          </section>
+          <section hidden={importMode !== "file"}>
+            <h2>{t("academic.fileImport")}</h2>
+            <p>{t("academic.fileHint")}</p>
+            <input
+              aria-label={t("academic.fileLabel")}
+              type="file"
+              accept=".csv,.json,application/json,text/csv"
+              onChange={(e) => setFile(e.target.files?.[0] || null)}
+            />
+            {file && (
+              <p className="fine-print">
+                {t("academic.selected")}: {file.name}
+              </p>
+            )}
+            <button
+              className="primary"
+              disabled={!file}
+              onClick={() => void importFile()}
+            >
+              {t("academic.validateImport")}
+            </button>
+            <p className="fine-print">{t("academic.serverValidates")}</p>
+          </section>
+        </div>
+      </details>
       <section className="panel academic-current">
         <div className="section-heading">
-          <h2>Current imported data</h2>
+          <h2>{t("academic.importedData")}</h2>
           <select
             value={source}
             onChange={(e) => {
@@ -311,13 +355,13 @@ export default function AcademicPage() {
               setSource(next);
             }}
           >
-            <option value="manual">Manual</option>
-            <option value="csv">CSV</option>
-            <option value="json">JSON</option>
+            <option value="manual">{t("academic.sourceManual")}</option>
+            <option value="csv">{t("academic.sourceCsv")}</option>
+            <option value="json">{t("academic.sourceJson")}</option>
           </select>
         </div>
         <button className="secondary small" onClick={() => void load()}>
-          Refresh
+          {t("common.refresh")}
         </button>
         {notice && <p className="form-success">{notice}</p>}
         {error && (
@@ -327,10 +371,20 @@ export default function AcademicPage() {
         )}
         {data ? (
           <>
-            <p className="fine-print">
-              Provenance: {data.source.toUpperCase()} · {data.courses} courses ·{" "}
-              {data.assignments} assignments · {data.submissions} submissions
-            </p>
+            <details className="compact-disclosure">
+              <summary>{t("academic.provenance")}</summary>
+              <p className="fine-print">
+                {t("academic.provenance")}: {data.source.toUpperCase()} ·{" "}
+                {data.courses} {t("academic.courses")} · {data.assignments}{" "}
+                {t("academic.assignments")} · {data.submissions}{" "}
+                {t("academic.submissions")}
+              </p>
+              <p className="fine-print">
+                {language === "vi"
+                  ? "Dữ liệu do bạn cung cấp, không phải dữ liệu HaUI chính thức."
+                  : "student-provided pilot data, never official HaUI data"}
+              </p>
+            </details>
             <ul className="academic-list">
               {data.assignments_data.map((item) => (
                 <li key={item.external_id}>
@@ -340,30 +394,35 @@ export default function AcademicPage() {
                       {item.course_external_id} ·{" "}
                       {item.deadline
                         ? new Date(item.deadline).toLocaleString()
-                        : "No deadline"}
+                        : t("common.noDeadline")}
                     </span>
                   </div>
                   <CreateTask item={item} onCreate={createTask} />
                 </li>
               ))}
             </ul>
-            <button
-              className="text-link"
-              onClick={async () => {
-                await apiDelete(
-                  `academic-data?source=${source}&student_external_id=${student}`,
-                );
-                setData(null);
-                setNotice(
-                  "Imported data cleared. Existing study tasks are protected.",
-                );
-              }}
-            >
-              Clear this imported source
-            </button>
+            <details className="compact-disclosure">
+              <summary>
+                {language === "vi"
+                  ? "Quản lý dữ liệu đã nhập"
+                  : "Manage imported data"}
+              </summary>
+              <button
+                className="text-link"
+                onClick={async () => {
+                  await apiDelete(
+                    `academic-data?source=${source}&student_external_id=${student}`,
+                  );
+                  setData(null);
+                  setNotice(t("academic.dataCleared"));
+                }}
+              >
+                {t("academic.clearSource")}
+              </button>
+            </details>
           </>
         ) : (
-          <p>No imported data for this source yet.</p>
+          <p className="fine-print">{t("academic.noImported")}</p>
         )}
       </section>
     </>
@@ -379,6 +438,7 @@ function TaskDecomposition({
   student: { provider: string; id: string };
   onConfirmed: () => Promise<void>;
 }) {
+  const { t } = usePreferences();
   const [session, setSession] = useState<Decomposition | null>(null);
   const [drafts, setDrafts] = useState<DecompositionCandidate[]>([]);
   const [selected, setSelected] = useState<string[]>([]);
@@ -447,7 +507,7 @@ function TaskDecomposition({
           disabled={busy}
           onClick={() => void suggest()}
         >
-          {busy ? "Generating suggestions…" : "Suggest tasks with AI"}
+          {busy ? t("academic.suggesting") : t("academic.suggest")}
         </button>
         {error && <span className="form-error">{error}</span>}
       </div>
@@ -460,15 +520,14 @@ function TaskDecomposition({
       aria-label={`Task suggestions for ${assignment.title}`}
     >
       <div className="section-heading">
-        <strong>Candidate study tasks</strong>
+        <strong>{t("academic.candidates")}</strong>
         <span className="badge">
-          {session.source === "ai" ? "AI · online" : "Template · offline"}
+          {session.source === "ai"
+            ? t("academic.online")
+            : t("academic.offline")}
         </span>
       </div>
-      <p className="fine-print">
-        Suggestions are not added until you confirm. Titles and estimates are suggestions,
-        not ground truth.
-      </p>
+      <p className="fine-print">{t("academic.suggestionsHint")}</p>
       {drafts.map((candidate, index) => (
         <div className="decomposition-candidate" key={candidate.id}>
           <label className="choice">
@@ -485,10 +544,10 @@ function TaskDecomposition({
                 )
               }
             />
-            Include this candidate
+            {t("academic.include")}
           </label>
           <label>
-            Suggested task title
+            {t("academic.suggestedTitle")}
             <input
               aria-label={`Candidate ${index + 1} title`}
               value={candidate.title}
@@ -507,7 +566,7 @@ function TaskDecomposition({
             />
           </label>
           <label>
-            Suggested estimate (minutes)
+            {t("academic.suggestedEstimate")}
             <input
               aria-label={`Candidate ${index + 1} estimate`}
               type="number"
@@ -531,7 +590,12 @@ function TaskDecomposition({
               }
             />
           </label>
-          {candidate.rationale && <p>{candidate.rationale}</p>}
+          {candidate.rationale && (
+            <details className="compact-disclosure">
+              <summary>{t("today.explanation")}</summary>
+              <p>{candidate.rationale}</p>
+            </details>
+          )}
         </div>
       ))}
       {created.length ? (
@@ -544,7 +608,7 @@ function TaskDecomposition({
           disabled={busy || selected.length === 0}
           onClick={() => void confirm()}
         >
-          {busy ? "Adding selected tasks…" : "Add selected tasks"}
+          {busy ? t("academic.addingSelected") : t("academic.addSelected")}
         </button>
       )}
       {error && <p className="form-error">{error}</p>}
@@ -563,6 +627,7 @@ function CreateTask({
     estimatedEffortMinutes: number,
   ) => Promise<void>;
 }) {
+  const { t } = usePreferences();
   const [editing, setEditing] = useState(false);
   const [title, setTitle] = useState(`Work on ${item.title}`);
   const [effort, setEffort] = useState(
@@ -571,7 +636,7 @@ function CreateTask({
   if (!editing) {
     return (
       <button className="secondary small" onClick={() => setEditing(true)}>
-        Create study task
+        {t("academic.createTask")}
       </button>
     );
   }
@@ -584,7 +649,7 @@ function CreateTask({
       }}
     >
       <label>
-        Study task title
+        {t("academic.studyTaskTitle")}
         <input
           required
           value={title}
@@ -592,7 +657,7 @@ function CreateTask({
         />
       </label>
       <label>
-        Study task estimate (minutes)
+        {t("academic.studyTaskEstimate")}
         <input
           required
           min="1"
@@ -601,13 +666,13 @@ function CreateTask({
           onChange={(event) => setEffort(event.target.value)}
         />
       </label>
-      <button className="secondary small">Save study task</button>
+      <button className="secondary small">{t("academic.saveTask")}</button>
       <button
         className="text-link"
         type="button"
         onClick={() => setEditing(false)}
       >
-        Cancel
+        {t("academic.cancel")}
       </button>
     </form>
   );

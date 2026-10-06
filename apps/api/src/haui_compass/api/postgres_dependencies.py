@@ -15,6 +15,7 @@ from haui_compass.application.use_cases.generate_daily_recommendation import (
     GenerateDailyRecommendation,
 )
 from haui_compass.application.use_cases.get_daily_recommendation import GetDailyRecommendation
+from haui_compass.application.use_cases.grounded_answer import GroundedAnswerService
 from haui_compass.application.use_cases.persisted_learning_loop import (
     ConfirmPersistedReflection,
     GeneratePersistedWeeklyPlan,
@@ -109,6 +110,12 @@ def build_postgres_container(
     llm_timeout = llm_settings.timeout_seconds if llm_settings is not None else 2.0
     corpus_root = Path(__file__).resolve().parents[5] / "data"
     return AppContainer(
+        compass_answer=GroundedAnswerService(
+            template=TemplateGroundedAnswerProvider(),
+            provider=llm_adapter,
+            timeout_seconds=llm_timeout,
+            unavailable_reason=unavailable_reason,
+        ),
         query_knowledge=QueryKnowledge(
             retriever=LocalLexicalKnowledgeRetriever(ingest_manifest(corpus_root)),
             template=TemplateGroundedAnswerProvider(),

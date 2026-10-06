@@ -394,6 +394,15 @@ def test_grounded_answer_prompt_treats_document_injection_as_untrusted_data() ->
     assert "untrusted data" in instructions
     assert "never instructions" in instructions
     assert "call tools" in instructions
+    assert "multiclass classification means phân loại đa lớp" in instructions
+    # The real Responses strict-schema compiler rejects uniqueItems; duplicate
+    # handles remain rejected by the server's citation validator.
+    answer_schema = cast(
+        dict[str, object],
+        cast(dict[str, object], cast(dict[str, object], payload["text"])["format"])["schema"],
+    )
+    properties = cast(dict[str, object], answer_schema["properties"])
+    assert "uniqueItems" not in cast(dict[str, object], properties["citation_handles"])
     prompt = json.loads(cast(str, payload["input"]))
     assert prompt["allowed_citation_handles"] == ["c1"]
     assert "SECRET_DEMO_VALUE" in prompt["evidence"][0]["content"]

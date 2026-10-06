@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from typing import Literal, Protocol
 
 KnowledgeScope = Literal["institutional", "course"]
-KnowledgeSourceType = Literal["official_public", "fictional_demo"]
+KnowledgeSourceType = Literal["official_public", "fictional_demo", "uploaded_private"]
 AnswerSource = Literal["ai", "template"]
 
 
@@ -69,9 +69,16 @@ class CitationEvidence:
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
+class ConversationTurn:
+    role: Literal["user", "assistant"]
+    content: str
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
 class GroundedAnswerInput:
     question: str
     evidence: tuple[CitationEvidence, ...]
+    history: tuple[ConversationTurn, ...] = ()
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)

@@ -32,6 +32,7 @@ htmlcov/
 *.log
 tmp/
 .cache/
+.demo-auth/
 
 # Test and tooling output
 .coverage
@@ -45,3 +46,6 @@ research-data/
 # External reference implementations (read-only research, never committed)
 .references/
 *.egg-info/
+
+# Isolated browser-test accounts, uploads and chat history
+apps/web/.playwright-data/

@@ -29,8 +29,8 @@ class CitationDTO(ApiModel):
     title: str
     source_url: str | None
     local_path: str
-    source_type: Literal["official_public", "fictional_demo"]
-    source_label: Literal["Nguồn công khai HaUI", "Tài liệu môn học demo"]
+    source_type: Literal["official_public", "fictional_demo", "uploaded_private"]
+    source_label: Literal["Nguồn công khai HaUI", "Tài liệu môn học demo", "Tài liệu của bạn"]
     page: int | None
     section: str | None
 
@@ -67,6 +67,8 @@ def knowledge_response(result: KnowledgeQueryResult) -> KnowledgeQueryResponseDT
                 source_label=(
                     "Nguồn công khai HaUI"
                     if item.source_type == "official_public"
+                    else "Tài liệu của bạn"
+                    if item.source_type == "uploaded_private"
                     else "Tài liệu môn học demo"
                 ),
                 page=item.page,

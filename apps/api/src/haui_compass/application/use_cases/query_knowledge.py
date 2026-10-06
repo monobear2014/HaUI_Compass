@@ -1,6 +1,5 @@
 """Retrieve bounded evidence, generate an answer, and validate citations structurally."""
 
-import asyncio
 import re
 from dataclasses import dataclass
 from enum import StrEnum
@@ -18,7 +17,12 @@ from haui_compass.application.ports.knowledge import (
     RetrievalQuery,
     RetrievedChunk,
 )
-from haui_compass.application.ports.llm import InvalidLLMOutputError
+from haui_compass.application.use_cases.grounded_answer import (
+    GroundedAnswerService,
+)
+from haui_compass.application.use_cases.grounded_answer import (
+    validate_grounded_answer as validate_evidence,
+)
 
 ABSTENTION_MESSAGE = "Chưa tìm thấy đủ thông tin trong tài liệu hiện có để trả lời chắc chắn."
 
@@ -107,24 +111,17 @@ class QueryKnowledge:
         evidence = tuple(_evidence(index, row) for index, row in enumerate(relevant, start=1))
         answer_request = GroundedAnswerInput(question=question, evidence=evidence)
 
-        source: AnswerSource = "template"
-        fallback_reason: str | None = self._unavailable_reason
-        if self._provider is not None:
-            try:
-                output = await asyncio.wait_for(
-                    self._provider.answer(answer_request), timeout=self._timeout
-                )
-                source = "ai"
-                fallback_reason = None
-            except TimeoutError:
-                return _abstained(retrieved=retrieved, reason="timeout")
-            except InvalidLLMOutputError:
-                return _abstained(retrieved=retrieved, reason="invalid_output")
-            except Exception:
-                return _abstained(retrieved=retrieved, reason="provider_error")
-        else:
-            output = await self._template.answer(answer_request)
-
+        generated = await GroundedAnswerService(
+            template=self._template,
+            provider=self._provider,
+            timeout_seconds=self._timeout,
+            unavailable_reason=self._unavailable_reason,
+        ).generate(answer_request)
+        if generated.output is None:
+            return _abstained(
+                retrieved=retrieved, reason=generated.fallback_reason or "provider_error"
+            )
+        output = generated.output
         citations = validate_grounded_answer(output, evidence)
         if citations is None:
             reason = (
@@ -138,8 +135,8 @@ class QueryKnowledge:
             status="answered",
             citations=citations,
             retrieved=retrieved,
-            source=source,
-            fallback_reason=fallback_reason,
+            source=generated.source,
+            fallback_reason=generated.fallback_reason,
         )
 
 
@@ -147,19 +144,10 @@ def validate_grounded_answer(
     output: object, evidence: tuple[CitationEvidence, ...]
 ) -> tuple[Citation, ...] | None:
     """Fail closed: only handles issued for this exact retrieval may become citations."""
-    if not isinstance(output, ProviderGroundedAnswer) or output.abstained:
+    validated = validate_evidence(output, evidence)
+    if validated is None or not isinstance(output, ProviderGroundedAnswer):
         return None
-    answer = output.answer.strip() if isinstance(output.answer, str) else ""
-    handles = output.citation_handles
-    if (
-        not answer
-        or answer == ABSTENTION_MESSAGE
-        or not handles
-        or len(set(handles)) != len(handles)
-    ):
-        return None
-    available = {item.citation_id: item for item in evidence}
-    if any(handle not in available for handle in handles):
+    if output.answer.strip() == ABSTENTION_MESSAGE:
         return None
     return tuple(
         Citation(
@@ -173,7 +161,7 @@ def validate_grounded_answer(
             page=item.page,
             section=item.section,
         )
-        for item in (available[handle] for handle in handles)
+        for item in validated
     )
 
 

@@ -1,7 +1,8 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, navigate, openDemo, openPreferences } from "./fixtures";
 
-test.beforeEach(async ({ request }) => {
+test.beforeEach(async ({ request, baseURL }) => {
   const response = await request.post("/compass-api/demo/scenarios/select", {
+    headers: { Origin: baseURL! },
     data: { scenario_id: "normal" },
   });
   expect(response.ok()).toBeTruthy();
@@ -10,9 +11,13 @@ test.beforeEach(async ({ request }) => {
 test("presentation preferences switch language and theme without changing the workspace", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/today");
+  await openPreferences(page);
   await page.getByRole("button", { name: "VI", exact: true }).click();
-  await expect(page.getByRole("link", { name: "Hôm nay", exact: true })).toBeVisible();
+  await expect(page.locator('aside a[href="/today"]')).toHaveAttribute(
+    "aria-current",
+    "page",
+  );
   await expect(
     page.getByRole("heading", { name: "Tôi nên làm gì ngay bây giờ?" }),
   ).toBeVisible();
@@ -22,54 +27,90 @@ test("presentation preferences switch language and theme without changing the wo
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
 });
 
+test("Vietnamese preference covers the student workflow screens", async ({
+  page,
+}) => {
+  await page.goto("/today");
+  await openPreferences(page);
+  await page.getByRole("button", { name: "VI", exact: true }).click();
+  await expect(
+    page.getByRole("heading", { name: "Tôi nên làm gì ngay bây giờ?" }),
+  ).toBeVisible();
+  await navigate(page, "/plan");
+  await expect(
+    page.getByRole("heading", { name: "Kế hoạch tuần của bạn." }),
+  ).toBeVisible();
+  await navigate(page, "/reflect");
+  await expect(
+    page.getByRole("heading", { name: "Buổi học vừa rồi thế nào?" }),
+  ).toBeVisible();
+  await navigate(page, "/history");
+  await expect(
+    page.getByRole("heading", { name: "Lịch sử kế hoạch." }),
+  ).toBeVisible();
+  await navigate(page, "/academic");
+  await expect(
+    page.getByRole("heading", { name: "Môn học & bài tập." }),
+  ).toBeVisible();
+});
+
 test("showcase: normal → crunch → execute, reflect and replan disrupted week", async ({
   page,
 }, info) => {
-  await page.goto("/");
+  await page.goto("/today");
   await expect(
     page.getByRole("heading", { name: "What should I do now?" }),
   ).toBeVisible();
-  await page.getByRole("link", { name: "Weekly Plan", exact: true }).click();
+  await navigate(page, "/plan");
   await expect(page.locator(".plan-toolbar")).toContainText("Revision 1");
   await expect(
     page.getByText("All requested work fits in your study windows."),
   ).toBeVisible();
 
+  await openDemo(page);
   await page
     .getByLabel("Demo scenario", { exact: true })
     .selectOption("crunch");
   await expect(
     page.getByRole("heading", { name: "Needs attention" }),
   ).toBeVisible();
-  await page.getByRole("link", { name: "Academic Data", exact: true }).click();
+  await navigate(page, "/academic");
   await expect(
     page.getByRole("heading", {
-      name: "Deadline Crunch · Academic data → Tasks",
+      name: "Your assignments",
     }),
   ).toBeVisible();
   await page.getByRole("link", { name: "Today → Risk & next action" }).click();
-  await expect(page.getByText("HIGH RISK", { exact: true })).toBeVisible();
+  await expect(
+    page.locator(".next-action").getByText("High risk", { exact: true }),
+  ).toBeVisible();
+  await page.locator(".why-box > summary").click();
+  await page.locator(".why-box .decision-evidence > summary").click();
   await expect(
     page.getByText("Template · offline", { exact: true }),
   ).toBeVisible();
   await expect(page.locator(".why-box")).toContainText("150 phút");
   await expect(page.locator(".why-box")).toContainText("60 phút");
-  await page.getByText("Decision evidence", { exact: true }).click();
-  await expect(page.locator(".decision-evidence")).toContainText(
+
+  await expect(page.locator(".why-box .decision-evidence")).toContainText(
     "effort_exceeds_capacity",
   );
+  await page.locator(".risk-overview > summary").click();
   await expect(
     page.locator(".risk-row").filter({ hasText: "Regression Lab" }),
-  ).toContainText("MEDIUM");
+  ).toContainText("Needs attention");
   await page.screenshot({
     path: info.outputPath("crunch-evidence.png"),
     fullPage: true,
   });
 
+  await openDemo(page);
   await page
     .getByLabel("Demo scenario", { exact: true })
     .selectOption("disrupted");
-  await expect(page.getByText("LOW RISK", { exact: true })).toBeVisible();
+  await expect(
+    page.locator(".next-action").getByText("On track", { exact: true }),
+  ).toBeVisible();
   await page.getByRole("button", { name: "Record work", exact: true }).click();
   await page.locator('input[name="start"]').fill("2026-10-05T00:00");
   await page.locator('input[name="end"]').fill("2026-10-05T00:25");
@@ -86,25 +127,25 @@ test("showcase: normal → crunch → execute, reflect and replan disrupted week
   await page.getByRole("button", { name: "Save execution" }).click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
 
-  await page.getByRole("link", { name: "Reflect", exact: true }).click();
+  await navigate(page, "/reflect");
   await page.locator('input[name="reflected"]').nth(1).check();
   await page.getByLabel("Too heavy", { exact: true }).check();
   await page
     .getByLabel("Topics that felt difficult")
     .fill("Regression assumptions");
-  await page.getByRole("button", { name: "Review reflection" }).click();
+  await page.getByRole("button", { name: "Review my notes" }).click();
   await expect(page.locator(".insights")).toContainText("recorded 90 min");
   await expect(page.locator(".insight-choice input:checked")).toHaveCount(0);
   for (const checkbox of await page.locator(".insight-choice input").all())
     await checkbox.check();
-  await page.getByRole("button", { name: "Save confirmed reflection" }).click();
+  await page.getByRole("button", { name: "Save selected notes" }).click();
   await expect(
     page.getByText(
       "Your selected reflection signals were confirmed and saved.",
     ),
   ).toBeVisible();
 
-  await page.getByRole("link", { name: "Weekly Plan", exact: true }).click();
+  await navigate(page, "/plan");
   await page.getByRole("button", { name: "Adjust & replan" }).click();
   await expect(page.getByRole("spinbutton")).toHaveCount(3);
   await page
@@ -130,12 +171,13 @@ test("showcase: normal → crunch → execute, reflect and replan disrupted week
     path: info.outputPath("disrupted-comparison.png"),
     fullPage: true,
   });
-  await page.getByRole("link", { name: "History", exact: true }).click();
+  await navigate(page, "/history");
   await expect(page.locator("details.revision")).toHaveCount(2);
   await page.locator("details.revision").last().locator("summary").click();
   await expect(page.locator("details.revision").last()).toContainText(
     "Draft the relational schema",
   );
+  await openDemo(page);
   await page.getByRole("button", { name: "Reset this scenario" }).click();
   await expect(page.locator("details.revision")).toHaveCount(1);
   expect(
@@ -152,18 +194,20 @@ test("switching scenario clears unsaved reflection candidates and plan editor", 
   await page
     .getByLabel("Topics that felt difficult")
     .fill("Old scenario insight");
-  await page.getByRole("button", { name: "Review reflection" }).click();
+  await page.getByRole("button", { name: "Review my notes" }).click();
   await expect(page.locator(".insight-choice")).toHaveCount(1);
+  await openDemo(page);
   await page
     .getByLabel("Demo scenario", { exact: true })
     .selectOption("disrupted");
   await expect(page.locator(".insight-choice")).toHaveCount(0);
   await expect(page.getByLabel("Topics that felt difficult")).toHaveValue("");
-  await page.getByRole("link", { name: "Weekly Plan", exact: true }).click();
+  await navigate(page, "/plan");
   await page.getByRole("button", { name: "Adjust & replan" }).click();
   await page
     .getByLabel("Remaining minutes for Implement the regression baseline")
     .fill("999");
+  await openDemo(page);
   await page
     .getByLabel("Demo scenario", { exact: true })
     .selectOption("normal");
@@ -180,16 +224,12 @@ test("AI task candidates require review and confirmation before deterministic pl
     .locator(".assignment-card")
     .filter({ hasText: "Database Mini Project" });
   await expect(assignment).toContainText("No confirmed study tasks yet");
-  await assignment
-    .getByRole("button", { name: "Suggest tasks with AI" })
-    .click();
+  await assignment.getByRole("button", { name: "Break into steps" }).click();
   await expect(
     assignment.getByText("Template · offline", { exact: true }),
   ).toBeVisible();
   await expect(assignment.locator(".decomposition-candidate")).toHaveCount(4);
-  await expect(assignment).toContainText(
-    "Suggestions are not added until you confirm",
-  );
+  await expect(assignment).toContainText("Edit the titles and estimates");
 
   const before = await page.request.get("/compass-api/demo/context");
   expect((await before.json()).tasks).toHaveLength(4);
@@ -217,11 +257,11 @@ test("AI task candidates require review and confirmation before deterministic pl
     context.tasks.map((task: { title: string }) => task.title),
   ).not.toContain("Design the approach for Database Mini Project");
 
-  await page.getByRole("link", { name: "Today", exact: true }).click();
+  await navigate(page, "/today");
   await expect(page.locator(".action-title")).toHaveText(
     /Clarify rubric and project scope|Implement one core increment|Test and review/,
   );
-  await page.getByRole("link", { name: "Weekly Plan", exact: true }).click();
+  await navigate(page, "/plan");
   await page.getByRole("button", { name: "Adjust & replan" }).click();
   await expect(
     page.getByLabel("Remaining minutes for Clarify rubric and project scope"),

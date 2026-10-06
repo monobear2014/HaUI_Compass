@@ -91,6 +91,12 @@ class PostgresStudyPlanRepository:
         revised = result.revised_plan
         if revised.student_id != baseline.plan.student_id or revised.period != baseline.plan.period:
             raise PersistenceError(PersistenceErrorCode.PLAN_SCOPE_MISMATCH, "plan scope changed")
+        # Serialize writers on the fixed baseline row. Locking a changing "latest"
+        # query can use a snapshot taken before a competing writer committed.
+        # The following latest query must be a separate statement after this lock.
+        self._session().scalar(
+            select(PlanRow).where(PlanRow.record_id == baseline_record_id).with_for_update()
+        )
         existing = self.get(record_id)
         if existing is not None:
             expected = StoredStudyPlan(
@@ -104,7 +110,7 @@ class PostgresStudyPlanRepository:
             if existing == expected:
                 return existing
             raise PersistenceError(PersistenceErrorCode.RECORD_CONFLICT, "plan record id conflict")
-        # Lock the latest row for this scope. The caller's transaction makes this race-safe.
+        # Under READ COMMITTED this statement sees the winner's newly committed child.
         latest_row = self._session().scalar(
             select(PlanRow)
             .where(
@@ -113,7 +119,6 @@ class PostgresStudyPlanRepository:
                 PlanRow.period_end == utc(baseline.plan.period.end),
             )
             .order_by(PlanRow.revision.desc())
-            .with_for_update()
         )
         if latest_row is None or latest_row.record_id != baseline_record_id:
             raise PersistenceError(
