@@ -344,8 +344,8 @@ export function DocumentUpload({ nextPath }: { nextPath: string }) {
           </summary>
           <p>
             {vi
-              ? "Bạn có thể mở lại PDF và đọc TXT/Markdown. Trợ lý Compass trong bộ học tập trả lời từ tài liệu TXT/Markdown của bạn và dẫn nguồn để đối chiếu. PDF chưa trích xuất văn bản; OCR và tự tạo kế hoạch chưa được hỗ trợ."
-              : "You can reopen PDFs and read TXT/Markdown. Compass in your study set answers from your TXT/Markdown files with source citations. PDF text extraction, OCR and automatic planning are not supported."}
+              ? "Bạn có thể mở PDF và đọc TXT/Markdown. Trợ lý trả lời từ tài liệu của bạn, hỗ trợ PDF có văn bản với trích dẫn theo trang. OCR và tự tạo kế hoạch chưa được hỗ trợ."
+              : "You can reopen PDFs and read TXT/Markdown. Compass answers from your files, including text-based PDFs with page citations. OCR and automatic planning are not supported."}
           </p>
         </details>
       </section>
@@ -489,8 +489,8 @@ export function DocumentReady({
                   ? "Các mục lấy từ tiêu đề trong tài liệu Markdown. Bạn tự chọn thứ tự học."
                   : "Sections from your Markdown headings. Choose your own learning order."
                 : vi
-                  ? "Bắt đầu bằng việc đọc tài liệu. Chưa phân tích nội dung PDF hoặc tạo kế hoạch AI."
-                  : "Start by reading your files. PDF content analysis and AI planning are not connected yet."}
+                  ? "Bắt đầu bằng việc đọc tài liệu. Trợ lý hỗ trợ PDF có văn bản; chưa hỗ trợ OCR hoặc tạo kế hoạch AI."
+                  : "Start by reading your files. The assistant supports text-based PDF, without OCR or AI planning."}
             </p>
             <Link className={styles.planLink} href="/plan">
               {vi ? "Mở kế hoạch tuần" : "Open weekly plan"}
@@ -570,8 +570,8 @@ export function DocumentReady({
                         {(tool.kind === "cards" || tool.kind === "recall") &&
                         first.kind === "pdf"
                           ? vi
-                            ? "PDF chưa trích xuất văn bản"
-                            : "PDF text unavailable"
+                            ? "Chưa tạo từ PDF"
+                            : "Not generated from PDF"
                           : vi
                             ? "Sắp có"
                             : "Coming soon"}
@@ -686,9 +686,11 @@ function ReadingContent({
 export function DocumentReader({
   document,
   text,
+  initialPage = 1,
 }: {
   document: StudyDocument;
   text: string | null;
+  initialPage?: number;
 }) {
   const { language } = usePreferences();
   const vi = language === "vi";
@@ -722,7 +724,7 @@ export function DocumentReader({
         <>
           <iframe
             className={styles.pdf}
-            src={`/api/documents/${document.id}`}
+            src={`/api/documents/${document.id}#page=${initialPage}`}
             title={document.name}
           />
           <p className={styles.panelNote}>

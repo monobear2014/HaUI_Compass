@@ -74,7 +74,7 @@ export function getChatMessages(
   const citations = db
     .prepare(
       `SELECT mc.message_id, mc.citation_index AS 'index', c.id AS chunk_id,
-    c.document_id, d.name AS filename, c.heading, NULL AS page_number, substr(c.content, 1, 500) AS excerpt,
+    c.document_id, d.name AS filename, c.heading, c.page_number, substr(c.content, 1, 500) AS excerpt,
     c.start_offset, c.end_offset FROM message_citations mc
     JOIN chat_messages m ON m.id = mc.message_id JOIN document_chunks c ON c.id = mc.chunk_id
     JOIN documents d ON d.id = c.document_id WHERE m.session_id = ? AND d.owner = ? AND d.id = ?

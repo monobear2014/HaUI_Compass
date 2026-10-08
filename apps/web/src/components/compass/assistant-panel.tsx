@@ -75,8 +75,8 @@ export function AssistantPanel({
   }, [messages, busy]);
   const ready = document.ingestionStatus === "ready";
   const statusText =
-    document.ingestionStatus === "unsupported" || document.kind === "pdf"
-      ? "Trợ lý hiện hỗ trợ TXT, MD và Markdown. PDF chưa được trích xuất văn bản."
+    document.ingestionStatus === "unsupported"
+      ? "PDF không có văn bản trích xuất được, rỗng hoặc được mã hóa. Trợ lý chưa hỗ trợ OCR; hãy tải bản PDF có văn bản hoặc TXT/Markdown."
       : document.ingestionStatus === "failed"
         ? "Chưa xử lý được tài liệu. Hãy kiểm tra nội dung và tải lại."
         : !ready
@@ -301,6 +301,9 @@ export function AssistantPanel({
                       title={citation.excerpt}
                     >
                       [{citation.index}] {citation.filename}
+                      {citation.page_number
+                        ? ` · Trang ${citation.page_number}`
+                        : ""}
                       {citation.heading ? ` · ${citation.heading}` : ""}
                     </button>
                   ))}

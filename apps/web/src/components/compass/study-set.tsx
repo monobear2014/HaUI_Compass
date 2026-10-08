@@ -126,6 +126,16 @@ export function StudySet({
       if (!response.ok) throw new Error("source_unavailable");
       const result = await response.json();
       if (request !== citationRequest.current) return;
+      if (
+        document.kind === "pdf" &&
+        Number.isInteger(result.chunk.page_number) &&
+        result.chunk.page_number > 0
+      ) {
+        window.location.assign(
+          `/documents/${document.id}?page=${result.chunk.page_number}`,
+        );
+        return;
+      }
       setSource(result.chunk);
       chooseMode("read");
       const index = topics.findIndex(
@@ -552,8 +562,8 @@ export function StudySet({
               </h2>
               <p>
                 {vi
-                  ? "Bản demo có thể mở tệp PDF, nhưng chưa trích xuất văn bản để tạo chủ đề, flashcard hoặc bài tự kiểm tra."
-                  : "This demo can open your PDF, but does not extract its text to create topics, flashcards or recall activities."}
+                  ? "Trợ lý hỗ trợ PDF có văn bản với trích dẫn theo trang. PDF ảnh chưa hỗ trợ OCR. Chủ đề, flashcard và bài tự kiểm tra từ PDF chưa được tạo."
+                  : "The assistant supports text-based PDFs with page citations, without OCR. PDF topics, flashcards and recall activities are not generated."}
               </p>
               <Link
                 className={styles.primary}

@@ -48,8 +48,13 @@ export async function sendChatMessage(
   const turn = beginTurn(owner, sessionId, input.request_id, input.message);
   if (turn.completed) return all;
   const trace: EvaluationTrace = {
-    request_id: input.request_id, resolved_query: query, retrieval_ms: 0,
-    generation_ms: 0, end_to_end_ms: 0, provider_call_count: 0, retrieved: [],
+    request_id: input.request_id,
+    resolved_query: query,
+    retrieval_ms: 0,
+    generation_ms: 0,
+    end_to_end_ms: 0,
+    provider_call_count: 0,
+    retrieved: [],
   };
   let generationStarted: number | undefined;
   try {
@@ -64,10 +69,15 @@ export async function sendChatMessage(
     const chunks = ranked.map((item) => item.chunk);
     trace.retrieval_ms = retrievalMs;
     trace.retrieved = ranked.map((item, index) => ({
-      rank: index + 1, chunk_id: item.chunk.chunk_id,
-      document_id: item.chunk.document_id, heading: item.chunk.heading,
+      rank: index + 1,
+      chunk_id: item.chunk.chunk_id,
+      document_id: item.chunk.document_id,
+      heading: item.chunk.heading,
       score: item.score,
-      source_ids: [...item.chunk.content.matchAll(/\[SOURCE:([^\]]+)\]/g)].map((m) => m[1]),
+      page_number: item.chunk.page_number ?? null,
+      source_ids: [...item.chunk.content.matchAll(/\[SOURCE:([^\]]+)\]/g)].map(
+        (m) => m[1],
+      ),
     }));
     if (!chunks.length) {
       finishTurn(
@@ -158,7 +168,10 @@ export async function sendChatMessage(
     if (error instanceof DocumentError) throw error;
     throw new DocumentError("assistant_unavailable", 503);
   } finally {
-    trace.generation_ms = generationStarted === undefined ? 0 : performance.now() - generationStarted;
+    trace.generation_ms =
+      generationStarted === undefined
+        ? 0
+        : performance.now() - generationStarted;
     trace.end_to_end_ms = performance.now() - requestStarted;
     writeEvaluationTrace(trace);
   }
@@ -177,6 +190,7 @@ type EvaluationTrace = {
     document_id: string;
     heading: string | null;
     score: number;
+    page_number: number | null;
     source_ids: string[];
   }[];
 };

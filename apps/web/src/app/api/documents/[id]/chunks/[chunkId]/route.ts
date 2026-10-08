@@ -10,7 +10,7 @@ export function GET(
     const { id, chunkId } = await context.params;
     const chunk = documentDatabase()
       .prepare(
-        `SELECT c.id, c.content, c.heading, c.start_offset, c.end_offset
+        `SELECT c.id, c.content, c.heading, c.start_offset, c.end_offset, c.page_number
       FROM document_chunks c JOIN documents d ON d.id = c.document_id
       WHERE d.owner = ? AND d.id = ? AND c.id = ?`,
       )

@@ -1,12 +1,20 @@
 import type { DatabaseSync } from "node:sqlite";
 import { randomUUID } from "node:crypto";
 import { chunkText } from "../document-chunks";
+import { chunkPages, type PdfPage } from "../document-chunking.cjs";
+import { migratePdfPages } from "./004-pdf-pages";
 import { migrateAttemptFencing } from "./003-compass-attempt-fencing";
 import { migrateTurnFencing } from "./002-compass-turn-fencing";
 
 export function ingestDocument(
   db: DatabaseSync,
-  document: { id: string; name: string; kind: string; content: Uint8Array },
+  document: {
+    id: string;
+    name: string;
+    kind: string;
+    content: Uint8Array;
+    pages?: PdfPage[];
+  },
 ) {
   if (
     db
@@ -14,25 +22,28 @@ export function ingestDocument(
       .get(document.id)?.ingestion_status === "ready"
   )
     return;
-  if (document.kind === "pdf") {
+  if (document.kind === "pdf" && !document.pages) {
     db.prepare(
       "UPDATE documents SET ingestion_status = 'unsupported' WHERE id = ?",
     ).run(document.id);
     return;
   }
-  const text = new TextDecoder("utf-8", { fatal: true }).decode(
-    document.content,
-  );
-  const chunks = chunkText(text, /\.(md|markdown)$/i.test(document.name));
+  const chunks = document.pages
+    ? chunkPages(document.pages)
+    : chunkText(
+        new TextDecoder("utf-8", { fatal: true }).decode(document.content),
+        /\.(md|markdown)$/i.test(document.name),
+      );
   db.prepare("DELETE FROM document_chunks WHERE document_id = ?").run(
     document.id,
   );
   const insert = db.prepare(`INSERT INTO document_chunks
     (id, document_id, content, chunk_index, heading, start_offset, end_offset, created_at)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`);
-  for (const chunk of chunks)
+  for (const chunk of chunks) {
+    const id = randomUUID();
     insert.run(
-      randomUUID(),
+      id,
       document.id,
       chunk.content,
       chunk.chunk_index,
@@ -41,6 +52,12 @@ export function ingestDocument(
       chunk.end_offset,
       new Date().toISOString(),
     );
+    if ("page_number" in chunk)
+      db.prepare("UPDATE document_chunks SET page_number = ? WHERE id = ?").run(
+        chunk.page_number as number,
+        id,
+      );
+  }
   db.prepare(
     "UPDATE documents SET ingestion_status = 'ready' WHERE id = ?",
   ).run(document.id);
@@ -52,6 +69,7 @@ export function migrateCompassChat(db: DatabaseSync) {
   migrateChatTables(db);
   migrateTurnFencing(db);
   migrateAttemptFencing(db);
+  migratePdfPages(db);
 }
 
 function migrateChatTables(db: DatabaseSync) {

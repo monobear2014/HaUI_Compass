@@ -1,4 +1,5 @@
 import "server-only";
+import { extractPdf } from "./pdf-extraction";
 import {
   ingestDocument,
   migrateCompassChat,
@@ -15,7 +16,7 @@ import {
 } from "./documents";
 
 // Local demo storage, separated by authenticated owner (unlike the shared learning API).
-// No third-party upload, PDF extraction, OCR, or generated study plan is implied.
+// PDF text extraction is internal only; no OCR or generated study plan is implied.
 let connection: DatabaseSync | undefined;
 export function documentDatabase() {
   if (connection) return connection;
@@ -175,9 +176,11 @@ export async function saveDocuments(owner: string, files: File[]) {
       const content = Buffer.from(await file.arrayBuffer());
       const kind = extension === "pdf" ? ("pdf" as const) : ("text" as const);
       const headings: string[] = [];
+      let pages;
       if (kind === "pdf") {
         if (!content.subarray(0, 5).equals(Buffer.from("%PDF-")))
           throw new DocumentError("invalid_pdf");
+        pages = await extractPdf(content);
       } else {
         let text: string;
         try {
@@ -226,6 +229,7 @@ export async function saveDocuments(owner: string, files: File[]) {
         content,
         headings,
         hash: createHash("sha256").update(content).digest("hex"),
+        pages,
       };
     }),
   );
@@ -245,10 +249,14 @@ export async function saveDocuments(owner: string, files: File[]) {
         )
         .get(owner, file.hash) as Row | undefined;
       if (existing) {
-        if (existing.ingestion_status === "failed") {
+        if (
+          existing.ingestion_status === "failed" ||
+          (existing.ingestion_status === "unsupported" && file.pages)
+        ) {
           try {
             ingestDocument(store, { ...file, id: existing.id });
-            existing.ingestion_status = "ready";
+            existing.ingestion_status =
+              file.kind === "pdf" && !file.pages ? "unsupported" : "ready";
           } catch {
             store
               .prepare("DELETE FROM document_chunks WHERE document_id = ?")
@@ -303,7 +311,7 @@ export async function saveDocuments(owner: string, files: File[]) {
         headings: file.headings,
         ingestionStatus: failed
           ? "failed"
-          : file.kind === "pdf"
+          : file.kind === "pdf" && !file.pages
             ? "unsupported"
             : "ready",
       });

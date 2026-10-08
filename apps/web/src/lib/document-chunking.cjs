@@ -16,13 +16,16 @@ function chunkText(text, markdown) {
         if (title)
           headings.push({
             offset: line.index,
-            title: title.replace(/[\t ]+#+\s*$/, "").trim().slice(0, 3000),
+            title: title
+              .replace(/[\t ]+#+\s*$/, "")
+              .trim()
+              .slice(0, 3000),
           });
       }
     }
   }
   const chunks = [];
-  for (let start = 0; start < text.length; ) {
+  for (let start = 0; start < text.length;) {
     let end = Math.min(start + 3000, text.length);
     if (end < text.length) {
       const boundary = text.lastIndexOf("\n\n", end - 2);
@@ -53,4 +56,19 @@ function chunkText(text, markdown) {
   return chunks;
 }
 
-module.exports = { chunkText };
+function chunkPages(pages) {
+  const chunks = [];
+  for (const page of pages) {
+    if (!page.text.trim()) continue;
+    for (const chunk of chunkText(page.text, false)) {
+      chunks.push({
+        ...chunk,
+        chunk_index: chunks.length,
+        page_number: page.page_number,
+      });
+    }
+  }
+  return chunks;
+}
+
+module.exports = { chunkText, chunkPages };

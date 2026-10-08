@@ -351,7 +351,7 @@ function previewPdf() {
   return Buffer.from(pdf);
 }
 
-test("PDF uploads reopen byte-for-byte without claiming PDF extraction or AI planning", async ({
+test("text PDF uploads reopen byte-for-byte without claiming OCR or AI planning", async ({
   page,
   context,
   baseURL,
@@ -371,6 +371,7 @@ test("PDF uploads reopen byte-for-byte without claiming PDF extraction or AI pla
   const doc = (await response.json()).documents[0];
   expect(doc.kind).toBe("pdf");
   expect(doc.headings).toEqual([]);
+  expect(doc.ingestionStatus).toBe("ready");
   const original = await context.request.get(`/api/documents/${doc.id}`);
   expect(original.headers()["content-type"]).toBe("application/pdf");
   expect(original.headers()["cache-control"]).toBe("no-store");
@@ -378,7 +379,7 @@ test("PDF uploads reopen byte-for-byte without claiming PDF extraction or AI pla
   expect(await original.body()).toEqual(bytes);
   await page.goto(`/onboarding/ready?next=%2Fknowledge&ids=${doc.id}`);
   await expect(page.locator("main")).toContainText(
-    "PDF content analysis and AI planning are not connected yet",
+    "The assistant supports text-based PDF, without OCR or AI planning",
   );
   await page.getByRole("link", { name: "Read", exact: true }).click();
   await expect(
@@ -386,7 +387,7 @@ test("PDF uploads reopen byte-for-byte without claiming PDF extraction or AI pla
   ).toBeVisible();
   await expect(page.locator("iframe")).toHaveAttribute(
     "src",
-    `/api/documents/${doc.id}`,
+    `/api/documents/${doc.id}#page=1`,
   );
   await expect(
     page.getByRole("link", { name: "Open original file" }),

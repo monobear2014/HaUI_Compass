@@ -4,10 +4,7 @@ import {
   DocumentError,
   findDocument,
 } from "./document-store";
-import {
-  rankDocumentChunks,
-  type RankedChunk,
-} from "./document-ranking.cjs";
+import { rankDocumentChunks, type RankedChunk } from "./document-ranking.cjs";
 
 export type RetrievedChunk = {
   chunk_id: string;
@@ -18,6 +15,7 @@ export type RetrievedChunk = {
   heading: string | null;
   start_offset: number;
   end_offset: number;
+  page_number?: number | null;
 };
 export interface DocumentRetriever {
   search(
@@ -69,7 +67,7 @@ export class SqliteDocumentRetriever implements DocumentRetriever {
     const rows = documentDatabase()
       .prepare(
         `SELECT c.id AS chunk_id, c.document_id,
-      d.name AS filename, c.content, c.chunk_index, c.heading, c.start_offset, c.end_offset
+      d.name AS filename, c.content, c.chunk_index, c.heading, c.start_offset, c.end_offset, c.page_number
       FROM document_chunks c JOIN documents d ON d.id = c.document_id
       WHERE d.owner = ? AND d.id = ? AND d.ingestion_status = 'ready' ORDER BY c.chunk_index`,
       )

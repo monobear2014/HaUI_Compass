@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { DatabaseSync } from "node:sqlite";
+import { readFileSync } from "node:fs";
 import { chunkText } from "../src/lib/document-chunks";
 import { migrateCompassChat } from "../src/lib/migrations/001-compass-chat";
 
@@ -20,12 +21,16 @@ async function upload(
   context: import("@playwright/test").BrowserContext,
   baseURL: string,
   name = "lecture.md",
-  content = source,
+  content: string | Buffer = source,
 ) {
   const result = await context.request.post("/api/documents", {
     headers: { Origin: baseURL },
     multipart: {
-      files: { name, mimeType: "text/plain", buffer: Buffer.from(content) },
+      files: {
+        name,
+        mimeType: "text/plain",
+        buffer: typeof content === "string" ? Buffer.from(content) : content,
+      },
     },
   });
   expect(result.status()).toBe(201);
@@ -127,7 +132,7 @@ test("chunking preserves order, heading and exact offsets; migration backfills o
   ).toBe("failed");
   expect(
     db.prepare("SELECT COUNT(*) AS n FROM document_schema_migrations").get()?.n,
-  ).toBe(3);
+  ).toBe(4);
   db.close();
 });
 
@@ -327,7 +332,7 @@ test("TXT and .markdown ingestion, unsupported files and no-origin mutations are
     context,
     baseURL!,
     "unparsed.pdf",
-    "%PDF-1.4\nnot extracted",
+    readFileSync("../../evals/rag/fixtures/image-only.pdf"),
   );
   expect(pdf.ingestionStatus).toBe("unsupported");
   const chat = await session(context, baseURL!, pdf.id);
