@@ -65,3 +65,46 @@ def test_generation_errors_are_not_counted_as_refusals() -> None:
     assert metrics["refusal_precision"] is None
     assert metrics["refusal_recall"] == 0.0
     assert metrics["grounded_answer_rate"] == 0.0
+
+
+def test_pdf_extension_preserves_original_cases_and_checks_wrong_page() -> None:
+    original = MODULE.load_dataset()
+    dataset = MODULE.load_dataset(ROOT / "evals/datasets/compass-rag-v1-pdf.json")
+    assert dataset["cases"][:48] == original["cases"]
+    cases = dataset["cases"][48:]
+    rows = []
+    for case in cases:
+        citations = (
+            [
+                {
+                    "chunk_id": case["id"],
+                    "document_id": "owned-pdf",
+                    "page_number": case["expected_pages"][0],
+                    "source_ids": case["expected_sources"],
+                }
+            ]
+            if case["answerable"]
+            else []
+        )
+        rows.append(
+            {
+                "case_id": case["id"],
+                "turn_index": 0,
+                "category": "pdf",
+                "document_id": "owned-pdf",
+                "answerable": case["answerable"],
+                "expected_sources": case["expected_sources"],
+                "answer": " ".join(item["concept"] for item in case["required_concepts"]),
+                "status": "answered" if case["answerable"] else "abstained",
+                "citations": citations,
+                "retrieved": citations,
+                "provider_call_count": int(case["answerable"]),
+                "provider_error": False,
+            }
+        )
+    assert MODULE.generation_metrics(rows, dataset)["citation_correctness_rate"] == 1
+    rows[0]["citations"][0]["page_number"] = 99
+    metrics = MODULE.generation_metrics(rows, dataset)
+    assert metrics["citation_precision"] == 0.8333
+    assert metrics["citation_correctness_rate"] == 0.8333
+    assert rows[0]["page_citation_correct"] is False
