@@ -6,6 +6,7 @@ from typing import Any, Protocol, cast
 
 import httpx
 
+from haui_compass.application.ports.evaluation import record_provider_metadata
 from haui_compass.application.ports.explanation import (
     ExplanationText,
     RecommendationExplanationInput,
@@ -244,6 +245,14 @@ class OpenAIResponsesAdapter:
             )
         except httpx.TimeoutException as exc:
             raise TimeoutError("LLM provider timed out") from exc
+        if isinstance(result, dict):
+            usage = result.get("usage")
+            record_provider_metadata(
+                {
+                    "provider_status": result.get("status"),
+                    "usage": usage if isinstance(usage, dict) else None,
+                }
+            )
         try:
             text = _output_text(result)
             decoded = json.loads(text)

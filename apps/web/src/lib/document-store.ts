@@ -20,9 +20,10 @@ let connection: DatabaseSync | undefined;
 export function documentDatabase() {
   if (connection) return connection;
   const directory =
-    process.env.COMPASS_TEST_STORAGE === "1"
+    process.env.COMPASS_STORAGE_DIR ||
+    (process.env.COMPASS_TEST_STORAGE === "1"
       ? join(process.cwd(), ".playwright-data")
-      : join(process.cwd(), ".demo-auth");
+      : join(process.cwd(), ".demo-auth"));
   mkdirSync(directory, { recursive: true, mode: 0o700 });
   const filename = join(directory, "documents.sqlite");
   connection = new DatabaseSync(filename);

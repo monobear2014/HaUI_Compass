@@ -4,9 +4,11 @@ Never mount this as a public knowledge query: the shared secret attests that sup
 chunks were already scoped to the authenticated owner/session by the web backend.
 """
 
+import json
 import logging
 import os
 import secrets
+from pathlib import Path
 from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, Header, HTTPException
@@ -14,6 +16,10 @@ from pydantic import BaseModel, Field
 
 from haui_compass.api.dependencies import AppContainer
 from haui_compass.api.v1.routes import container_from_app
+from haui_compass.application.ports.evaluation import (
+    evaluation_events,
+    record_provider_metadata,
+)
 from haui_compass.application.ports.knowledge import (
     CitationEvidence,
     ConversationTurn,
@@ -49,8 +55,10 @@ def require_service_key(
     key: Annotated[str | None, Header(alias="X-Compass-Service-Key")] = None,
 ) -> None:
     configured = os.environ.get("COMPASS_SERVICE_KEY", "")
-    if not configured or not key or not secrets.compare_digest(
-        configured.encode("utf-8"), key.encode("utf-8")
+    if (
+        not configured
+        or not key
+        or not secrets.compare_digest(configured.encode("utf-8"), key.encode("utf-8"))
     ):
         raise HTTPException(403, "forbidden")
 
@@ -59,6 +67,7 @@ def require_service_key(
 async def generate_answer(
     request: GenerateDTO,
     container: Annotated[AppContainer, Depends(container_from_app)],
+    request_id: Annotated[str | None, Header(alias="X-Compass-Request-Id")] = None,
 ) -> dict[str, object]:
     if not request.evidence:
         return {"answer": ABSTENTION_MESSAGE, "citations": [], "status": "abstained"}
@@ -80,15 +89,29 @@ async def generate_answer(
         )
         for index, row in enumerate(request.evidence, start=1)
     )
-    generated = await container.compass_answer.generate(
-        GroundedAnswerInput(
-            question=request.message,
-            evidence=evidence,
-            history=tuple(
-                ConversationTurn(role=row.role, content=row.content) for row in request.history
-            ),
+    events: list[dict[str, object]] = []
+    trace_path = os.environ.get("COMPASS_PROVIDER_TRACE_PATH")
+    token = evaluation_events.set(events if trace_path else None)
+    try:
+        generated = await container.compass_answer.generate(
+            GroundedAnswerInput(
+                question=request.message,
+                evidence=evidence,
+                history=tuple(
+                    ConversationTurn(role=row.role, content=row.content) for row in request.history
+                ),
+            )
         )
-    )
+        record_provider_metadata({"failure_reason": generated.fallback_reason})
+    finally:
+        evaluation_events.reset(token)
+        if trace_path and request_id:
+            try:
+                with Path(trace_path).open("a", encoding="utf-8") as stream:
+                    for event in events:
+                        stream.write(json.dumps({"request_id": request_id, **event}) + "\n")
+            except OSError:
+                logger.warning("Compass evaluation trace unavailable")
     if generated.output is None:
         raise HTTPException(503, generated.fallback_reason)
     validated = validate_grounded_answer(generated.output, evidence)

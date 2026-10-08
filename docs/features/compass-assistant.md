@@ -64,6 +64,11 @@ Desktop shows a 350px right panel; mobile uses the native modal dialog with focu
 
 ## Verification
 
+The quantitative retrieval and grounded-generation benchmark is documented in
+[Compass Assistant RAG Evaluation Harness v1](../evaluation/compass-rag-eval-v1.md).
+Its offline mode uses the production chunking/ranking core; live mode exercises the
+complete upload-to-persisted-answer path without changing product behavior.
+
 ```sh
 cd apps/api
 uv run --extra dev pytest

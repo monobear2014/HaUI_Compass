@@ -21,9 +21,9 @@ let database: DatabaseSync | undefined;
 function db() {
   if (database) return database;
   const directory =
-    process.env.COMPASS_TEST_STORAGE === "1"
+    process.env.COMPASS_STORAGE_DIR || (process.env.COMPASS_TEST_STORAGE === "1"
       ? join(process.cwd(), ".playwright-data")
-      : join(process.cwd(), ".demo-auth");
+      : join(process.cwd(), ".demo-auth"));
   mkdirSync(directory, { recursive: true, mode: 0o700 });
   const filename = join(directory, "accounts.sqlite");
   const connection = new DatabaseSync(filename);

@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://haui-compass.local/schemas/compass-rag-eval-v1.json",
+  "title": "Compass RAG Evaluation Dataset v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["$schema", "version", "fictional_only", "description", "documents", "cases"],
+  "properties": {
+    "$schema": {"const": "./compass-rag-v1.schema.json"},
+    "version": {"const": "compass-rag-eval-v1"},
+    "fictional_only": {"const": true},
+    "description": {"type": "string", "minLength": 1},
+    "documents": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["key", "path"],
+        "properties": {
+          "key": {"type": "string", "pattern": "^[a-z0-9-]+$"},
+          "path": {"type": "string", "pattern": "^evals/rag/fixtures/"}
+        }
+      }
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 40,
+      "maxItems": 60,
+      "items": {"$ref": "#/$defs/case"}
+    }
+  },
+  "$defs": {
+    "concept": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["concept", "aliases"],
+      "properties": {
+        "concept": {"type": "string", "minLength": 1},
+        "aliases": {"type": "array", "items": {"type": "string", "minLength": 1}}
+      }
+    },
+    "turn": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["question", "answerable", "expected_sources", "required_concepts"],
+      "properties": {
+        "question": {"type": "string", "minLength": 1},
+        "answerable": {"type": "boolean"},
+        "expected_sources": {"type": "array", "items": {"type": "string", "minLength": 1}},
+        "required_concepts": {"type": "array", "items": {"$ref": "#/$defs/concept"}},
+        "forbidden_concepts": {"type": "array", "items": {"type": "string"}},
+        "manual_review": {"type": "boolean"},
+        "notes": {"type": "string"}
+      }
+    },
+    "case": {
+      "allOf": [
+        {
+          "type": "object",
+          "required": ["id", "category", "document"],
+          "properties": {
+            "id": {"type": "string", "pattern": "^[a-z0-9-]+$"},
+            "category": {
+              "enum": ["direct_factual", "paraphrased", "multi_section", "follow_up", "no_evidence", "ambiguous", "adversarial"]
+            },
+            "document": {"type": "string"},
+            "turns": {"type": "array", "minItems": 2, "items": {"$ref": "#/$defs/turn"}}
+          }
+        },
+        {
+          "oneOf": [
+            {"required": ["question", "answerable", "expected_sources", "required_concepts"]},
+            {"required": ["turns"]}
+          ]
+        }
+      ]
+    }
+  }
+}
