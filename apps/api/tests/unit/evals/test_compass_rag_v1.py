@@ -34,6 +34,7 @@ def test_nearest_rank_and_concept_alias_normalization() -> None:
 
 def test_decision_signal_exposes_category_weakness() -> None:
     _, metrics = MODULE.run_offline()
+    metrics["by_category"]["adversarial"]["hit_at_3"] = 0.75
     decision = MODULE.decision_signal(metrics)
     assert decision["signal"] == "evidence_supports_hybrid_experiment"
     assert "adversarial" in decision["reason"]

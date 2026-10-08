@@ -7,13 +7,24 @@ const stopWords = new Set(
     " ",
   ),
 );
+// Query-format words are not names of subjects that must exist in the source.
+// Keep unknown named technical concepts (e.g. Transformer) fail-closed.
+stopWords.add("checklist");
+
+function normalizedToken(token) {
+  // Conservative ASCII plural normalization, used identically for query/evidence.
+  // Do not touch short acronyms or words ending in ss/us/is/ics (class, analysis).
+  return /^[a-z]{5,}s$/.test(token) && !/(ss|us|is|ics)$/.test(token)
+    ? token.slice(0, -1)
+    : token;
+}
 
 function tokens(text) {
   return [
     ...new Set(
-      (text.normalize("NFC").toLowerCase().match(/[\p{L}\p{N}_]+/gu) ?? []).filter(
-        (token) => token.length > 1 && !stopWords.has(token),
-      ),
+      (text.normalize("NFC").toLowerCase().match(/[\p{L}\p{N}_]+/gu) ?? [])
+        .map(normalizedToken)
+        .filter((token) => token.length > 1 && !stopWords.has(token)),
     ),
   ];
 }
