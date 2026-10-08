@@ -16,6 +16,7 @@ import re
 import secrets
 import signal
 import subprocess
+import sys
 import tempfile
 import time
 import unicodedata
@@ -53,7 +54,7 @@ def load_dataset(path: Path = DATASET) -> dict[str, Any]:
         raise DatasetError(f"cannot load dataset: {exc}") from exc
     if (
         value.get("$schema") != "./compass-rag-v1.schema.json"
-        or value.get("version") != "compass-rag-eval-v1"
+        or value.get("version") not in ("compass-rag-eval-v1", "compass-rag-eval-v1-pdf")
         or value.get("fictional_only") is not True
     ):
         raise DatasetError("dataset must be versioned compass-rag-eval-v1 and fictional_only")
@@ -64,7 +65,8 @@ def load_dataset(path: Path = DATASET) -> dict[str, Any]:
     if len(ids) != len(cases) or len(ids) != len(set(ids)):
         raise DatasetError("case ids must be present and unique")
     counts = Counter(case.get("category") for case in cases)
-    if counts != Counter(CATEGORIES):
+    expected_counts = {**CATEGORIES, **({"pdf": 8} if value["version"].endswith("-pdf") else {})}
+    if counts != Counter(expected_counts):
         raise DatasetError(f"category distribution must be {CATEGORIES}, got {dict(counts)}")
     documents = value.get("documents", [])
     if not isinstance(documents, list) or not documents:
@@ -78,7 +80,13 @@ def load_dataset(path: Path = DATASET) -> dict[str, Any]:
         document_path = (ROOT / document.get("path", "")).resolve()
         if not document_path.is_relative_to(fixture_root) or not document_path.is_file():
             raise DatasetError(f"{document.get('key')}: fixture path is missing or unsafe")
-        markers = re.findall(r"\[SOURCE:([^\]]+)\]", document_path.read_text(encoding="utf-8"))
+        if document_path.suffix == ".pdf":
+            from haui_compass.infrastructure.retrieval.pdf import extract_pages
+
+            text = "\n".join(page.text for page in extract_pages(document_path.read_bytes()))
+        else:
+            text = document_path.read_text(encoding="utf-8")
+        markers = re.findall(r"\[SOURCE:([^\]]+)\]", text)
         if not markers or len(markers) != len(set(markers)):
             raise DatasetError(f"{document['key']}: source markers must be present and unique")
         sources_by_document[document["key"]] = set(markers)
@@ -157,7 +165,7 @@ def retrieval_metrics(rows: list[dict[str, Any]]) -> dict[str, Any]:
 
     by_category = {
         category: summarize([row for row in rows if row["category"] == category])
-        for category in CATEGORIES
+        for category in dict.fromkeys(row["category"] for row in rows)
     }
     return {
         **summarize(relevant),
@@ -179,9 +187,12 @@ def retrieval_metrics(rows: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
-def run_offline(dataset_path: Path = DATASET) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+def run_offline(
+    dataset_path: Path = DATASET, category: str | None = None
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     completed = subprocess.run(
-        ["node", str(ROOT / "evals/rag/offline-retrieval.cjs"), str(dataset_path)],
+        ["node", str(ROOT / "evals/rag/offline-retrieval.cjs"), str(dataset_path), category or ""],
+        env={**os.environ, "COMPASS_EVAL_PYTHON": sys.executable},
         cwd=ROOT,
         check=True,
         capture_output=True,
@@ -222,6 +233,11 @@ def generation_metrics(rows: list[dict[str, Any]], dataset: dict[str, Any]) -> d
     correct_citations = sum(
         sum(
             bool(set(item["source_ids"]) & set(row["expected_sources"]))
+            and (
+                "expected_pages" not in specs[(row["case_id"], row["turn_index"])][1]
+                or item.get("page_number")
+                in specs[(row["case_id"], row["turn_index"])][1]["expected_pages"]
+            )
             for item in row["citations"]
         )
         for row in citation_required
@@ -251,6 +267,14 @@ def generation_metrics(rows: list[dict[str, Any]], dataset: dict[str, Any]) -> d
             if row["answerable"]
             else not row["citations"]
         )
+        if "expected_pages" in turn:
+            expected_pages = set(turn["expected_pages"])
+            row["page_citation_correct"] = {
+                item.get("page_number") for item in row["citations"]
+            } == expected_pages and all(
+                item["document_id"] == row["document_id"] for item in row["citations"]
+            )
+            row["citation_correct"] = row["citation_correct"] and row["page_citation_correct"]
         row["grounded"] = bool(
             row["answerable"]
             and row["status"] == "answered"
@@ -259,7 +283,7 @@ def generation_metrics(rows: list[dict[str, Any]], dataset: dict[str, Any]) -> d
             and row["citation_correct"]
         )
     by_category = {}
-    for category in CATEGORIES:
+    for category in dict.fromkeys(row["category"] for row in rows):
         group = [row for row in rows if row["category"] == category]
         group_answerable = [row for row in group if row["answerable"]]
         group_negative = [row for row in group if not row["answerable"]]
@@ -359,7 +383,12 @@ def read_trace(path: Path, request_id: str) -> dict[str, Any]:
 
 
 def run_full(
-    dataset: dict[str, Any], *, env_file: Path | None, web_port: int, api_port: int, log: Path,
+    dataset: dict[str, Any],
+    *,
+    env_file: Path | None,
+    web_port: int,
+    api_port: int,
+    log: Path,
     production: bool = False,
 ) -> list[dict[str, Any]]:
     env = os.environ.copy()
@@ -433,7 +462,13 @@ def run_full(
                 for key, path in paths.items():
                     uploaded = client.post(
                         "/api/documents",
-                        files={"files": (path.name, path.read_bytes(), "text/markdown")},
+                        files={
+                            "files": (
+                                path.name,
+                                path.read_bytes(),
+                                "application/pdf" if path.suffix == ".pdf" else "text/markdown",
+                            )
+                        },
                     )
                     uploaded.raise_for_status()
                     document = uploaded.json()["documents"][0]
@@ -481,6 +516,7 @@ def run_full(
                                     "chunk_id": citation["chunk_id"],
                                     "document_id": citation["document_id"],
                                     "heading": citation["heading"],
+                                    "page_number": citation["page_number"],
                                     "source_ids": re.findall(r"\[SOURCE:([^\]]+)\]", content),
                                 }
                             )
@@ -490,6 +526,7 @@ def run_full(
                                 "turn_index": turn_index,
                                 "category": case["category"],
                                 "document": case["document"],
+                                "document_id": document_id,
                                 "question": turn["question"],
                                 "resolved_query": trace["resolved_query"],
                                 "answerable": turn["answerable"],
@@ -532,6 +569,11 @@ def git_sha() -> str:
 
 
 def decision_signal(metrics: dict[str, Any]) -> dict[str, str]:
+    if "paraphrased" not in metrics["by_category"]:
+        return {
+            "signal": "subset_only",
+            "reason": "A category-only run does not select the production retrieval strategy.",
+        }
     paraphrased = metrics["by_category"]["paraphrased"]["hit_at_3"]
     weak_categories = [
         category
@@ -634,8 +676,11 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--mode", choices=("retrieval", "full"), default="retrieval")
     parser.add_argument("--live", action="store_true")
-    parser.add_argument("--production", action="store_true", help="use an existing Next production build")
+    parser.add_argument(
+        "--production", action="store_true", help="use an existing Next production build"
+    )
     parser.add_argument("--dataset", type=Path, default=DATASET)
+    parser.add_argument("--category", choices=[*CATEGORIES, "pdf"])
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
     parser.add_argument("--env-file", type=Path)
     parser.add_argument("--web-port", type=int, default=3411)
@@ -648,13 +693,23 @@ def main() -> int:
         if args.mode == "retrieval" and args.live:
             raise RuntimeError("--live is only valid with --mode full")
         dataset = load_dataset(args.dataset)
+        if args.category:
+            dataset["cases"] = [
+                case for case in dataset["cases"] if case["category"] == args.category
+            ]
+            if not dataset["cases"]:
+                raise RuntimeError("selected category has no cases")
+            keys = {case["document"] for case in dataset["cases"]}
+            dataset["documents"] = [
+                document for document in dataset["documents"] if document["key"] in keys
+            ]
         if (args.output / "summary.json").exists():
             raise RuntimeError(
                 "output already contains a run; choose a new --output to preserve evidence"
             )
         args.output.mkdir(parents=True, exist_ok=True)
         if args.mode == "retrieval":
-            rows, retrieval = run_offline(args.dataset)
+            rows, retrieval = run_offline(args.dataset, args.category)
         else:
             rows = run_full(
                 dataset,

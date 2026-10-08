@@ -7,7 +7,7 @@
   "required": ["$schema", "version", "fictional_only", "description", "documents", "cases"],
   "properties": {
     "$schema": {"const": "./compass-rag-v1.schema.json"},
-    "version": {"const": "compass-rag-eval-v1"},
+    "version": {"enum": ["compass-rag-eval-v1", "compass-rag-eval-v1-pdf"]},
     "fictional_only": {"const": true},
     "description": {"type": "string", "minLength": 1},
     "documents": {
@@ -48,6 +48,7 @@
         "question": {"type": "string", "minLength": 1},
         "answerable": {"type": "boolean"},
         "expected_sources": {"type": "array", "items": {"type": "string", "minLength": 1}},
+        "expected_pages": {"type": "array", "items": {"type": "integer", "minimum": 1, "maximum": 200}},
         "required_concepts": {"type": "array", "items": {"$ref": "#/$defs/concept"}},
         "forbidden_concepts": {"type": "array", "items": {"type": "string"}},
         "manual_review": {"type": "boolean"},
@@ -62,7 +63,7 @@
           "properties": {
             "id": {"type": "string", "pattern": "^[a-z0-9-]+$"},
             "category": {
-              "enum": ["direct_factual", "paraphrased", "multi_section", "follow_up", "no_evidence", "ambiguous", "adversarial"]
+              "enum": ["direct_factual", "paraphrased", "multi_section", "follow_up", "no_evidence", "ambiguous", "adversarial", "pdf"]
             },
             "document": {"type": "string"},
             "turns": {"type": "array", "minItems": 2, "items": {"$ref": "#/$defs/turn"}}
