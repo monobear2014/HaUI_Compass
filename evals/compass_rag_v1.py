@@ -359,7 +359,8 @@ def read_trace(path: Path, request_id: str) -> dict[str, Any]:
 
 
 def run_full(
-    dataset: dict[str, Any], *, env_file: Path | None, web_port: int, api_port: int, log: Path
+    dataset: dict[str, Any], *, env_file: Path | None, web_port: int, api_port: int, log: Path,
+    production: bool = False,
 ) -> list[dict[str, Any]]:
     env = os.environ.copy()
     load_env_file(env_file, env)
@@ -406,7 +407,7 @@ def run_full(
             )
             processes.append(
                 subprocess.Popen(
-                    ["npm", "run", "dev", "--", "--port", str(web_port)],
+                    ["npm", "run", "start" if production else "dev", "--", "--port", str(web_port)],
                     cwd=ROOT / "apps/web",
                     env=env,
                     stdout=server_log,
@@ -633,6 +634,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--mode", choices=("retrieval", "full"), default="retrieval")
     parser.add_argument("--live", action="store_true")
+    parser.add_argument("--production", action="store_true", help="use an existing Next production build")
     parser.add_argument("--dataset", type=Path, default=DATASET)
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
     parser.add_argument("--env-file", type=Path)
@@ -660,6 +662,7 @@ def main() -> int:
                 web_port=args.web_port,
                 api_port=args.api_port,
                 log=args.output / "servers.log",
+                production=args.production,
             )
             retrieval = retrieval_metrics(rows)
         metadata = {
@@ -671,6 +674,7 @@ def main() -> int:
             "turn_count": len(rows),
             "mode": args.mode,
             "live": args.live,
+            "web_runtime": "production" if args.production else "development",
             "model": None,
             "retriever": {
                 "strategy": "lexical",
