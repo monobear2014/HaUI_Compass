@@ -10,6 +10,9 @@ const stopWords = new Set(
 // Query-format words are not names of subjects that must exist in the source.
 // Keep unknown named technical concepts (e.g. Transformer) fail-closed.
 stopWords.add("checklist");
+// PDF extension exposed ordinary English question phrasing mistaken for named
+// technical anchors. Normalize only these evidenced functional query words.
+for (const word of ["affect", "direction", "defined"]) stopWords.add(word);
 
 function normalizedToken(token) {
   // Conservative ASCII plural normalization, used identically for query/evidence.
@@ -22,7 +25,12 @@ function normalizedToken(token) {
 function tokens(text) {
   return [
     ...new Set(
-      (text.normalize("NFC").toLowerCase().match(/[\p{L}\p{N}_]+/gu) ?? [])
+      (
+        text
+          .normalize("NFC")
+          .toLowerCase()
+          .match(/[\p{L}\p{N}_]+/gu) ?? []
+      )
         .map(normalizedToken)
         .filter((token) => token.length > 1 && !stopWords.has(token)),
     ),
@@ -99,14 +107,17 @@ function resolveRetrievalQuery(query, history) {
     /\b(its|it|why)\b/i.test(text) || /(?:nó|đó|vậy|tiếp tục)/i.test(text);
   const followUp =
     refersBack(query) ||
-    (history.at(-1)?.role === "assistant" && /\?\s*$/.test(history.at(-1).content));
+    (history.at(-1)?.role === "assistant" &&
+      /\?\s*$/.test(history.at(-1).content));
   if (!followUp || !history.length || documentIntent(query)) return query;
   const recentQuestion =
     history.findLast((row) => row.role === "user" && !refersBack(row.content))
       ?.content ??
     history.findLast((row) => row.role === "user")?.content ??
     "";
-  return documentIntent(recentQuestion) ? recentQuestion : `${query} ${recentQuestion}`;
+  return documentIntent(recentQuestion)
+    ? recentQuestion
+    : `${query} ${recentQuestion}`;
 }
 
 module.exports = {
