@@ -1,0 +1,1 @@
+"""Task decomposition provider adapters."""

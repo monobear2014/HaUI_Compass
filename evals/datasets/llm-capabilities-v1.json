@@ -1,0 +1,45 @@
+{
+  "dataset_version": "llm-capabilities-v1",
+  "fictional_only": true,
+  "purpose": "Development evaluation of bounded language capabilities; not evidence of learning outcomes or general model quality.",
+  "task_decomposition_cases": [
+    {"id":"DEC-01","kind":"programming_assignment","assignment_title":"CLI Habit Tracker","course_name":"Software Construction","course_code":"SE201","deadline":"2026-11-03T10:00:00Z"},
+    {"id":"DEC-02","kind":"programming_assignment","assignment_title":"Concurrent Chat Server","course_name":"Network Programming","course_code":"NET302","deadline":"2026-11-08T10:00:00Z"},
+    {"id":"DEC-03","kind":"database_project","assignment_title":"Library Lending Database","course_name":"Database Systems","course_code":"DB202","deadline":"2026-11-12T10:00:00Z"},
+    {"id":"DEC-04","kind":"database_project","assignment_title":"Clinic Schema Mini Project","course_name":"Data Management","course_code":"DM210","deadline":"2026-11-15T10:00:00Z"},
+    {"id":"DEC-05","kind":"report","assignment_title":"Compare Two Cache Policies","course_name":"Computer Architecture","course_code":"CA220","deadline":"2026-11-18T10:00:00Z"},
+    {"id":"DEC-06","kind":"research_task","assignment_title":"Survey Responsible AI Practices","course_name":"AI Ethics","course_code":"AI240","deadline":"2026-11-20T10:00:00Z"},
+    {"id":"DEC-07","kind":"ml_coursework","assignment_title":"Evaluate a Fictional Churn Classifier","course_name":"Machine Learning","course_code":"ML301","deadline":"2026-11-22T10:00:00Z"},
+    {"id":"DEC-08","kind":"ml_coursework","assignment_title":"Feature Engineering Lab","course_name":"Applied Machine Learning","course_code":"AML310","deadline":"2026-11-24T10:00:00Z"},
+    {"id":"DEC-09","kind":"presentation","assignment_title":"Five-Minute Privacy Briefing","course_name":"Professional Communication","course_code":"PC110","deadline":"2026-11-25T10:00:00Z"},
+    {"id":"DEC-10","kind":"presentation","assignment_title":"Explain Transformer Attention","course_name":"Deep Learning","course_code":"DL320","deadline":"2026-11-26T10:00:00Z"},
+    {"id":"DEC-11","kind":"team_project","assignment_title":"Campus Navigation Prototype","course_name":"Software Engineering","course_code":"SE310","deadline":"2026-12-02T10:00:00Z"},
+    {"id":"DEC-12","kind":"team_project","assignment_title":"Team API Design Review","course_name":"Web Engineering","course_code":"WEB305","deadline":"2026-12-04T10:00:00Z"},
+    {"id":"DEC-13","kind":"ambiguous_safe","assignment_title":"Explore an Algorithm","course_name":"Algorithms","course_code":"ALG210","deadline":"2026-12-05T10:00:00Z"},
+    {"id":"DEC-14","kind":"ambiguous_safe","assignment_title":"Investigate Model Errors","course_name":"AI Engineering","course_code":"AIE330","deadline":"2026-12-06T10:00:00Z"},
+    {"id":"DEC-15","kind":"short_description","assignment_title":"Write memo","course_name":"Technical Writing","course_code":"TW101","deadline":"2026-12-07T10:00:00Z"},
+    {"id":"DEC-16","kind":"short_description","assignment_title":"Build demo","course_name":"Product Studio","course_code":"PS200","deadline":"2026-12-08T10:00:00Z"},
+    {"id":"DEC-17","kind":"report","assignment_title":"Operating Systems Incident Analysis","course_name":"Operating Systems","course_code":"OS301","deadline":"2026-12-09T10:00:00Z"},
+    {"id":"DEC-18","kind":"research_task","assignment_title":"Literature Map for Edge AI","course_name":"Research Methods","course_code":"RM300","deadline":"2026-12-10T10:00:00Z"},
+    {"id":"DEC-19","kind":"programming_assignment","assignment_title":"Image Metadata Service","course_name":"Cloud Application Development","course_code":"CLD330","deadline":"2026-12-11T10:00:00Z"},
+    {"id":"DEC-20","kind":"team_project","assignment_title":"Sprint Retrospective Package","course_name":"Agile Practice","course_code":"AP220","deadline":"2026-12-12T10:00:00Z"}
+  ],
+  "recommendation_explanation_cases": [
+    {"id":"EXP-01","label":"low_risk","assignment_title":"Fictional Reading Review","risk_level":"low","reason_codes":["sufficient_slack"],"deadline":"2026-10-08T10:00:00Z","as_of":"2026-10-05T02:00:00Z","task_estimate_minutes":30,"remaining_effort_minutes":60,"available_capacity_minutes":180,"slack_minutes":120,"deciding_dimension":"only_candidate"},
+    {"id":"EXP-02","label":"medium_risk","assignment_title":"Fictional Regression Lab","risk_level":"medium","reason_codes":["low_slack"],"deadline":"2026-10-06T10:00:00Z","as_of":"2026-10-05T02:00:00Z","task_estimate_minutes":45,"remaining_effort_minutes":105,"available_capacity_minutes":120,"slack_minutes":15,"deciding_dimension":"risk"},
+    {"id":"EXP-03","label":"high_risk","assignment_title":"Fictional Database Schema","risk_level":"high","reason_codes":["effort_exceeds_capacity"],"deadline":"2026-10-06T09:00:00Z","as_of":"2026-10-05T02:00:00Z","task_estimate_minutes":60,"remaining_effort_minutes":150,"available_capacity_minutes":60,"slack_minutes":-90,"deciding_dimension":"risk"},
+    {"id":"EXP-04","label":"deadline_passed","assignment_title":"Fictional Late Report","risk_level":"high","reason_codes":["deadline_passed"],"deadline":"2026-10-04T02:00:00Z","as_of":"2026-10-05T02:00:00Z","task_estimate_minutes":30,"remaining_effort_minutes":30,"available_capacity_minutes":0,"slack_minutes":null,"deciding_dimension":"deadline"},
+    {"id":"EXP-05","label":"no_capacity","assignment_title":"Fictional Network Exercise","risk_level":"high","reason_codes":["no_capacity_before_deadline"],"deadline":"2026-10-06T02:00:00Z","as_of":"2026-10-05T02:00:00Z","task_estimate_minutes":45,"remaining_effort_minutes":45,"available_capacity_minutes":0,"slack_minutes":-45,"deciding_dimension":"risk"},
+    {"id":"EXP-06","label":"effort_exceeds_capacity","assignment_title":"Fictional ML Notebook","risk_level":"high","reason_codes":["effort_exceeds_capacity"],"deadline":"2026-10-07T02:00:00Z","as_of":"2026-10-05T02:00:00Z","task_estimate_minutes":90,"remaining_effort_minutes":240,"available_capacity_minutes":120,"slack_minutes":-120,"deciding_dimension":"risk"},
+    {"id":"EXP-07","label":"low_slack","assignment_title":"Fictional Presentation","risk_level":"medium","reason_codes":["low_slack"],"deadline":"2026-10-08T02:00:00Z","as_of":"2026-10-05T02:00:00Z","task_estimate_minutes":45,"remaining_effort_minutes":100,"available_capacity_minutes":120,"slack_minutes":20,"deciding_dimension":"deadline"},
+    {"id":"EXP-08","label":"missing_capacity","assignment_title":"Fictional Research Memo","risk_level":"unknown","reason_codes":["missing_capacity"],"deadline":"2026-10-09T02:00:00Z","as_of":"2026-10-05T02:00:00Z","task_estimate_minutes":40,"remaining_effort_minutes":80,"available_capacity_minutes":null,"slack_minutes":null,"deciding_dimension":"only_candidate"}
+  ],
+  "automated_invariants": {
+    "task_decomposition": ["candidate_count_1_to_5","non_blank_actionable_title","title_and_estimate_bounds","unique_titles","no_obvious_invented_date_or_course_fact","no_obvious_submission_content"],
+    "recommendation_explanation": ["text_only_cannot_mutate_recommendation","bounded_non_blank_output","risk_level_not_contradicted","reason_semantics_present","no_invented_numeric_evidence"]
+  },
+  "manual_rubric": {
+    "task_decomposition": ["steps are useful and assignment-specific","steps support learning rather than supply a graded answer","estimates are plausible suggestions"],
+    "recommendation_explanation": ["readable Vietnamese","faithfully connects deterministic evidence to the recommendation","does not overstate certainty"]
+  }
+}

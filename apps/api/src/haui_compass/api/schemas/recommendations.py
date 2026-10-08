@@ -61,7 +61,14 @@ class NoRecommendationDTO(ApiModel):
     engine_version: int
 
 
+class ExplanationDTO(ApiModel):
+    text: str
+    source: Literal["template", "ai"]
+    fallback_reason: str | None
+
+
 class DailyRecommendationResponse(ApiModel):
+    explanation: ExplanationDTO | None = None
     as_of: datetime
     recommendation: RecommendationDTO | NoRecommendationDTO
     assignment_risks: tuple[AssignmentRiskDTO, ...]

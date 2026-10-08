@@ -9,8 +9,22 @@ boundary on `feat/api-learning-loop`.
 
 FastAPI is confined to `haui_compass.api`. Pydantic models are DTOs at the HTTP boundary only;
 domain, engines, and application use cases remain framework-independent. `create_app(container=...)`
-is the explicit application factory. `api.dependencies` is the sole composition root and wires LMS,
-clock, repository ports, and use cases without a dependency-injection framework.
+is the explicit application factory. `api.dependencies` is the default in-memory composition root;
+it wires LMS, clock, repository ports, and use cases without a dependency-injection framework.
+
+Infrastructure-to-application wiring is limited to explicit, import-boundary-listed roots with a
+bounded role: `api.dependencies` for normal in-memory composition,
+`api.postgres_dependencies` for explicit PostgreSQL composition, `api.demo` for the opt-in
+fictional showcase, and `api.demo_preflight` for presenter operational checks. The preflight tool
+is not an HTTP/business dependency boundary: it checks a demo composition and may make one
+fictional live-provider probe only when the presenter explicitly requests it. Normal API routes,
+schemas, domain, engines and application use cases do not gain a general permission to import
+infrastructure.
+
+Demo Showcase v0.2 adds `api.demo` as an explicit, opt-in composition root for fictional scenario
+fixtures. It may wire infrastructure adapters, but normal API startup never imports it and its
+reset/selector routes exist only on `haui_compass.api.demo:app`. The import-boundary test lists all
+four explicit roots; other API modules still cannot import infrastructure.
 
 The API supports both explicit in-memory and explicit PostgreSQL composition roots. The PostgreSQL
 root runs repository access through its transaction boundary; execution and plan-revision writes

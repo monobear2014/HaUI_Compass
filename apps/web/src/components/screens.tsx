@@ -25,6 +25,7 @@ import {
   PlanDays,
   Status,
 } from "./ui";
+import { usePreferences } from "./preferences";
 import { useWorkspace } from "./workspace";
 
 function message(error: unknown) {
@@ -56,52 +57,70 @@ function Feedback({ error, success }: { error: string; success?: string }) {
 
 export function Today() {
   const { context, recommendation, history, refresh, loading } = useWorkspace();
+  const { language, t } = usePreferences();
+  const locale = language === "vi" ? "vi-VN" : "en-GB";
   const [recording, setRecording] = useState<Task | null>(null);
   if (!context) return null;
   const rec = recommendation?.recommendation;
-  const task = context.tasks.find((t) => t.id === rec?.task_id);
+  const task = context.tasks.find((item) => item.id === rec?.task_id);
   const plan = history.at(-1);
   const todayBlocks =
-    plan?.blocks.filter((b) => dayKey(b.starts_at) === dayKey(context.now)) ||
-    [];
+    plan?.blocks.filter(
+      (block) => dayKey(block.starts_at) === dayKey(context.now),
+    ) || [];
   const completed = context.tasks.filter(
-    (t) => t.status === "completed",
+    (item) => item.status === "completed",
   ).length;
+  const deadlines = [...context.tasks]
+    .filter((item) => item.status !== "completed")
+    .sort((a, b) => Date.parse(a.deadline) - Date.parse(b.deadline))
+    .filter(
+      (item, index, list) =>
+        list.findIndex(
+          (other) => other.assignment_id === item.assignment_id,
+        ) === index,
+    )
+    .slice(0, 3);
+  const riskText = (level: string) =>
+    ({
+      high: language === "vi" ? "Rủi ro cao" : "High risk",
+      medium: language === "vi" ? "Cần chú ý" : "Needs attention",
+      low: language === "vi" ? "Trong tầm kiểm soát" : "On track",
+      unknown: language === "vi" ? "Chưa đủ dữ liệu" : "Not enough data",
+    })[level] || level;
   return (
     <>
       <PageHeading
-        eyebrow={date(context.now, {
-          weekday: "long",
-          day: "numeric",
-          month: "long",
-        })}
-        title="A clear direction for today."
-        description="One useful next step. Everything else in perspective."
+        eyebrow={date(
+          context.now,
+          { weekday: "long", day: "numeric", month: "long" },
+          locale,
+        )}
+        title={t("today.title")}
         action={
           <button
-            className="secondary small"
+            className="icon-button"
             disabled={loading}
             onClick={() => void refresh()}
+            aria-label={t("common.refresh")}
           >
-            <Icon name="refresh" size={16} />
-            Refresh
+            <Icon name="refresh" size={18} />
           </button>
         }
       />
-      <div className="today-grid">
+      <div className="today-grid focused-today">
         <div className="today-primary">
           <section className="next-action panel">
             <div className="section-heading">
               <span className="eyebrow accent inline">
                 <Icon name="compass" size={17} />
-                YOUR NEXT BEST ACTION
+                {language === "vi" ? "VIỆC NÊN LÀM" : "YOUR NEXT STEP"}
               </span>
-              <span className="step-index">01 / DO</span>
             </div>
             {task && rec?.evidence ? (
               <>
                 <p className="course-label">
-                  {task.course} <span> / </span> {task.assignment_title}
+                  {task.course} · {task.assignment_title}
                 </p>
                 <h2 className="action-title">{task.title}</h2>
                 <div className="action-meta">
@@ -115,56 +134,96 @@ export function Today() {
                     }
                   >
                     <Icon name="alert" size={13} />
-                    {rec.evidence.risk_level.toUpperCase()} RISK
+                    {riskText(rec.evidence.risk_level)}
                   </Badge>
                   <span>
                     <Icon name="plan" size={16} />
-                    Due{" "}
-                    {date(task.deadline, {
-                      day: "numeric",
-                      month: "short",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
+                    {t("common.due")}{" "}
+                    {date(
+                      task.deadline,
+                      {
+                        day: "numeric",
+                        month: "short",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      },
+                      locale,
+                    )}
                   </span>
                   <span>
                     <Icon name="clock" size={16} />
-                    {minutes(rec.evidence.estimated_duration_seconds)} min
-                    estimated
+                    {minutes(rec.evidence.estimated_duration_seconds)}{" "}
+                    {t("common.minutes")}
                   </span>
-                </div>
-                <div className="why-box">
-                  <h3>Why now</h3>
-                  <ul>
-                    {rec.reason_codes?.map((code) => (
-                      <li key={code}>{label(code)}</li>
-                    ))}
-                  </ul>
-                  {rec.evidence.risk_reason_codes.length > 0 && (
-                    <p className="evidence-note">
-                      {rec.evidence.risk_reason_codes.map(label).join(" ")}
-                    </p>
-                  )}
                 </div>
                 <div className="action-bottom">
                   <button
                     className="primary"
                     onClick={() => setRecording(task)}
                   >
-                    Record work
+                    {t("today.recordWork")}
                     <Icon name="arrow" size={17} />
                   </button>
-                  <span>Make progress, then tell Compass what happened.</span>
+                  <Link href="/reflect" className="text-link">
+                    {language === "vi"
+                      ? "Nhìn lại buổi học"
+                      : "Review your study session"}
+                    <Icon name="reflect" size={15} />
+                  </Link>
                 </div>
+                <details className="why-box compact-disclosure">
+                  <summary>{t("today.explanation")}</summary>
+                  <p lang="vi">
+                    {recommendation?.explanation?.text ||
+                      rec.reason_codes
+                        ?.map((code) => label(code, language))
+                        .join(" ")}
+                  </p>
+                  <details className="decision-evidence">
+                    <summary>{t("today.evidence")}</summary>
+                    <Badge>
+                      {recommendation?.explanation?.source === "ai"
+                        ? t("today.online")
+                        : t("today.offline")}
+                    </Badge>
+                    <p className="fine-print">{t("today.decisionText")}</p>
+                    <p>
+                      {t("today.ranking")}{" "}
+                      <code>{rec.evidence.deciding_dimension}</code>
+                    </p>
+                    <ul>
+                      {rec.reason_codes?.map((code) => (
+                        <li key={code}>
+                          <code>{code}</code> · {label(code, language)}
+                        </li>
+                      ))}
+                    </ul>
+                    <ul>
+                      {rec.evidence.risk_reason_codes.map((code) => (
+                        <li key={code}>
+                          <code>{code}</code> · {label(code, language)}
+                        </li>
+                      ))}
+                    </ul>
+                    <pre>
+                      {JSON.stringify(
+                        recommendation?.assignment_risks.find(
+                          (risk) => risk.assignment_id === task.assignment_id,
+                        )?.evidence,
+                        null,
+                        2,
+                      )}
+                    </pre>
+                  </details>
+                </details>
               </>
             ) : (
-              <Empty title="You're clear for now.">
-                <p>
-                  There are no open tasks to recommend. Review your plan or
-                  reflect on your recent work.
-                </p>
+              <Empty title={t("today.clearForNow")}>
+                <p>{t("today.clearForNowText")}</p>
                 <Link className="secondary" href="/reflect">
-                  Reflect on your work
+                  {language === "vi"
+                    ? "Nhìn lại buổi học"
+                    : "Review your studying"}
                   <Icon name="arrow" size={16} />
                 </Link>
               </Empty>
@@ -172,9 +231,9 @@ export function Today() {
           </section>
           <section className="panel">
             <div className="section-heading">
-              <h2>Today&apos;s study plan</h2>
+              <h2>{t("today.todaysPlan")}</h2>
               <Link href="/plan" className="text-link">
-                View week
+                {t("today.viewWeek")}
                 <Icon name="arrow" size={15} />
               </Link>
             </div>
@@ -183,82 +242,108 @@ export function Today() {
                 <BlockRow
                   key={i}
                   block={block}
-                  task={context.tasks.find((t) => t.id === block.task_id)}
+                  task={context.tasks.find((item) => item.id === block.task_id)}
                 />
               ))
             ) : (
-              <Empty title="Space for a fresh start">
+              <div className="quiet-empty">
                 <p>
-                  No study blocks today. Your weekly plan keeps upcoming work
-                  visible.
+                  {language === "vi"
+                    ? "Hôm nay chưa có phiên học được xếp lịch."
+                    : "No study sessions scheduled for today."}
                 </p>
-              </Empty>
+                <Link href="/plan" className="text-link">
+                  {language === "vi"
+                    ? "Mở kế hoạch tuần"
+                    : "Open your weekly plan"}
+                  <Icon name="arrow" size={15} />
+                </Link>
+              </div>
             )}
           </section>
         </div>
-        <div className="today-secondary">
-          <section className="panel progress-panel">
+        <aside
+          className="today-secondary"
+          aria-label={
+            language === "vi" ? "Deadline và tiến độ" : "Deadlines and progress"
+          }
+        >
+          <section className="panel">
             <div className="section-heading">
-              <h2>Your progress</h2>
-              <Icon name="check" size={18} />
+              <h2>{t("today.comingUp")}</h2>
+              <Icon name="plan" size={18} />
             </div>
-            <div className="progress-count">
-              {completed}
-              <span> / {context.tasks.length}</span>
+            {deadlines.map((item) => (
+              <div className="deadline-row" key={item.assignment_id}>
+                <span className="deadline-date">
+                  <strong>{date(item.deadline, { day: "2-digit" })}</strong>
+                  {date(item.deadline, { month: "short" }, locale)}
+                </span>
+                <div>
+                  <strong>{item.assignment_title}</strong>
+                  <span>{item.course}</span>
+                </div>
+              </div>
+            ))}
+            {!deadlines.length && (
+              <p className="muted">
+                {language === "vi"
+                  ? "Không còn deadline đang mở."
+                  : "No open deadlines."}
+              </p>
+            )}
+            <details className="compact-disclosure risk-overview">
+              <summary>
+                {language === "vi"
+                  ? "Xem đánh giá deadline"
+                  : "Review deadline risk"}
+              </summary>
+              <p className="fine-print">{t("today.riskNote")}</p>
+              {recommendation?.assignment_risks.map((risk) => (
+                <details className="risk-row" key={risk.assignment_id}>
+                  <summary>
+                    {context.assignments?.find(
+                      (item) => item.assignment_id === risk.assignment_id,
+                    )?.title ||
+                      context.tasks.find(
+                        (item) => item.assignment_id === risk.assignment_id,
+                      )?.assignment_title ||
+                      t("common.task")}{" "}
+                    · <strong>{riskText(risk.level)}</strong>
+                  </summary>
+                  {risk.reason_codes.map((code) => (
+                    <p key={code}>{label(code, language)}</p>
+                  ))}
+                  <details className="decision-evidence">
+                    <summary>
+                      {language === "vi"
+                        ? "Dữ liệu tính toán"
+                        : "Calculation data"}
+                    </summary>
+                    <pre>{JSON.stringify(risk.evidence, null, 2)}</pre>
+                  </details>
+                </details>
+              ))}
+            </details>
+          </section>
+          <section className="panel compact-progress">
+            <div className="section-heading">
+              <h2>{t("today.progress")}</h2>
+              <strong>
+                {completed}/{context.tasks.length}
+              </strong>
             </div>
-            <p>tasks completed in this workspace</p>
             <progress
-              aria-label="Tasks completed"
+              aria-label={t("today.tasksCompletedLabel")}
               value={completed}
               max={context.tasks.length || 1}
             />
-            <div className="progress-legend">
-              <span>
-                {context.tasks.filter((t) => t.status === "in_progress").length}{" "}
-                in progress
-              </span>
-              <span>
-                {context.tasks.filter((t) => t.status === "not_started").length}{" "}
-                not started
-              </span>
-            </div>
+            <Link href="/academic" className="text-link">
+              {language === "vi" ? "Xem các bài tập" : "View your assignments"}
+              <Icon name="arrow" size={15} />
+            </Link>
           </section>
-          <section className="panel">
-            <div className="section-heading">
-              <h2>Coming up</h2>
-              <Icon name="plan" size={18} />
-            </div>
-            {[...context.tasks]
-              .filter((t) => t.status !== "completed")
-              .sort((a, b) => Date.parse(a.deadline) - Date.parse(b.deadline))
-              .map((t) => (
-                <div className="deadline-row" key={t.id}>
-                  <span className="deadline-date">
-                    <strong>{date(t.deadline, { day: "2-digit" })}</strong>
-                    {date(t.deadline, { month: "short" })}
-                  </span>
-                  <div>
-                    <strong>{t.assignment_title}</strong>
-                    <span>{t.course}</span>
-                  </div>
-                </div>
-              ))}
-          </section>
-          <div className="loop-note">
-            <Icon name="reflect" size={19} />
-            <div>
-              <strong>A plan is a starting point.</strong>
-              <p>
-                Record what you do. Reflect on what you learn. Adjust with
-                intention.
-              </p>
-              <Link href="/reflect" className="text-link">
-                Make time to reflect
-                <Icon name="arrow" size={15} />
-              </Link>
-            </div>
-          </div>
-        </div>
+        </aside>
       </div>
       {recording && (
         <RecordWork task={recording} onClose={() => setRecording(null)} />
@@ -269,11 +354,12 @@ export function Today() {
 
 function RecordWork({ task, onClose }: { task: Task; onClose: () => void }) {
   const { context, refresh } = useWorkspace();
+  const { t } = usePreferences();
   const dialog = useRef<HTMLDialogElement>(null);
   const retry = useRef<{ signature: string; id: string } | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const now = new Date().toISOString();
+  const now = context?.now || new Date().toISOString();
   useEffect(() => {
     dialog.current?.showModal();
   }, []);
@@ -311,11 +397,11 @@ function RecordWork({ task, onClose }: { task: Task; onClose: () => void }) {
       onClose={onClose}
     >
       <div className="section-heading">
-        <h2>Record your work</h2>
+        <h2>{t("execution.title")}</h2>
         <button
           className="icon-button"
           onClick={onClose}
-          aria-label="Close record work"
+          aria-label={t("execution.close")}
         >
           <Icon name="close" />
         </button>
@@ -323,7 +409,8 @@ function RecordWork({ task, onClose }: { task: Task; onClose: () => void }) {
       <p className="muted">{task.title}</p>
       <form onSubmit={submit} className="form-stack">
         <label>
-          Started at <span className="muted">(your device timezone)</span>
+          {t("execution.startedAt")}{" "}
+          <span className="muted">({t("execution.deviceTimezone")})</span>
           <input
             name="start"
             type="datetime-local"
@@ -334,7 +421,7 @@ function RecordWork({ task, onClose }: { task: Task; onClose: () => void }) {
           />
         </label>
         <label>
-          Ended at
+          {t("execution.endedAt")}
           <input
             name="end"
             type="datetime-local"
@@ -343,25 +430,22 @@ function RecordWork({ task, onClose }: { task: Task; onClose: () => void }) {
           />
         </label>
         <fieldset>
-          <legend>What was the outcome?</legend>
+          <legend>{t("execution.outcome")}</legend>
           <label className="choice">
             <input type="radio" name="outcome" value="partial" defaultChecked />
-            Made progress · not finished
+            {t("execution.partial")}
           </label>
           <label className="choice">
             <input type="radio" name="outcome" value="completed" />
-            Completed the task
+            {t("execution.completed")}
           </label>
         </fieldset>
         <Feedback error={error} />
         <button className="primary" disabled={busy}>
-          {busy ? "Saving…" : "Save execution"}
+          {busy ? t("execution.saving") : t("execution.save")}
           <Icon name="check" size={16} />
         </button>
-        <p className="fine-print">
-          Only record work you actually did. Execution time does not
-          automatically reduce remaining effort.
-        </p>
+        <p className="fine-print">{t("execution.note")}</p>
       </form>
     </dialog>
   );
@@ -369,28 +453,29 @@ function RecordWork({ task, onClose }: { task: Task; onClose: () => void }) {
 
 export function WeeklyPlan() {
   const { context, history, revision } = useWorkspace();
+  const { t, language } = usePreferences();
   const [editing, setEditing] = useState(false);
   if (!context) return null;
   const plan = history.at(-1);
   return (
     <>
       <PageHeading
-        eyebrow="PLAN · MAKE ROOM FOR WHAT MATTERS"
-        title="Your week, with intention."
-        description="Study windows become a feasible plan. Work that doesn't fit stays visible."
+        title={t("plan.title")}
+        description={t("plan.description")}
         action={
           <button className="primary" onClick={() => setEditing(!editing)}>
             <Icon name={plan ? "refresh" : "plus"} size={16} />
             {editing
-              ? "Close editor"
+              ? t("plan.closeEditor")
               : plan
-                ? "Adjust & replan"
-                : "Generate plan"}
+                ? t("plan.adjust")
+                : t("plan.generate")}
           </button>
         }
       />
-      {editing && <PlanEditor plan={plan} onDone={() => setEditing(false)} />}
-      {plan ? (
+      {editing ? (
+        <PlanEditor plan={plan} onDone={() => setEditing(false)} />
+      ) : plan ? (
         <>
           <div className="plan-toolbar">
             <div>
@@ -405,13 +490,15 @@ export function WeeklyPlan() {
               </strong>
             </div>
             <div>
-              <span className="muted">Times in Hanoi (UTC+07)</span>
-              <Badge tone="success">Revision {plan.revision}</Badge>
+              <span className="muted">{t("common.hanoiTime")}</span>
+              <Badge tone="success">
+                {t("plan.revision")} {plan.revision}
+              </Badge>
             </div>
           </div>
           <div className="plan-stats">
             <span>
-              <strong>{plan.blocks.length}</strong> study blocks
+              <strong>{plan.blocks.length}</strong> {t("plan.studyBlocks")}
             </span>
             <span>
               <strong>
@@ -423,15 +510,13 @@ export function WeeklyPlan() {
                     0,
                   ),
                 )}{" "}
-                min
+                {t("common.minutes")}
               </strong>{" "}
-              planned
+              {t("plan.planned")}
             </span>
             <span>
-              <strong>{plan.unplanned_tasks.length}</strong> need attention
-            </span>
-            <span className="planner-version">
-              Planner v{plan.planner_version}
+              <strong>{plan.unplanned_tasks.length}</strong>{" "}
+              {t("plan.attention")}
             </span>
           </div>
           <PlanDays plan={plan} tasks={context.tasks} />
@@ -444,15 +529,31 @@ export function WeeklyPlan() {
               )}
             />
           )}
-          <p className="fine-print">
-            <Icon name="book" size={14} />
-            Your plan is read-only. Adjust study windows and remaining effort to
-            create an auditable new revision.
-          </p>
+          <div className="plan-next-links">
+            <Link className="text-link" href="/reflect">
+              <Icon name="reflect" size={16} />
+              {language === "vi"
+                ? "Nhìn lại buổi học"
+                : "Review your study session"}
+            </Link>
+            <Link className="text-link" href="/history">
+              <Icon name="history" size={16} />
+              {language === "vi" ? "Xem các bản đã lưu" : "See saved versions"}
+            </Link>
+          </div>
+          <details className="compact-disclosure">
+            <summary>
+              {t("common.demo")} · {t("plan.planner")}
+            </summary>
+            <p className="fine-print">{t("plan.readOnly")}</p>
+            <p className="fine-print">
+              {t("plan.planner")} v{plan.planner_version}
+            </p>
+          </details>
         </>
       ) : (
-        <Empty title="Your week is a blank page">
-          <p>Choose your study windows to generate an initial plan.</p>
+        <Empty title={t("plan.blankTitle")}>
+          <p>{t("plan.blankText")}</p>
         </Empty>
       )}
     </>
@@ -461,8 +562,12 @@ export function WeeklyPlan() {
 
 function PlanEditor({ plan, onDone }: { plan?: Plan; onDone: () => void }) {
   const { context, refresh, setRevision } = useWorkspace();
+  const { t } = usePreferences();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [windows, setWindows] = useState<Window[]>(
+    () => context?.study_windows || [],
+  );
   if (!context) return null;
   const ctx = context;
   async function submit(event: React.FormEvent<HTMLFormElement>) {
@@ -471,20 +576,20 @@ function PlanEditor({ plan, onDone }: { plan?: Plan; onDone: () => void }) {
     setBusy(true);
     setError("");
     try {
-      const windows: Window[] = ctx.study_windows.map((_, i) => ({
+      const submittedWindows: Window[] = windows.map((_, i) => ({
         starts_at: new Date(String(data.get("start-" + i))).toISOString(),
         ends_at: new Date(String(data.get("end-" + i))).toISOString(),
       }));
       const body = {
         student: ctx.student,
         period: ctx.period,
-        study_windows: windows,
+        study_windows: submittedWindows,
         record_id: crypto.randomUUID(),
       };
       if (plan) {
         const result = await api<Replan>("weekly-plans/replan", {
           ...body,
-          effective_at: new Date().toISOString(),
+          effective_at: ctx.now,
           remaining_efforts: ctx.tasks
             .filter((t) => t.status !== "completed")
             .map((t) => ({
@@ -507,20 +612,19 @@ function PlanEditor({ plan, onDone }: { plan?: Plan; onDone: () => void }) {
   return (
     <section className="panel editor">
       <div className="section-heading">
-        <h2>{plan ? "Adjust your next steps" : "Create your first plan"}</h2>
-        <Badge>EXPLICIT INPUTS</Badge>
+        <h2>{plan ? t("plan.adjustTitle") : t("plan.createTitle")}</h2>
       </div>
       <form onSubmit={submit} className="form-stack">
-        <p className="muted">
-          Enter your availability in your device timezone. The schedule displays
-          Hanoi time.
-        </p>
+        <p className="muted">{t("plan.availability")}</p>
         <div className="window-inputs">
-          {ctx.study_windows.map((window, i) => (
-            <div className="window-input" key={i}>
+          {windows.map((window, i) => (
+            <div
+              className="window-input"
+              key={`${window.starts_at}:${window.ends_at}`}
+            >
               <span className="window-number">0{i + 1}</span>
               <label>
-                Start
+                {t("common.start")}
                 <input
                   name={"start-" + i}
                   type="datetime-local"
@@ -529,7 +633,7 @@ function PlanEditor({ plan, onDone }: { plan?: Plan; onDone: () => void }) {
                 />
               </label>
               <label>
-                End
+                {t("common.end")}
                 <input
                   name={"end-" + i}
                   type="datetime-local"
@@ -537,34 +641,49 @@ function PlanEditor({ plan, onDone }: { plan?: Plan; onDone: () => void }) {
                   required
                 />
               </label>
+              {plan && (
+                <button
+                  aria-label={`${t("plan.removeWindow")} ${i + 1}`}
+                  className="secondary small"
+                  type="button"
+                  onClick={() =>
+                    setWindows((current) =>
+                      current.filter(
+                        (candidate) =>
+                          candidate.starts_at !== window.starts_at ||
+                          candidate.ends_at !== window.ends_at,
+                      ),
+                    )
+                  }
+                >
+                  {t("common.remove")}
+                </button>
+              )}
             </div>
           ))}
         </div>
         {plan && (
           <fieldset>
-            <legend>Work still remaining</legend>
-            <p className="fine-print">
-              Review every open task. These starting values are original
-              estimates, not estimates minus execution time.
-            </p>
+            <legend>{t("plan.remaining")}</legend>
+            <p className="fine-print">{t("plan.remainingHint")}</p>
             {ctx.tasks
               .filter((t) => t.status !== "completed")
-              .map((t) => (
-                <label className="remaining-input" key={t.id}>
+              .map((task) => (
+                <label className="remaining-input" key={task.id}>
                   <span>
-                    {t.title}
-                    <small>{t.course}</small>
+                    {task.title}
+                    <small>{task.course}</small>
                   </span>
                   <input
-                    aria-label={"Remaining minutes for " + t.title}
+                    aria-label={"Remaining minutes for " + task.title}
                     type="number"
-                    name={t.id}
+                    name={task.id}
                     min={0}
                     step={1}
-                    defaultValue={minutes(t.estimated_duration_seconds)}
+                    defaultValue={minutes(task.estimated_duration_seconds)}
                     required
                   />
-                  <span>min</span>
+                  <span>{t("common.minutes")}</span>
                 </label>
               ))}
           </fieldset>
@@ -573,14 +692,14 @@ function PlanEditor({ plan, onDone }: { plan?: Plan; onDone: () => void }) {
         <div className="inline">
           <button className="primary" disabled={busy}>
             {busy
-              ? "Saving plan…"
+              ? t("common.saving")
               : plan
-                ? "Create revised plan"
-                : "Generate weekly plan"}
+                ? t("plan.createRevision")
+                : t("plan.generateWeekly")}
             <Icon name="arrow" size={16} />
           </button>
           <button className="secondary" type="button" onClick={onDone}>
-            Cancel
+            {t("common.cancel")}
           </button>
         </div>
       </form>
@@ -596,11 +715,12 @@ function ChangeReview({
   baseline?: Plan;
 }) {
   const { context } = useWorkspace();
+  const { t, language } = usePreferences();
   if (!context) return null;
   return (
     <section className="panel change-review">
       <div className="section-heading">
-        <h2>Plan updated</h2>
+        <h2>{t("plan.updated")}</h2>
         <Badge tone="success">
           Revision {baseline?.revision || result.plan.revision - 1} →{" "}
           {result.plan.revision}
@@ -614,7 +734,7 @@ function ChangeReview({
             </strong>
             <div className="change-comparison">
               <span>
-                <small>BEFORE</small>
+                <small>{t("common.before")}</small>
                 {baseline?.blocks.some((b) => b.task_id === change.task_id)
                   ? baseline.blocks
                       .filter((b) => b.task_id === change.task_id)
@@ -625,12 +745,12 @@ function ChangeReview({
                         </span>
                       ))
                   : baseline
-                    ? "No scheduled work"
-                    : "Baseline unavailable"}
+                    ? t("plan.noScheduled")
+                    : t("plan.baselineUnavailable")}
               </span>
               <Icon name="arrow" size={17} />
               <span>
-                <small>AFTER</small>
+                <small>{t("common.after")}</small>
                 {result.plan.blocks.some((b) => b.task_id === change.task_id)
                   ? result.plan.blocks
                       .filter((b) => b.task_id === change.task_id)
@@ -640,22 +760,43 @@ function ChangeReview({
                           {time(b.starts_at)}–{time(b.ends_at)}{" "}
                         </span>
                       ))
-                  : "No scheduled work"}
+                  : t("plan.noScheduled")}
               </span>
             </div>
-            <p>{change.reasons.map(label).join(" · ")}</p>
+            <p>
+              {change.reasons.map((code) => label(code, language)).join(" · ")}
+            </p>
           </div>
         ))
       ) : (
-        <p className="muted">
-          Your existing blocks still fit. They have been preserved in this
-          revision.
-        </p>
+        <p className="muted">{t("plan.reflectionInfo")}</p>
+      )}
+      {baseline && (
+        <details className="preserved-blocks">
+          <summary>{t("plan.preserved")}</summary>
+          {baseline.blocks
+            .filter((before) =>
+              result.plan.blocks.some(
+                (after) =>
+                  after.task_id === before.task_id &&
+                  after.starts_at === before.starts_at &&
+                  after.ends_at === before.ends_at,
+              ),
+            )
+            .map((block, index) => (
+              <BlockRow
+                key={index}
+                block={block}
+                task={context.tasks.find((task) => task.id === block.task_id)}
+              />
+            ))}
+          <p className="fine-print">{t("plan.exactMatches")}</p>
+        </details>
       )}
       <p className="fine-print">
         {result.informational_reflection_signals.length
-          ? "Confirmed reflection is included as informational context; it does not change placement in v0."
-          : "Changes are explained by the backend's typed reasons."}
+          ? t("plan.reflectionInfo")
+          : t("plan.backendReasons")}
       </p>
     </section>
   );
@@ -663,6 +804,7 @@ function ChangeReview({
 
 export function Reflect() {
   const { context, refresh } = useWorkspace();
+  const { t, language } = usePreferences();
   const [candidates, setCandidates] = useState<Candidate[] | null>(null);
   const [selected, setSelected] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
@@ -722,7 +864,7 @@ export function Reflect() {
         record_id: crypto.randomUUID(),
         selected_signal_ids: selected,
       });
-      setSuccess("Your selected reflection signals were confirmed and saved.");
+      setSuccess(t("reflection.confirmed"));
       setCandidates(null);
       await refresh();
     } catch (err) {
@@ -734,14 +876,14 @@ export function Reflect() {
   function description(candidate: Candidate) {
     switch (candidate.kind) {
       case "estimation_feedback":
-        return `${ctx.tasks.find((t) => t.id === candidate.task_id)?.title}: estimated ${minutes(candidate.estimated_duration_seconds)} min → recorded ${minutes(candidate.actual_duration_seconds)} min`;
+        return `${ctx.tasks.find((t) => t.id === candidate.task_id)?.title}: ${t("reflection.estimation")} ${minutes(candidate.estimated_duration_seconds)} ${t("common.minutes")} → ${language === "vi" ? "đã ghi nhận" : "recorded"} ${minutes(candidate.actual_duration_seconds)} ${t("common.minutes")}`;
       case "workload_feedback":
-        return "Workload felt " + label(candidate.reported).toLowerCase();
+        return `${t("reflection.workloadFelt")} ${label(candidate.reported, language).toLowerCase()}`;
       case "difficult_topic":
-        return "Difficult topic: " + candidate.topic;
+        return `${t("reflection.difficultTopic")}: ${candidate.topic}`;
       case "deferred_task":
         return (
-          "Intentionally deferred: " +
+          `${t("reflection.deferredTask")}: ` +
           ctx.tasks.find((t) => t.id === candidate.task_id)?.title
         );
     }
@@ -749,22 +891,39 @@ export function Reflect() {
   return (
     <>
       <PageHeading
-        eyebrow="REFLECT · LEARN FROM THE WEEK"
-        title="A moment to look back."
-        description="What happened matters. Decide which insights are worth keeping."
+        title={t("reflection.title")}
+        description={t("reflection.description")}
       />
-      <div className="reflection-grid">
-        <section className="panel reflection-form">
-          <div className="section-heading">
-            <h2>Your reflection</h2>
-            <Badge>STEP 1 OF 2</Badge>
-          </div>
+      <div className="reflection-grid focused-reflection">
+        <ol
+          className="reflection-steps"
+          aria-label={
+            language === "vi" ? "Các bước phản hồi" : "Reflection steps"
+          }
+        >
+          <li aria-current={!candidates ? "step" : undefined}>
+            <span>1</span>
+            {t("reflection.yourReflection")}
+          </li>
+          <li aria-current={candidates ? "step" : undefined}>
+            <span>2</span>
+            {t("reflection.candidates")}
+          </li>
+        </ol>
+        <details
+          className="panel reflection-form reflection-input"
+          open={!candidates}
+        >
+          <summary>
+            {candidates
+              ? language === "vi"
+                ? "Sửa phản hồi"
+                : "Edit my notes"
+              : t("reflection.yourReflection")}
+          </summary>
           <form onSubmit={review} onChange={invalidate} className="form-stack">
             <fieldset>
-              <legend>What did you work on?</legend>
-              <p className="fine-print">
-                Select the tasks you want to reflect on.
-              </p>
+              <legend>{t("reflection.whatWorkedOn")}</legend>
               {ctx.tasks.map((t) => (
                 <label className="task-choice" key={t.id}>
                   <input name="reflected" type="checkbox" value={t.id} />
@@ -777,108 +936,114 @@ export function Reflect() {
               ))}
             </fieldset>
             <fieldset>
-              <legend>How did the workload feel?</legend>
+              <legend>{t("reflection.workload")}</legend>
               <div className="workload-choices">
                 {["too_light", "appropriate", "too_heavy"].map((value) => (
                   <label className="choice-tile" key={value}>
                     <input type="radio" name="workload" value={value} />
-                    {label(value)}
+                    {label(value, language)}
                   </label>
                 ))}
               </div>
             </fieldset>
             <label>
-              Topics that felt difficult
+              {t("reflection.difficultTopics")}
               <input
                 name="topics"
-                placeholder="e.g. Normalization, gradient descent"
+                placeholder={t("reflection.topicsPlaceholder")}
               />
-              <span className="fine-print">Separate topics with commas.</span>
+              <span className="fine-print">{t("reflection.commaHint")}</span>
             </label>
-            <fieldset>
-              <legend>Tasks you intentionally deferred</legend>
-              <p className="fine-print">
-                Your own account, not an inferred behavior.
-              </p>
-              {ctx.tasks.map((t) => (
-                <label className="choice" key={t.id}>
-                  <input name="deferred" type="checkbox" value={t.id} />
-                  {t.title}
-                </label>
-              ))}
-            </fieldset>
+            <details className="compact-disclosure deferred-feedback">
+              <summary>
+                {t("reflection.deferred")}{" "}
+                {language === "vi" ? "(tùy chọn)" : "(optional)"}
+              </summary>
+              <fieldset>
+                <legend>{t("reflection.deferred")}</legend>
+                <p className="fine-print">{t("reflection.deferredHint")}</p>
+                {ctx.tasks.map((t) => (
+                  <label className="choice" key={t.id}>
+                    <input name="deferred" type="checkbox" value={t.id} />
+                    {t.title}
+                  </label>
+                ))}
+              </fieldset>
+            </details>
             <button className="primary" disabled={busy}>
-              {busy ? "Reviewing…" : "Review reflection"}
+              {busy ? t("reflection.reviewing") : t("reflection.review")}
               <Icon name="arrow" size={16} />
             </button>
           </form>
-        </section>
-        <section className="panel insights">
-          <div className="section-heading">
-            <h2>Candidate insights</h2>
-            <Badge>STEP 2 OF 2</Badge>
-          </div>
-          {candidates ? (
-            <>
-              <p className="muted">
-                These are proposals. Select only the signals you explicitly want
-                to confirm.
-              </p>
-              {candidates.length ? (
-                candidates.map((c) => (
-                  <label className="insight-choice" key={c.id}>
-                    <input
-                      type="checkbox"
-                      aria-label={description(c)}
-                      checked={selected.includes(c.id)}
-                      onChange={(e) =>
-                        setSelected(
-                          e.target.checked
-                            ? [...selected, c.id]
-                            : selected.filter((id) => id !== c.id),
-                        )
-                      }
-                    />
-                    <span>
-                      <Badge
-                        tone={c.source === "factual" ? "success" : "neutral"}
-                      >
-                        {c.source === "factual" ? "FACTUAL" : "SELF-REPORTED"}
-                      </Badge>
-                      <strong>{description(c)}</strong>
-                    </span>
-                  </label>
-                ))
-              ) : (
-                <Empty title="No signals to review">
-                  <p>
-                    Add task feedback, workload feedback or difficult topics.
-                  </p>
-                </Empty>
-              )}
-              <button
-                className="primary"
-                disabled={busy || !selected.length}
-                onClick={() => void confirm()}
-              >
-                {busy ? "Saving…" : "Save confirmed reflection"}
-                <Icon name="check" size={16} />
-              </button>
-              <p className="fine-print">
-                Unselected proposals are not stored. Editing your answers
-                requires a fresh review.
-              </p>
-            </>
-          ) : (
-            <Empty title="Your insights will appear here">
-              <p>
-                Review your reflection to see factual comparisons and
-                self-reported signals. Nothing is confirmed automatically.
-              </p>
-            </Empty>
-          )}
-          <Feedback error={error} success={success} />
-        </section>
+        </details>
+        {candidates && (
+          <section className="panel insights">
+            <div className="section-heading">
+              <h2>{t("reflection.candidates")}</h2>
+            </div>
+            {candidates ? (
+              <>
+                <p className="muted">{t("reflection.proposalsHint")}</p>
+                {candidates.length ? (
+                  candidates.map((c) => (
+                    <label className="insight-choice" key={c.id}>
+                      <input
+                        type="checkbox"
+                        aria-label={description(c)}
+                        checked={selected.includes(c.id)}
+                        onChange={(e) =>
+                          setSelected(
+                            e.target.checked
+                              ? [...selected, c.id]
+                              : selected.filter((id) => id !== c.id),
+                          )
+                        }
+                      />
+                      <span>
+                        <Badge
+                          tone={c.source === "factual" ? "success" : "neutral"}
+                        >
+                          {c.source === "factual"
+                            ? t("reflection.factual")
+                            : t("reflection.selfReported")}
+                        </Badge>
+                        <strong>{description(c)}</strong>
+                      </span>
+                    </label>
+                  ))
+                ) : (
+                  <Empty title={t("reflection.noSignals")}>
+                    <p>{t("reflection.noSignalsText")}</p>
+                  </Empty>
+                )}
+                <button
+                  className="primary"
+                  disabled={busy || !selected.length}
+                  onClick={() => void confirm()}
+                >
+                  {busy
+                    ? t("reflection.saving")
+                    : t("reflection.saveConfirmed")}
+                  <Icon name="check" size={16} />
+                </button>
+                <p className="fine-print">{t("reflection.unselected")}</p>
+              </>
+            ) : (
+              <Empty title={t("reflection.insightsHere")}>
+                <p>{t("reflection.insightsHereText")}</p>
+              </Empty>
+            )}
+          </section>
+        )}
+        <Feedback error={error} success={success} />
+        {success && (
+          <Link href="/plan" className="secondary">
+            {language === "vi"
+              ? "Tiếp tục với kế hoạch tuần"
+              : "Continue to your weekly plan"}
+            <Icon name="arrow" size={16} />
+          </Link>
+        )}
       </div>
     </>
   );
@@ -886,19 +1051,19 @@ export function Reflect() {
 
 export function History() {
   const { context, history } = useWorkspace();
+  const { t, language } = usePreferences();
   if (!context) return null;
   return (
     <>
       <PageHeading
-        eyebrow="HISTORY · EVERY ADJUSTMENT HAS A TRACE"
-        title="See how your plan evolves."
-        description="Each revision is kept. A new direction never erases where you started."
+        title={t("history.title")}
+        description={t("history.description")}
       />
       <section className="panel history-panel">
         <div className="section-heading">
-          <h2>Plan revisions</h2>
+          <h2>{t("history.revision")}</h2>
           <Badge>
-            {history.length} {history.length === 1 ? "revision" : "revisions"}
+            {history.length} {t("history.revisions")}
           </Badge>
         </div>
         {history.length ? (
@@ -911,13 +1076,17 @@ export function History() {
                   </span>
                   <div>
                     <div className="inline">
-                      <h3>Revision {plan.revision}</h3>
-                      {i === 0 && <Badge tone="success">CURRENT</Badge>}
+                      <h3>
+                        {t("history.revision")} {plan.revision}
+                      </h3>
+                      {i === 0 && (
+                        <Badge tone="success">{t("common.current")}</Badge>
+                      )}
                     </div>
                     <p>
                       {plan.revision === 1
-                        ? "Initial weekly plan"
-                        : "Adaptive replan"}{" "}
+                        ? t("history.initial")
+                        : t("history.adaptive")}{" "}
                       ·{" "}
                       {date(plan.saved_at, {
                         day: "numeric",
@@ -927,17 +1096,19 @@ export function History() {
                       })}
                     </p>
                     <div className="revision-meta">
-                      {plan.blocks.length} blocks ·{" "}
-                      {plan.unplanned_tasks.length} unplanned · Planner v
-                      {plan.planner_version}
+                      {plan.blocks.length} {t("plan.studyBlocks")} ·{" "}
+                      {plan.unplanned_tasks.length} {t("plan.unplanned")}
                     </div>
                   </div>
                   <span className="view-revision">
-                    View plan
+                    {t("history.viewPlan")}
                     <Icon name="arrow" size={15} />
                   </span>
                 </summary>
                 <div className="revision-content">
+                  <p className="fine-print">
+                    {t("plan.planner")} v{plan.planner_version}
+                  </p>
                   <PlanDays plan={plan} tasks={context.tasks} />
                   <Attention plan={plan} tasks={context.tasks} />
                 </div>
@@ -945,21 +1116,21 @@ export function History() {
             ))}
           </div>
         ) : (
-          <Empty title="Your story starts with a plan">
-            <p>Create a weekly plan and your revisions will be kept here.</p>
+          <Empty title={t("history.storyTitle")}>
+            <p>{t("history.storyText")}</p>
             <Link href="/plan" className="secondary">
-              Go to Weekly Plan
+              {t("history.goToPlan")}
             </Link>
           </Empty>
         )}
       </section>
-      <div className="history-note">
+      <details className="compact-disclosure history-note">
+        <summary>
+          {language === "vi" ? "Về các bản kế hoạch đã lưu" : "About saved plans"}
+        </summary>
         <Icon name="history" size={18} />
-        <p>
-          Past schedules are snapshots. Task status shown alongside them
-          reflects your current workspace.
-        </p>
-      </div>
+        <p>{t("history.note")}</p>
+      </details>
     </>
   );
 }

@@ -32,6 +32,7 @@ htmlcov/
 *.log
 tmp/
 .cache/
+.demo-auth/
 
 # Test and tooling output
 .coverage
@@ -39,6 +40,12 @@ playwright-report/
 test-results/
 artifacts/evals/
 
+# Local thesis pilot study data (never commit participant responses)
+research-data/
+
 # External reference implementations (read-only research, never committed)
 .references/
 *.egg-info/
+
+# Isolated browser-test accounts, uploads and chat history
+apps/web/.playwright-data/

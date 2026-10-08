@@ -25,7 +25,12 @@ ALLOWED_LAYERS: dict[str, frozenset[str]] = {
 STDLIB_ONLY_LAYERS = frozenset({"domain", "engines"})
 # Composition roots allowed to wire infrastructure into application/API callers.
 COMPOSITION_ROOTS = frozenset(
-    {"haui_compass.api.dependencies", "haui_compass.api.postgres_dependencies"}
+    {
+        "haui_compass.api.dependencies",
+        "haui_compass.api.demo",
+        "haui_compass.api.demo_preflight",
+        "haui_compass.api.postgres_dependencies",
+    }
 )
 
 

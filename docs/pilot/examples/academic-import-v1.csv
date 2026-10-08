@@ -1,0 +1,3 @@
+course_id,course_name,course_code,assignment_id,assignment_title,deadline,submission_status,submitted_at,estimated_effort_minutes
+db,Database Systems,DB101,schema-report,Schema report,2026-10-08T17:00:00+07:00,not_submitted,,90
+ml,Machine Learning,ML201,baseline,Baseline experiment,2026-10-10T23:00:00+07:00,submitted,2026-10-09T20:30:00+07:00,120

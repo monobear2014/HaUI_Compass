@@ -4,9 +4,11 @@
 
 **Document status:** Product source of truth
 
-**Project phase:** Foundation and architecture design
+**Project phase:** Technical MVP / council demo system, development-only
 
-**Implementation status:** Unless explicitly labeled **IMPLEMENTED**, every product capability in this document is **PLANNED**.
+**Implementation status:** This document distinguishes **IMPLEMENTED** development/demo
+capabilities from **PLANNED** product capabilities. Implemented status does not imply a production
+deployment, real HaUI LMS integration, or validated educational outcome.
 
 ## Vision
 
@@ -51,7 +53,8 @@ Administration will remain minimal initially. Potential later responsibilities i
 
 ## Core Learning Loop
 
-**PLANNED:**
+**PLANNED for the product experience; a bounded development-only implementation is described in
+the HTTP Walking Skeleton status below:**
 
 ```text
 PLAN → DO → MONITOR → REFLECT → ADAPT → PLAN AGAIN
@@ -77,7 +80,31 @@ self-reported candidates, explicit confirmation), and History (revision snapshot
 Desktop and mobile share four navigation destinations and our own light visual tokens.
 
 The opt-in `haui_compass.api.demo` entrypoint seeds fictional in-memory tasks and a
-plan, and exposes development context labels. Normal API startup remains unseeded.
+plan, and exposes three reproducible showcase scenarios with atomic in-memory reset.
+Today separates deterministic decision evidence from a bounded natural-language
+explanation. The required offline template provider is implemented behind an
+application port; invalid/failed/timed-out optional providers fall back to it.
+Normal API startup remains unseeded and exposes no demo routes.
+**AI Task Decomposition v0.3 is IMPLEMENTED, development-only:** Academic Data can request one to
+five bounded task candidates from an application-owned provider, review/edit/select them, and
+explicitly confirm them through the existing task-creation boundary. Candidate sessions are
+ephemeral and never enter risk/planning before confirmation. The deterministic offline fallback is
+required; timeout, provider exception and invalid output cannot make the demo depend on a vendor.
+The current implementation uses only assignment/course fields already present.
+**Real LLM Integration v0.4 is IMPLEMENTED, opt-in and development-only:** server composition can
+connect both existing language ports to an OpenAI Responses API infrastructure adapter using strict
+JSON Schema output. Configuration is disabled by default, secrets remain server-side, and missing
+credentials, timeout, HTTP/provider failure, malformed output or authoritative validation failure
+return to the existing deterministic fallback. UI provenance distinguishes online model output
+from offline templates. Risk, NBA, Planner and Replanner are unchanged and remain deterministic;
+confirmed selection remains the only candidate-to-task transition. There is no production AI
+operations claim, provider retry policy or model-quality evaluation dataset.
+**Demo Evaluation & Council Hardening v0.5 is IMPLEMENTED, development-only:** a canonical,
+resettable council runbook covers candidate confirmation, deterministic decision evidence, planning
+and adaptation; presenter preflight makes offline readiness explicit. A versioned LLM capability
+dataset contains fictional cases only. Its runner is reproducible offline and supports explicitly
+opted-in live contract evaluation with non-secret metadata. This is guardrail evidence, not a
+claim of general model quality or student outcomes.
 The frontend calls existing application use cases through HTTP; it does not duplicate
 planning or ranking. Risk may be unknown without assignment capacity. Execution time
 does not imply remaining effort; confirmed reflection remains informational in v0.
@@ -98,7 +125,8 @@ All features below are **PLANNED**:
 
 - Course, assignment, deadline, and workload management.
 - Weekly goals and feasible weekly/daily study plans.
-- Decomposition of large assignments into actionable tasks.
+- Production decomposition of large assignments into actionable tasks. The bounded development
+  demo flow is implemented above.
 - Study-session and task-progress tracking.
 - Transparent deadline-risk detection.
 - A daily Next Best Action with rationale and skip risk.
@@ -197,11 +225,41 @@ The in-memory adapters are development/test infrastructure only: they provide no
 
 ## RAG
 
-**PLANNED:** Retrieval-augmented generation is a supporting course-learning capability, not the product's central architecture. The intended flow is document ingestion, source-aware chunking, embedding/indexing, retrieval with authorization filters, answer generation constrained to retrieved evidence, and traceable citations.
+**Data & Knowledge Corpus v1 is IMPLEMENTED, offline/development-only:** `data/demo` contains
+fixed-clock snapshots of the three existing fictional scenarios, student profiles and academic
+JSON/CSV artifacts compatible with the current import contract. `data/knowledge/haui` contains
+three normalized public HaUI article snapshots with source URLs, collection/publication dates,
+temporal limitations and rights notes. `data/knowledge/courses` contains three original fictional
+Vietnamese course packs linked to existing demo courses and assignments plus one RAG-only Software
+Engineering pack. A versioned manifest
+records identity, provenance and SHA-256; an offline validator checks integrity, source boundaries,
+fixture drift and existing academic import schemas. The knowledge subset is loaded only by the
+bounded RAG v1 composition; course briefs are not supplied to task-decomposition providers or
+learning engines, and no deterministic engine/business semantics change.
+This is a bounded source collection, not a complete set of verified current HaUI regulations.
+See [corpus inventory and limitations](../data/README.md).
+
+**RAG Ingestion & Citation v1 is IMPLEMENTED, development/demo-only:** manifest-registered public
+and fictional knowledge is hash-verified and structurally chunked into deterministic records. The
+application owns `KnowledgeRetriever` and `GroundedAnswerProvider`; infrastructure supplies an
+offline BM25-like lexical fallback and the optional existing OpenAI Responses adapter. Scope and
+course isolation happen before ranking. Model citation handles are mapped only to retrieved chunks;
+unknown/duplicate handles, malformed output, timeout/error and insufficient evidence abstain.
+The UI labels public HaUI snapshots separately from fictional course packs. The 25-case offline
+evaluation covers retrieval hits, isolation, citation validity, source separation, abstention and
+document prompt injection. See [RAG v1](rag/rag-v1.md),
+[ADR-0007](decisions/0007-bounded-local-rag-and-structural-citations.md) and the
+[demo runbook](demo/rag-demo-v1.md).
+
+**PLANNED:** embedding-based retrieval, a persisted/authorized index, a production PDF adapter and
+broader source/evaluation coverage. RAG remains a supporting course-learning capability, not the
+product's central architecture.
 
 Course-material answers must distinguish supported answers from uncertainty. If evidence is missing or conflicting, the assistant should say so instead of hallucinating. Citation correctness, context precision/recall, faithfulness, and answer relevance will require dedicated evaluation datasets.
 
-PostgreSQL with `pgvector` is the initial storage direction. A standalone vector database should be introduced only if measured scale or retrieval requirements justify it.
+PostgreSQL with `pgvector` remains the next persistence direction after a real migration and test
+path justify it. A standalone vector database should be introduced only if measured scale or
+retrieval requirements justify it.
 
 ## LMS Integration Strategy
 
@@ -211,7 +269,9 @@ The boundary should normalize courses, enrollments, assignments, deadlines, and 
 
 ## High-Level Architecture
 
-**PLANNED initial direction:** a modular monolith with deployable web and API applications and explicit internal module boundaries.
+**IMPLEMENTED as a development-only technical MVP:** a modular monolith with explicit internal
+module boundaries and separately runnable web/API applications. Production deployment, identity,
+authorization, real LMS integration and operational policy remain **PLANNED**.
 
 ```text
 Next.js + TypeScript web
@@ -223,9 +283,9 @@ Next.js + TypeScript web
  │ Students · Courses · Assignments · Tasks    │
  │ Plans · Reflections · Recommendations       │
  ├──────────────────────────────────────────────┤
- │ AI capabilities                             │
- │ Planning · Retrieval · Reflection · Risk    │
- │ Memory · Guardrails · Provider abstraction  │
+│ AI capabilities                             │
+│ Bounded suggestions/explanations            │
+│ Guardrails · OpenAI adapter · provider ports│
  ├──────────────────────────────────────────────┤
  │ Integrations                                │
  │ LMS provider interface → Mock provider      │
@@ -358,10 +418,10 @@ Evaluation datasets must be versioned, privacy-safe, representative, and separat
 - Deterministic basic risk and first explainable Next Best Action.
 - Structured reflection and bounded adaptive replanning.
 
-### Phase 3 — Grounded learning support — PLANNED
+### Phase 3 — Grounded learning support — PARTIALLY IMPLEMENTED
 
-- Authorized document ingestion and retrieval.
-- Answers with traceable citations, abstention behavior, and RAG evaluations.
+- Bounded public/fictional document ingestion and local retrieval — IMPLEMENTED for demo.
+- Answers with traceable citations, abstention behavior, and RAG evaluations — IMPLEMENTED for demo.
 - Academic-integrity guardrails and test cases.
 
 ### Phase 4 — Lecturer insight and hardening — PLANNED

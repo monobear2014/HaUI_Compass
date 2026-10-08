@@ -1,0 +1,6 @@
+course_id,course_name,course_code,assignment_id,assignment_title,deadline,submission_status,submitted_at,estimated_effort_minutes
+disrupted-db,Databases,FICTION-DB,disrupted-assignment-0,Database Schema,2026-10-06T02:00:00+00:00,not_submitted,,45
+disrupted-ml,Machine Learning,FICTION-ML,disrupted-assignment-1,Regression Lab,2026-10-07T02:00:00+00:00,not_submitted,,60
+disrupted-ml,Machine Learning,FICTION-ML,disrupted-assignment-2,Evaluation Report,2026-10-08T02:00:00+00:00,not_submitted,,90
+disrupted-en,Communication,FICTION-EN,disrupted-assignment-3,Project Presentation,2026-10-09T02:00:00+00:00,not_submitted,,30
+disrupted-db,Databases,FICTION-DB,disrupted-assignment-capstone,Database Mini Project,2026-10-07T14:00:00+00:00,not_submitted,,180
