@@ -11,11 +11,12 @@ import secrets
 from pathlib import Path
 from typing import Annotated, Literal
 
-from fastapi import APIRouter, Depends, Header, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from pydantic import BaseModel, Field
 
 from haui_compass.api.dependencies import AppContainer
 from haui_compass.api.v1.routes import container_from_app
+from haui_compass.application.ports.documents import PdfExtractionError
 from haui_compass.application.ports.evaluation import (
     evaluation_events,
     record_provider_metadata,
@@ -37,6 +38,7 @@ class EvidenceDTO(BaseModel):
     document_id: str = Field(max_length=100)
     filename: str = Field(max_length=180)
     heading: str | None = Field(default=None, max_length=3000)
+    page_number: int | None = Field(default=None, ge=1, le=200)
     content: str = Field(max_length=3200)
 
 
@@ -83,7 +85,7 @@ async def generate_answer(
             source_url=None,
             local_path="",
             source_type="uploaded_private",
-            page=None,
+            page=row.page_number,
             section=row.heading,
             content=row.content,
         )
@@ -123,4 +125,29 @@ async def generate_answer(
         "answer": generated.output.answer.strip(),
         "status": "answered",
         "citations": [row.chunk_id for row in validated],
+    }
+
+
+@router.post("/internal/compass/extract-pdf", dependencies=[Depends(require_service_key)])
+async def extract_pdf(
+    request: Request,
+    container: Annotated[AppContainer, Depends(container_from_app)],
+) -> dict[str, object]:
+    if request.headers.get("content-type", "").split(";")[0] != "application/pdf":
+        raise HTTPException(415, "unsupported_format")
+    content = bytearray()
+    async for part in request.stream():
+        content.extend(part)
+        if len(content) > 5 * 1024 * 1024:
+            raise HTTPException(413, "file_size")
+    try:
+        pages = await container.pdf_text_extractor.extract(bytes(content))
+    except PdfExtractionError as exc:
+        reason = str(exc)
+        if reason in {"pdf_no_text", "pdf_empty", "pdf_encrypted"}:
+            return {"status": "unsupported", "reason": reason, "pages": []}
+        raise HTTPException(503 if reason == "pdf_extraction_timeout" else 400, reason) from None
+    return {
+        "status": "ready",
+        "pages": [{"page_number": page.page_number, "text": page.text} for page in pages],
     }

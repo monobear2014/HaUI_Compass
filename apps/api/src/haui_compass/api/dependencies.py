@@ -9,6 +9,7 @@ from haui_compass.application.academic_import import (
     ImportedAcademicDataProvider,
 )
 from haui_compass.application.ports.clock import Clock
+from haui_compass.application.ports.documents import PdfTextExtractor
 from haui_compass.application.ports.executions import TaskExecutionRepository
 from haui_compass.application.ports.explanation import RecommendationExplanationProvider
 from haui_compass.application.ports.knowledge import GroundedAnswerProvider
@@ -71,11 +72,13 @@ from haui_compass.infrastructure.persistence.memory.transactions import (
 )
 from haui_compass.infrastructure.retrieval.ingestion import ingest_manifest
 from haui_compass.infrastructure.retrieval.lexical import LocalLexicalKnowledgeRetriever
+from haui_compass.infrastructure.retrieval.pdf import PypdfTextExtractor
 from haui_compass.infrastructure.retrieval.template_answer import TemplateGroundedAnswerProvider
 
 
 @dataclass(frozen=True, slots=True)
 class AppContainer:
+    pdf_text_extractor: PdfTextExtractor
     compass_answer: GroundedAnswerService
     query_knowledge: QueryKnowledge
     explain_recommendation: ExplainRecommendation
@@ -159,6 +162,7 @@ def build_container(
     corpus_root = knowledge_root or Path(__file__).resolve().parents[5] / "data"
     knowledge_retriever = LocalLexicalKnowledgeRetriever(ingest_manifest(corpus_root))
     return AppContainer(
+        pdf_text_extractor=PypdfTextExtractor(),
         compass_answer=GroundedAnswerService(
             template=TemplateGroundedAnswerProvider(),
             provider=resolved_grounded_provider,

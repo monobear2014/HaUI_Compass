@@ -60,6 +60,7 @@ from haui_compass.infrastructure.persistence.postgres.session import (
 from haui_compass.infrastructure.persistence.postgres.tasks import PostgresTaskRepository
 from haui_compass.infrastructure.retrieval.ingestion import ingest_manifest
 from haui_compass.infrastructure.retrieval.lexical import LocalLexicalKnowledgeRetriever
+from haui_compass.infrastructure.retrieval.pdf import PypdfTextExtractor
 from haui_compass.infrastructure.retrieval.template_answer import TemplateGroundedAnswerProvider
 
 
@@ -110,6 +111,7 @@ def build_postgres_container(
     llm_timeout = llm_settings.timeout_seconds if llm_settings is not None else 2.0
     corpus_root = Path(__file__).resolve().parents[5] / "data"
     return AppContainer(
+        pdf_text_extractor=PypdfTextExtractor(),
         compass_answer=GroundedAnswerService(
             template=TemplateGroundedAnswerProvider(),
             provider=llm_adapter,
