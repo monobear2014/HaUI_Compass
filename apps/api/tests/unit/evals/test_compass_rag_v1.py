@@ -77,11 +77,12 @@ def test_pdf_extension_preserves_original_cases_and_checks_wrong_page() -> None:
         citations = (
             [
                 {
-                    "chunk_id": case["id"],
+                    "chunk_id": f"{case['id']}:{page}",
                     "document_id": "owned-pdf",
-                    "page_number": case["expected_pages"][0],
+                    "page_number": page,
                     "source_ids": case["expected_sources"],
                 }
+                for page in case["expected_pages"]
             ]
             if case["answerable"]
             else []
@@ -105,6 +106,6 @@ def test_pdf_extension_preserves_original_cases_and_checks_wrong_page() -> None:
     assert MODULE.generation_metrics(rows, dataset)["citation_correctness_rate"] == 1
     rows[0]["citations"][0]["page_number"] = 99
     metrics = MODULE.generation_metrics(rows, dataset)
-    assert metrics["citation_precision"] == 0.8333
-    assert metrics["citation_correctness_rate"] == 0.8333
+    assert metrics["citation_precision"] == 0.875
+    assert metrics["citation_correctness_rate"] == 0.8571
     assert rows[0]["page_citation_correct"] is False

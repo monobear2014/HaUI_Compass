@@ -7,7 +7,7 @@
   "required": ["$schema", "version", "fictional_only", "description", "documents", "cases"],
   "properties": {
     "$schema": {"const": "./compass-rag-v1.schema.json"},
-    "version": {"enum": ["compass-rag-eval-v1", "compass-rag-eval-v1-pdf"]},
+    "version": {"enum": ["compass-rag-eval-v1", "compass-rag-eval-v1-pdf", "compass-rag-eval-v1-pdf-v2"]},
     "fictional_only": {"const": true},
     "description": {"type": "string", "minLength": 1},
     "documents": {

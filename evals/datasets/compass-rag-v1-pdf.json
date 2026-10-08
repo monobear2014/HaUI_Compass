@@ -1,6 +1,6 @@
 {
   "$schema": "./compass-rag-v1.schema.json",
-  "version": "compass-rag-eval-v1-pdf",
+  "version": "compass-rag-eval-v1-pdf-v2",
   "fictional_only": true,
   "description": "Synthetic university-document quality evaluation for the private Compass Assistant pipeline. Extension: 8 text-PDF page-level cases, original 48 cases unchanged.",
   "documents": [
@@ -1297,6 +1297,40 @@
       "expected_pages": [],
       "required_concepts": [],
       "notes": "Text-based PDF; verify citation page against the original fixture."
+    },
+    {
+      "id": "pdf-009",
+      "category": "pdf",
+      "document": "ml-pages",
+      "question": "Learning rate/gradient descent và temperature/softmax là gì?",
+      "answerable": true,
+      "expected_sources": [
+        "pdf-gradient",
+        "pdf-softmax"
+      ],
+      "expected_pages": [
+        1,
+        2
+      ],
+      "required_concepts": [
+        {
+          "concept": "update step",
+          "aliases": [
+            "bước cập nhật",
+            "bước đi",
+            "step size"
+          ]
+        },
+        {
+          "concept": "flatter",
+          "aliases": [
+            "phẳng hơn",
+            "mềm hơn",
+            "phân phối mềm"
+          ]
+        }
+      ],
+      "notes": "Cross-page concept: learning rate on page 2 and temperature/softmax on page 1. Both source pages must be cited."
     }
   ]
 }

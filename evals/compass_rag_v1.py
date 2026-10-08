@@ -54,7 +54,8 @@ def load_dataset(path: Path = DATASET) -> dict[str, Any]:
         raise DatasetError(f"cannot load dataset: {exc}") from exc
     if (
         value.get("$schema") != "./compass-rag-v1.schema.json"
-        or value.get("version") not in ("compass-rag-eval-v1", "compass-rag-eval-v1-pdf")
+        or value.get("version")
+        not in ("compass-rag-eval-v1", "compass-rag-eval-v1-pdf", "compass-rag-eval-v1-pdf-v2")
         or value.get("fictional_only") is not True
     ):
         raise DatasetError("dataset must be versioned compass-rag-eval-v1 and fictional_only")
@@ -65,7 +66,10 @@ def load_dataset(path: Path = DATASET) -> dict[str, Any]:
     if len(ids) != len(cases) or len(ids) != len(set(ids)):
         raise DatasetError("case ids must be present and unique")
     counts = Counter(case.get("category") for case in cases)
-    expected_counts = {**CATEGORIES, **({"pdf": 8} if value["version"].endswith("-pdf") else {})}
+    pdf_count = (
+        9 if value["version"].endswith("-pdf-v2") else 8 if value["version"].endswith("-pdf") else 0
+    )
+    expected_counts = {**CATEGORIES, **({"pdf": pdf_count} if pdf_count else {})}
     if counts != Counter(expected_counts):
         raise DatasetError(f"category distribution must be {CATEGORIES}, got {dict(counts)}")
     documents = value.get("documents", [])
