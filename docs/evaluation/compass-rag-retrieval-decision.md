@@ -60,3 +60,20 @@ within a single chunk, so high Hit@1 does not prove ranking quality on long corp
 Generated full comparisons/failures are retained under
 `artifacts/evals/compass-rag-phase/ab-live.json`, `baseline-analysis.json`,
 `hardened-analysis.json`, and the individual baseline/hardened run directories.
+
+## Selected strategy and PDF follow-through
+
+The selected 54-turn production / 30s run completed with Hit@1/3/5 and recall 100%,
+citation correctness 100%, refusal precision/recall 100% and provider errors 0%.
+Raw GAR is 81.82% due to eight manually reviewed alias false negatives; the rubric
+was not changed. This is not evidence of a paired GAR gain over the 8s baseline.
+
+The additive PDF slice revealed three further lexical function-word misses:
+`affect`, `direction`, `defined`. A separate bounded fix excludes those words;
+no weights or named-anchor rules changed. Unchanged PDF cases went from 50% to 100%
+retrieval, and the full 62-turn production rerun retains 100% source recall. The
+ninth cross-page case in PDF v2 also retrieves/cites pages 1 and 2. This is lexical
+phrasing evidence, not justification for embeddings. Hybrid remains NOT JUSTIFIED.
+
+See [complete phase report](compass-rag-phase-report.md) for every metric, failure
+table, PDF version, deadline distinction, regression result and artifact.

@@ -40,6 +40,16 @@ Four synthetic Markdown fixtures live in `evals/rag/fixtures/`. Stable
 hard-coded UUIDs. They are evaluation metadata inside fictional documents, not a
 production citation mechanism.
 
+The additive `compass-rag-v1-pdf.json` now contains unchanged original 48 cases plus
+nine PDF cases (57 cases, 63 turns). Version `compass-rag-eval-v1-pdf` initially had
+eight PDF cases; `compass-rag-eval-v1-pdf-v2` appends a cross-page concept without
+replacing any case. Seven answerable questions cover three text-PDF pages, including
+one requiring both pages 1 and 2; two absent-topic questions test refusal. Source markers and original
+page numbers are checked together. The fixtures are fictional. Image-only and empty
+PDFs test unsupported ingestion in regression tests. `generate_pdf_fixtures.py`
+reproduces fixtures with ReportLab/pypdf. Offline PDF extraction uses the production
+pypdf worker and shared page chunker.
+
 Concept expectations are alias groups rather than exact whole-answer strings:
 
 ```json
@@ -89,6 +99,22 @@ at the end, without touching `.demo-auth` or Playwright state.
 Both commands write `artifacts/evals/compass-rag-v1/summary.json` and `report.md`.
 These runtime artifacts are ignored by Git.
 
+Use a fresh `--output` for every run; existing completed summaries are not overwritten.
+HTTP/provider errors remain failed turns rather than refusals; partial results survive
+an interrupted run. `--production` uses an existing Next build. `--category pdf`
+validates the complete dataset before selecting PDF cases; subsets cannot
+choose the production strategy.
+
+```bash
+HAUI_COMPASS_LLM_ENABLED=true HAUI_COMPASS_LLM_TIMEOUT_SECONDS=30 \
+apps/api/.venv/bin/python evals/compass_rag_v1.py \
+  --mode full --live --production --env-file .env \
+  --dataset evals/datasets/compass-rag-v1-pdf.json \
+  --output artifacts/evals/compass-rag-phase/new-run-name
+```
+
+Overrides apply only to benchmark subprocesses; `.env` is not edited.
+
 ## Retrieval metrics
 
 For an answerable turn:
@@ -118,28 +144,36 @@ Full mode reports:
 - **Unsupported Claim Rate:** responses matching a case's known forbidden concepts.
 - **Provider calls:** actual calls emitted by the production chat service. A
   zero-retrieval turn should show zero provider calls because it short-circuits.
+- **Provider Error Rate:** failed provider/generation turns divided by all turns;
+  inspect `failure_reason` to distinguish timeouts from other operational failures.
 
 These deterministic checks are deliberately approximate. They do not parse every
 natural-language claim or prove semantic entailment. `manual_review` can be added to
-future cases that cannot be represented safely with aliases; v1 keeps all cases
-machine-evaluable. No external judge service is used.
+future cases that cannot be represented safely with aliases. Raw alias failures stay
+visible without retuning expectations after observing answers. Separate manual
+reviews identify evaluator false negatives. No external judge service is used.
 
 Citation validation checks all of the following: the chunk exists, belongs to the
 uploaded evaluation document, appears in the exact retrieved context, and contains
 an expected semantic source marker. Merely returning a citation is not enough.
+PDF precision additionally checks expected page numbers; correctness requires the
+full expected-page set and the owner-scoped uploaded document.
 
 ## Latency and reproducibility
 
 The opt-in production trace records exact retrieval, provider-generation and
 end-to-end service durations with `performance.now()`, plus rank, heading and lexical
 score. Reports contain mean, nearest-rank p50, p95 and max. This is single-request
-development evaluation, not a concurrent load test or production SLO measurement.
+sequential evaluation, not a concurrent load test or production SLO measurement.
 
 Every report records UTC timestamp, Git SHA, dataset version, case/turn counts,
 mode, retriever configuration and, in live mode, provider model/base URL. Credentials
-are never recorded. Token counts are explicitly marked unavailable because the
-current provider-neutral answer contract does not expose usage; pricing is not
-hard-coded.
+are never recorded. Provider usage is captured through opt-in request-local telemetry
+without changing the neutral answer contract. Input/output/total token sums include
+only responses with observed usage; timed-out requests may still incur unobserved
+billing. Prices are not hard-coded. Dataset and retriever SHA-256, timeout and runtime
+are recorded. Generation duration includes answer persistence; end-to-end service
+duration does not include browser rendering or network overhead.
 
 ## Decision signal
 

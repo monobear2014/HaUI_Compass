@@ -35,8 +35,9 @@ The existing `documents.sqlite` is extended automatically on first database acce
 - Migration 001 adds `documents.ingestion_status`, `document_chunks`, `chat_sessions`, `chat_messages`, `message_citations`, indexes and real foreign keys; it backfills old TXT/Markdown uploads. Failed backfills retain `failed` status and emit an ID-only error log.
 - Migration 002 adds the generation request ID, including for workspaces that already applied 001.
 - Migration 003 adds a distinct token per lease acquisition; retrying the same request ID cannot allow an expired worker to commit or fail the replacement attempt.
+- Migration 004 adds nullable `document_chunks.page_number` with a 1–200 check. Existing text chunks/citations remain unchanged; legacy unsupported PDFs upgrade only on reupload, not during migration.
 - Each migration runs under `BEGIN IMMEDIATE`, records its version in `document_schema_migrations`, and is idempotent. Existing bytes, progress and authentication remain intact.
-- New TXT, MD and `.markdown` uploads synchronously persist ordered, overlapping chunks (~3,000 characters). Markdown headings and original text offsets are retained; fenced-code headings are ignored. Unsupported PDF ingestion is explicit while the existing PDF reader still works. Invalid/empty/unsupported uploads return clear errors.
+- New TXT, MD and `.markdown` uploads synchronously persist ordered, overlapping chunks (~3,000 characters). Markdown headings and original text offsets are retained; fenced-code headings are ignored. Text-based PDFs are extracted page-by-page by the existing API before the SQLite transaction; chunks never cross pages. PDF offsets refer to extracted page text, not original PDF bytes. Image-only, empty and encrypted PDFs remain unsupported for RAG while the original reader works. Corrupt PDFs reject before any batch document is saved.
 - A session's `study_set_id` references its source document. This matches the repository's current one-document study set. Retrieval can later implement another `DocumentRetriever` without changing the chat routes.
 - The session lease plus `(session_id, request_id, role)` uniqueness makes concurrent sends and retry-after-lost-response safe. A 120-second lease allows recovery after a crashed worker; a stale worker cannot commit over a newer turn.
 
@@ -58,11 +59,17 @@ Public routes use the existing authenticated web session:
 
 ## Retrieval and UX
 
+`POST /api/v1/internal/compass/extract-pdf` uses the same service key, accepts raw `application/pdf` bytes (not URLs), and never calls an LLM. `PypdfTextExtractor` implements a small application port and parses in a short-lived subprocess. Limits: 5 MiB upload, 200 pages, 1,000,000 extracted characters, 4 MiB decoded content stream per page, 15-second wall deadline, 10-second CPU limit on Unix, and 512 MiB address-space limit on Linux. Cancellation/timeout kills and reaps the worker. macOS lacks the Linux address-space cap; this is not a hostile-file/load certification. No OCR, external parser service or parser-driven network fetch is added. PDF uploads require the internal API to be available even when the LLM is disabled.
+
+Ready PDF reuploads preserve document/chunk IDs and existing citations; failed or legacy unsupported uploads can be retried by reuploading the original bytes. Unsupported PDFs show a no-OCR message with a disabled assistant. Extraction unavailability returns an error without partial batch writes.
+
 Lexical ranking scopes the SQL query by owner/document before reading chunks, rejects absent named anchors and excludes low-overlap results. Summary/explanation/quiz quick actions sample bounded chunks across the document; summaries of long files cover those excerpts, not every page. General Q&A has no web search or shared demo-corpus fallback. This lexical MVP does not guarantee semantic recall for synonyms.
 
 Desktop shows a 350px right panel; mobile uses the native modal dialog with focus trapping and Escape support. History selection is stored in the page's `chat` query parameter and checked on the server when refreshing. Citation buttons fetch and display the exact persisted chunk, scroll/focus its highlighted source card, and select its matching topic where available. The source card retains precise offsets for a future richer reader.
 
 ## Verification
+
+PDF citations display the original 1-based page number. Clicking authorizes the exact persisted source chunk before opening `/documents/{id}?page=N`; the existing PDF iframe uses `#page=N`. Browser PDF viewers may ignore that fragment, so the original file remains accessible. Page numbers are stored metadata, never invented by the model. Extraction follows embedded PDF text; complex columns, tables and broken font maps are not guaranteed.
 
 The quantitative retrieval and grounded-generation benchmark is documented in
 [Compass Assistant RAG Evaluation Harness v1](../evaluation/compass-rag-eval-v1.md).
@@ -88,7 +95,9 @@ Manual acceptance: login → upload TXT/MD → open Study Set → summarize/ask/
 
 ## Intentionally deferred
 
-PDF text extraction/OCR, embeddings/hybrid retrieval, multi-document study-set mode, full flashcard workflows, voice, agents and web search.
+OCR, embeddings/hybrid retrieval, multi-document study-set mode, PDF topics/flashcards/recall generation, full flashcard workflows, voice, agents and web search.
+
+See the completed [Compass RAG phase report](../evaluation/compass-rag-phase-report.md).
 
 ## Production-readiness verification
 
