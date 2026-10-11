@@ -1,5 +1,6 @@
 """Composition root: construct the object graph once and inject it into routes."""
 
+import os
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -242,4 +243,16 @@ def build_container(
 
 def build_runtime_container() -> AppContainer:
     """Read process configuration at the composition boundary used by normal startup."""
-    return build_container(llm_settings=LLMSettings.from_env())
+    llm_settings = LLMSettings.from_env()
+    database_url_configured = bool(
+        os.getenv("HAUI_COMPASS_DATABASE_URL") or os.getenv("DATABASE_URL")
+    )
+    if database_url_configured:
+        # Import only when PostgreSQL is configured so local/test startup keeps its
+        # lightweight in-memory composition and dependency boundaries stay explicit.
+        from haui_compass.api.postgres_dependencies import build_postgres_container
+
+        return build_postgres_container(llm_settings=llm_settings)
+    if os.getenv("VERCEL") == "1":
+        raise RuntimeError("HAUI_COMPASS_DATABASE_URL is required on Vercel")
+    return build_container(llm_settings=llm_settings)

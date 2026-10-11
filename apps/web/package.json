@@ -12,16 +12,21 @@
     "start": "next start --hostname 127.0.0.1",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
-    "test": "playwright test"
+    "test": "playwright test",
+    "test:config": "node --experimental-strip-types --test tests/*.test.mjs",
+    "test:postgres": "npm run db:migrate && playwright test tests/postgres-persistence.spec.ts --project=desktop",
+    "db:migrate": "node scripts/migrate-web-postgres.mjs"
   },
   "dependencies": {
     "next": "^16.3.6",
+    "pg": "^8.23.1",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
   },
   "devDependencies": {
     "@playwright/test": "^1.56.0",
     "@types/node": "^22.0.0",
+    "@types/pg": "^8.23.1",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "eslint": "^9.0.0",

@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser, SESSION_COOKIE } from "@/lib/demo-auth";
 import { safeReturnPath } from "@/lib/auth-navigation";
 
-export function proxy(request: NextRequest) {
-  const user = getSessionUser(request.cookies.get(SESSION_COOKIE)?.value);
+export async function proxy(request: NextRequest) {
+  const user = await getSessionUser(request.cookies.get(SESSION_COOKIE)?.value);
   if (user) return NextResponse.next();
   const login = new URL("/login", request.url);
   login.searchParams.set(

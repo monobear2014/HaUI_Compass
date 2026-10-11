@@ -33,6 +33,12 @@ export default defineConfig({
         COMPASS_TEST_STORAGE: "1",
         COMPASS_DEMO_AUTH: "1",
         COMPASS_SERVICE_KEY: "playwright-compass-service-key",
+        ...(process.env.HAUI_COMPASS_WEB_DATABASE_URL
+          ? {
+              HAUI_COMPASS_WEB_DATABASE_URL:
+                process.env.HAUI_COMPASS_WEB_DATABASE_URL,
+            }
+          : {}),
       },
       reuseExistingServer: !process.env.CI,
     },
