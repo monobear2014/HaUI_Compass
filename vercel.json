@@ -1,0 +1,43 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "services": {
+    "web": {
+      "root": "apps/web",
+      "framework": "nextjs",
+      "bindings": [
+        {
+          "type": "service",
+          "service": "api",
+          "format": "url",
+          "env": "COMPASS_API_URL"
+        }
+      ],
+      "functions": {
+        "src/app/api/**/*.ts": {
+          "maxDuration": 60
+        },
+        "src/app/compass-api/**/*.ts": {
+          "maxDuration": 60
+        }
+      }
+    },
+    "api": {
+      "root": "apps/api",
+      "framework": "fastapi",
+      "entrypoint": "haui_compass.api.main:app",
+      "functions": {
+        "src/**/*.py": {
+          "maxDuration": 60
+        }
+      }
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/api/v1/health",
+      "destination": {
+        "service": "api"
+      }
+    }
+  ]
+}

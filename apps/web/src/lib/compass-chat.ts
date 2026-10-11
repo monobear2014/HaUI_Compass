@@ -10,6 +10,7 @@ import {
 } from "./compass-chat-store";
 import { WebDocumentRetriever } from "./document-retriever";
 import { resolveRetrievalQuery } from "./document-ranking.cjs";
+import { resolveCompassApiUrl } from "./compass-api-config";
 
 const REFUSAL =
   "Mình chưa tìm thấy đủ thông tin trong tài liệu hiện tại để trả lời chắc chắn câu hỏi này.";
@@ -103,7 +104,7 @@ export async function sendChatMessage(
     const response = await fetch(
       new URL(
         "/api/v1/internal/compass/answer",
-        process.env.COMPASS_API_URL || "http://127.0.0.1:8000",
+        resolveCompassApiUrl(),
       ),
       {
         method: "POST",

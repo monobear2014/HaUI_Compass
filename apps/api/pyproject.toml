@@ -33,6 +33,9 @@ where = ["src"]
 [tool.setuptools.package-data]
 haui_compass = ["py.typed"]
 
+[tool.vercel]
+entrypoint = "haui_compass.api.main:app"
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 markers = ["postgres: requires a real PostgreSQL integration database"]

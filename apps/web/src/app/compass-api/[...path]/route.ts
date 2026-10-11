@@ -1,7 +1,9 @@
 import { NextRequest } from "next/server";
 import { getSessionUser, sameOrigin, SESSION_COOKIE } from "@/lib/demo-auth";
+import { resolveCompassApiUrl } from "@/lib/compass-api-config";
 
 export const runtime = "nodejs";
+export const maxDuration = 60;
 
 async function forward(
   request: NextRequest,
@@ -31,7 +33,7 @@ async function forward(
     return Response.json({ error: { code: "invalid_path" } }, { status: 400 });
   const target = new URL(
     `/api/v1/${path.map(encodeURIComponent).join("/")}`,
-    process.env.COMPASS_API_URL || "http://127.0.0.1:8000",
+    resolveCompassApiUrl(),
   );
   target.search = request.nextUrl.search;
   try {
