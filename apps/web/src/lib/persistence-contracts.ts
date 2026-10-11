@@ -14,6 +14,7 @@ export interface DocumentPersistence {
     includeContent?: boolean,
   ): Promise<StoredStudyDocument | null>;
   saveDocuments(owner: string, files: File[]): Promise<StudyDocument[]>;
+  deleteDocument(owner: string, id: string): Promise<boolean>;
   getStudyProgress(
     owner: string,
     documentId: string,

@@ -8,7 +8,7 @@ import {
   finishTurn,
   getChatMessages,
 } from "./compass-chat-store";
-import { SqliteDocumentRetriever } from "./document-retriever";
+import { WebDocumentRetriever } from "./document-retriever";
 import { resolveRetrievalQuery } from "./document-ranking.cjs";
 
 const REFUSAL =
@@ -64,7 +64,7 @@ export async function sendChatMessage(
   let generationStarted: number | undefined;
   try {
     const retrievalStarted = performance.now();
-    const ranked = await new SqliteDocumentRetriever().searchWithScores(
+    const ranked = await new WebDocumentRetriever().searchWithScores(
       query,
       session.study_set_id,
       owner,

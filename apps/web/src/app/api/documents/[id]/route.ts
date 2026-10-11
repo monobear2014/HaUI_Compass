@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
-import { getSessionUser, SESSION_COOKIE } from "@/lib/demo-auth";
-import { findDocument } from "@/lib/document-store";
+import { getSessionUser, sameOrigin, SESSION_COOKIE } from "@/lib/demo-auth";
+import { deleteDocument, findDocument } from "@/lib/document-store";
 
 export const runtime = "nodejs";
 export async function GET(
@@ -27,4 +27,19 @@ export async function GET(
         "default-src 'none'; frame-ancestors 'self'; sandbox",
     },
   });
+}
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const headers = { "Cache-Control": "no-store" };
+  const user = await getSessionUser(request.cookies.get(SESSION_COOKIE)?.value);
+  if (!user)
+    return Response.json({ error: "unauthorized" }, { status: 401, headers });
+  if (!sameOrigin(request))
+    return Response.json({ error: "invalid_origin" }, { status: 403, headers });
+  if (!(await deleteDocument(user.id, (await params).id)))
+    return Response.json({ error: "not_found" }, { status: 404, headers });
+  return new Response(null, { status: 204, headers });
 }

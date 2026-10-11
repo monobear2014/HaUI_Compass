@@ -96,10 +96,47 @@ test("study-set lookups and listings remain owner scoped", async ({
     ).toBe(404);
     expect(
       (
+        await other.request.delete(`/api/documents/${document.id}`, {
+          headers: { Origin: origin },
+        })
+      ).status(),
+    ).toBe(404);
+    expect(
+      (
         await other.request.get(`/api/documents/${crypto.randomUUID()}`)
       ).status(),
     ).toBe(404);
   } finally {
     await other.close();
   }
+
+  expect(
+    (
+      await context.request.patch(`/api/documents/${document.id}/progress`, {
+        headers: { Origin: origin },
+        data: { covered: ["topic-0"], mastered: [] },
+      })
+    ).status(),
+  ).toBe(200);
+  expect(
+    (
+      await context.request.post(
+        `/api/study-sets/${document.id}/chat/sessions`,
+        { headers: { Origin: origin } },
+      )
+    ).status(),
+  ).toBe(201);
+  expect(
+    (
+      await context.request.delete(`/api/documents/${document.id}`, {
+        headers: { Origin: origin },
+      })
+    ).status(),
+  ).toBe(204);
+  expect(
+    (await context.request.get(`/api/documents/${document.id}`)).status(),
+  ).toBe(404);
+  expect(
+    (await (await context.request.get("/api/documents")).json()).documents,
+  ).toEqual([]);
 });

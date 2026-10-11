@@ -371,6 +371,74 @@ export async function saveDocuments(owner: string, files: File[]) {
   }
 }
 
+export async function deleteDocument(owner: string, id: string) {
+  if (!/^[a-f0-9-]{36}$/.test(id)) return false;
+  if (isWebPostgresConfigured()) {
+    const storageKey = await withWebPostgresTransaction(async (client) => {
+      const lookup = await client.query<{ storage_key: string }>(
+        `SELECT storage_key FROM web.documents
+         WHERE owner = $1 AND id = $2 FOR UPDATE`,
+        [owner, id],
+      );
+      if (!lookup.rows[0]) return null;
+      await client.query(
+        "DELETE FROM web.documents WHERE owner = $1 AND id = $2",
+        [owner, id],
+      );
+      return lookup.rows[0].storage_key;
+    });
+    if (!storageKey) return false;
+    await removeDocumentContent(storageKey).catch(() => {
+      console.warn("Deleted document content cleanup failed", {
+        documentId: id,
+      });
+    });
+    return true;
+  }
+
+  const store = documentDatabase();
+  store.exec("BEGIN IMMEDIATE");
+  try {
+    const found = store
+      .prepare("SELECT id FROM documents WHERE owner = ? AND id = ?")
+      .get(owner, id);
+    if (!found) {
+      store.exec("COMMIT");
+      return false;
+    }
+    store
+      .prepare(
+        `DELETE FROM message_citations WHERE message_id IN
+         (SELECT m.id FROM chat_messages m JOIN chat_sessions s ON s.id = m.session_id
+          WHERE s.owner = ? AND s.study_set_id = ?)`,
+      )
+      .run(owner, id);
+    store
+      .prepare(
+        `DELETE FROM chat_messages WHERE session_id IN
+         (SELECT id FROM chat_sessions WHERE owner = ? AND study_set_id = ?)`,
+      )
+      .run(owner, id);
+    store
+      .prepare("DELETE FROM chat_sessions WHERE owner = ? AND study_set_id = ?")
+      .run(owner, id);
+    store
+      .prepare(
+        "DELETE FROM document_study_progress WHERE owner = ? AND document_id = ?",
+      )
+      .run(owner, id);
+    store.prepare("DELETE FROM document_chunks WHERE document_id = ?").run(id);
+    store
+      .prepare("DELETE FROM documents WHERE owner = ? AND id = ?")
+      .run(owner, id);
+    store.exec("COMMIT");
+    return true;
+  } catch (error) {
+    store.exec("ROLLBACK");
+    throw error;
+  }
+}
+
 type PreparedDocument = {
   id: string;
   name: string;
@@ -570,6 +638,7 @@ export const documentPersistence = {
   listDocuments,
   findDocument,
   saveDocuments,
+  deleteDocument,
   getStudyProgress: getDocumentStudyProgress,
   saveStudyProgress: saveDocumentStudyProgress,
 } satisfies DocumentPersistence;

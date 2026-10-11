@@ -5,6 +5,7 @@ import {
   findDocument,
 } from "./document-store";
 import { rankDocumentChunks, type RankedChunk } from "./document-ranking.cjs";
+import { isWebPostgresConfigured, webPostgresPool } from "./web-database";
 
 export type RetrievedChunk = {
   chunk_id: string;
@@ -28,7 +29,7 @@ export interface DocumentRetriever {
 }
 export { documentIntent } from "./document-ranking.cjs";
 
-export class SqliteDocumentRetriever implements DocumentRetriever {
+export class WebDocumentRetriever implements DocumentRetriever {
   async search(
     query: string,
     studySetId: string,
@@ -60,14 +61,60 @@ export class SqliteDocumentRetriever implements DocumentRetriever {
         `ingestion_${document.ingestionStatus ?? "pending"}`,
         422,
       );
-    const rows = documentDatabase()
-      .prepare(
-        `SELECT c.id AS chunk_id, c.document_id,
+    const rows = isWebPostgresConfigured()
+      ? (
+          await webPostgresPool().query<RetrievedChunk>(
+            `SELECT c.id AS chunk_id, c.document_id,
+          d.name AS filename, c.content, c.chunk_index, c.heading,
+          c.start_offset, c.end_offset, c.page_number
+          FROM web.document_chunks c
+          JOIN web.documents d ON d.id = c.document_id
+          WHERE d.owner = $1 AND d.id = $2 AND d.ingestion_status = 'ready'
+          ORDER BY c.chunk_index`,
+            [userId, studySetId],
+          )
+        ).rows
+      : (documentDatabase()
+          .prepare(
+            `SELECT c.id AS chunk_id, c.document_id,
       d.name AS filename, c.content, c.chunk_index, c.heading, c.start_offset, c.end_offset, c.page_number
       FROM document_chunks c JOIN documents d ON d.id = c.document_id
       WHERE d.owner = ? AND d.id = ? AND d.ingestion_status = 'ready' ORDER BY c.chunk_index`,
-      )
-      .all(userId, studySetId) as RetrievedChunk[];
+          )
+          .all(userId, studySetId) as RetrievedChunk[]);
     return rankDocumentChunks(query, rows, limit);
   }
+}
+
+export async function findDocumentChunk(
+  owner: string,
+  documentId: string,
+  chunkId: string,
+) {
+  if (isWebPostgresConfigured()) {
+    const result = await webPostgresPool().query<{
+      id: string;
+      content: string;
+      heading: string | null;
+      start_offset: number;
+      end_offset: number;
+      page_number: number | null;
+    }>(
+      `SELECT c.id, c.content, c.heading, c.start_offset, c.end_offset,
+       c.page_number FROM web.document_chunks c
+       JOIN web.documents d ON d.id = c.document_id
+       WHERE d.owner = $1 AND d.id = $2 AND c.id = $3`,
+      [owner, documentId, chunkId],
+    );
+    return result.rows[0] ?? null;
+  }
+  return (
+    documentDatabase()
+      .prepare(
+        `SELECT c.id, c.content, c.heading, c.start_offset, c.end_offset, c.page_number
+         FROM document_chunks c JOIN documents d ON d.id = c.document_id
+         WHERE d.owner = ? AND d.id = ? AND c.id = ?`,
+      )
+      .get(owner, documentId, chunkId) ?? null
+  );
 }
