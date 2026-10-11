@@ -15,6 +15,7 @@ import {
   documentStorage,
   readDocumentContent,
   removeDocumentContent,
+  streamDocumentContent,
   signedDocumentContentUrl,
   writeDocumentContent,
 } from "./document-file-storage";
@@ -168,6 +169,34 @@ export async function documentDeliveryUrl(owner: string, id: string) {
   if (documentStorage().kind !== "vercel-blob")
     return `/api/documents/${id}`;
   return signedDocumentContentUrl(storageKey);
+}
+
+export async function streamDocument(owner: string, id: string) {
+  if (!/^[a-f0-9-]{36}$/.test(id)) return null;
+  if (isWebPostgresConfigured()) {
+    const result = await webPostgresPool().query<Row>(
+      `SELECT id, name, kind, size, created_at, headings, ingestion_status,
+              storage_key
+       FROM web.documents WHERE owner = $1 AND id = $2`,
+      [owner, id],
+    );
+    const row = result.rows[0];
+    if (!row?.storage_key) return null;
+    const stored = await streamDocumentContent(row.storage_key);
+    if (!stored) return null;
+    return { ...metadata(row), stream: stored.stream };
+  }
+  const document = await findDocument(owner, id);
+  if (!document) return null;
+  return {
+    ...document,
+    stream: new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(new Uint8Array(document.content));
+        controller.close();
+      },
+    }),
+  };
 }
 
 export async function getDocumentStudyProgress(
