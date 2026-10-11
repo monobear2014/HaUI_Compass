@@ -44,6 +44,30 @@ test("async persistence boundaries preserve document, progress and chat API cont
     mastered: ["topic-0"],
   });
 
+  const concurrent = await Promise.all(
+    [
+      { covered: [], mastered: [] },
+      { covered: ["topic-0"], mastered: [] },
+    ].map((data) =>
+      context.request.patch(`/api/documents/${document.id}/progress`, {
+        headers: { Origin: origin },
+        data,
+      }),
+    ),
+  );
+  expect(concurrent.map((response) => response.status())).toEqual([200, 200]);
+  const persistedProgress = await context.request.get(
+    `/api/documents/${document.id}/progress`,
+  );
+  const persistedProgressBody = await persistedProgress.json();
+  expect([
+    { covered: [], mastered: [] },
+    { covered: ["topic-0"], mastered: [] },
+  ]).toContainEqual({
+    covered: persistedProgressBody.progress.covered,
+    mastered: persistedProgressBody.progress.mastered,
+  });
+
   const session = await context.request.post(
     `/api/study-sets/${document.id}/chat/sessions`,
     { headers: { Origin: origin } },

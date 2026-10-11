@@ -153,7 +153,27 @@ export async function getDocumentStudyProgress(
   owner: string,
   documentId: string,
 ): Promise<DocumentStudyProgress | null> {
-  if (!(await findDocument(owner, documentId))) return null;
+  if (!(await findDocument(owner, documentId, false))) return null;
+  if (isWebPostgresConfigured()) {
+    const result = await webPostgresPool().query<{
+      covered: string[];
+      mastered: string[];
+      updated_at: string;
+    }>(
+      `SELECT covered, mastered, updated_at
+       FROM web.document_study_progress
+       WHERE owner = $1 AND document_id = $2`,
+      [owner, documentId],
+    );
+    const row = result.rows[0];
+    return row
+      ? {
+          covered: row.covered,
+          mastered: row.mastered,
+          updatedAt: row.updated_at,
+        }
+      : { covered: [], mastered: [], updatedAt: null };
+  }
   const row = documentDatabase()
     .prepare(
       "SELECT covered, mastered, updated_at FROM document_study_progress WHERE owner = ? AND document_id = ?",
@@ -174,7 +194,7 @@ export async function saveDocumentStudyProgress(
   documentId: string,
   progress: Pick<DocumentStudyProgress, "covered" | "mastered">,
 ): Promise<DocumentStudyProgress | null> {
-  const document = await findDocument(owner, documentId);
+  const document = await findDocument(owner, documentId, false);
   if (!document) return null;
   const count =
     document.kind === "pdf" ? 0 : Math.max(document.headings.length, 1);
@@ -188,6 +208,25 @@ export async function saveDocumentStudyProgress(
     covered.includes(id),
   );
   const updatedAt = new Date().toISOString();
+  if (isWebPostgresConfigured()) {
+    await webPostgresPool().query(
+      `INSERT INTO web.document_study_progress
+       (owner, document_id, covered, mastered, updated_at)
+       VALUES ($1, $2, $3::jsonb, $4::jsonb, $5)
+       ON CONFLICT (owner, document_id) DO UPDATE SET
+         covered = EXCLUDED.covered,
+         mastered = EXCLUDED.mastered,
+         updated_at = EXCLUDED.updated_at`,
+      [
+        owner,
+        documentId,
+        JSON.stringify(covered),
+        JSON.stringify(mastered),
+        updatedAt,
+      ],
+    );
+    return { covered, mastered, updatedAt };
+  }
   documentDatabase()
     .prepare(
       `INSERT INTO document_study_progress (owner, document_id, covered, mastered, updated_at)
