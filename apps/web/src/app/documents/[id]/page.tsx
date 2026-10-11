@@ -3,7 +3,7 @@ import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { DocumentReader } from "@/components/compass/document-journey";
 import { getSessionUser, SESSION_COOKIE } from "@/lib/demo-auth";
-import { findDocument } from "@/lib/document-store";
+import { documentDeliveryUrl, findDocument } from "@/lib/document-store";
 
 export const metadata: Metadata = { title: "Đọc tài liệu · HaUI Compass" };
 export default async function Page({
@@ -20,12 +20,15 @@ export default async function Page({
   if (!user) redirect("/login");
   const document = await findDocument(user.id, id);
   if (!document) notFound();
+  const sourceUrl = await documentDeliveryUrl(user.id, id);
+  if (!sourceUrl) notFound();
   const { content, ...metadata } = document;
   const page = Number((await searchParams).page);
   return (
     <DocumentReader
       document={metadata}
       initialPage={Number.isInteger(page) && page > 0 && page <= 200 ? page : 1}
+      sourceUrl={sourceUrl}
       text={document.kind === "text" ? content.toString("utf8") : null}
     />
   );

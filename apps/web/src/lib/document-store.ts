@@ -12,8 +12,10 @@ import { chunkText } from "./document-chunks";
 import { chunkPages, type PdfPage } from "./document-chunking.cjs";
 import {
   documentStorageKey,
+  documentStorage,
   readDocumentContent,
   removeDocumentContent,
+  signedDocumentContentUrl,
   writeDocumentContent,
 } from "./document-file-storage";
 import {
@@ -151,6 +153,21 @@ export async function findDocument(
   return row
     ? { ...metadata(row), content: Buffer.from(row.content ?? []) }
     : null;
+}
+
+export async function documentDeliveryUrl(owner: string, id: string) {
+  if (!/^[a-f0-9-]{36}$/.test(id)) return null;
+  if (!isWebPostgresConfigured()) return `/api/documents/${id}`;
+  const result = await webPostgresPool().query<{ storage_key: string }>(
+    `SELECT storage_key FROM web.documents
+     WHERE owner = $1 AND id = $2 AND ingestion_status IN ('uploaded', 'ingesting', 'ready')`,
+    [owner, id],
+  );
+  const storageKey = result.rows[0]?.storage_key;
+  if (!storageKey) return null;
+  if (documentStorage().kind !== "vercel-blob")
+    return `/api/documents/${id}`;
+  return signedDocumentContentUrl(storageKey);
 }
 
 export async function getDocumentStudyProgress(

@@ -6,6 +6,8 @@ import {
   saveDocuments,
 } from "@/lib/document-store";
 import { MAX_DOCUMENT_BYTES, MAX_DOCUMENT_FILES } from "@/lib/documents";
+import { isWebPostgresConfigured } from "@/lib/web-database";
+import { resolveDocumentStorageConfiguration } from "@/lib/document-storage-config";
 
 export const runtime = "nodejs";
 const headers = { "Cache-Control": "no-store" };
@@ -23,6 +25,14 @@ export async function POST(request: NextRequest) {
   const user = await getSessionUser(request.cookies.get(SESSION_COOKIE)?.value);
   if (!user) return failure("unauthorized", 401);
   if (!sameOrigin(request)) return failure("invalid_origin", 403);
+  if (isWebPostgresConfigured()) {
+    try {
+      if (resolveDocumentStorageConfiguration().kind === "vercel-blob")
+        return failure("direct_upload_required", 400);
+    } catch {
+      return failure("storage_unavailable", 503);
+    }
+  }
   if (!request.headers.get("content-type")?.startsWith("multipart/form-data;"))
     return failure("invalid_input", 400);
   const limit = MAX_DOCUMENT_BYTES * MAX_DOCUMENT_FILES + 64 * 1024;

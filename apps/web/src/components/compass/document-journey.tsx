@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { uploadPresigned } from "@vercel/blob/client";
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { usePreferences } from "../preferences";
@@ -109,6 +110,22 @@ const errorMessages: Record<string, [string, string]> = {
     "Phiên đăng nhập đã hết hạn. Hãy đăng nhập lại.",
     "Your session has expired. Please sign in again.",
   ],
+  invalid_content_type: [
+    "Loại nội dung của tệp không hợp lệ.",
+    "The file content type is not allowed.",
+  ],
+  direct_upload_required: [
+    "Không thể tải trực tiếp tài liệu lên bộ lưu trữ riêng tư.",
+    "A direct private-storage upload is required.",
+  ],
+  direct_upload_unavailable: [
+    "Bộ lưu trữ tài liệu hiện chưa sẵn sàng.",
+    "Document storage is not available yet.",
+  ],
+  duplicate_document: [
+    "Tài liệu này đã tồn tại trong tài khoản.",
+    "This document already exists in your account.",
+  ],
 };
 
 export function DocumentUpload({ nextPath }: { nextPath: string }) {
@@ -155,6 +172,74 @@ export function DocumentUpload({ nextPath }: { nextPath: string }) {
     setBusy(true);
     setError(null);
     try {
+      const intentResponse = await fetch("/api/documents/upload-intent", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          files: files.map((file) => ({
+            name: file.name,
+            size: file.size,
+            contentType:
+              file.type ||
+              (file.name.toLowerCase().endsWith(".pdf")
+                ? "application/pdf"
+                : file.name.toLowerCase().endsWith(".md") ||
+                    file.name.toLowerCase().endsWith(".markdown")
+                  ? "text/markdown"
+                  : "text/plain"),
+          })),
+        }),
+        signal: AbortSignal.timeout(20_000),
+      });
+      const intentResult = await intentResponse.json();
+      if (!intentResponse.ok) {
+        setError(intentResult.error ?? "unavailable");
+        setBusy(false);
+        return;
+      }
+      if (intentResult.mode === "presigned") {
+        const intents = intentResult.intents as {
+          id: string;
+          documentId: string;
+          pathname: string;
+          clientPayload: string;
+          contentType: string;
+        }[];
+        const documents: StudyDocument[] = [];
+        for (const [index, intent] of intents.entries()) {
+          await uploadPresigned(intent.pathname, files[index], {
+            access: "private",
+            handleUploadUrl: "/api/documents/upload",
+            clientPayload: intent.clientPayload,
+            contentType: intent.contentType,
+          });
+          let status: {
+            status: string;
+            documentId: string;
+            errorCode: string | null;
+            document: StudyDocument | null;
+          } | null = null;
+          for (let attempt = 0; attempt < 30; attempt++) {
+            const poll = await fetch(`/api/documents/upload-intent/${intent.id}`, {
+              cache: "no-store",
+            });
+            if (!poll.ok) throw new Error("upload_status_unavailable");
+            status = await poll.json();
+            if (status?.status === "ready" || status?.status === "failed") break;
+            await new Promise((resolve) => setTimeout(resolve, 500));
+          }
+          if (!status || status.status !== "ready" || !status.document) {
+            setError(status?.errorCode ?? "ingestion_failed");
+            setBusy(false);
+            return;
+          }
+          documents.push(status.document);
+        }
+        router.push(
+          `/onboarding/ready?next=${next}&ids=${documents.map((doc) => doc.id).join(",")}`,
+        );
+        return;
+      }
       const body = new FormData();
       files.forEach((file) => body.append("files", file));
       const response = await fetch("/api/documents", {
@@ -687,10 +772,12 @@ export function DocumentReader({
   document,
   text,
   initialPage = 1,
+  sourceUrl,
 }: {
   document: StudyDocument;
   text: string | null;
   initialPage?: number;
+  sourceUrl: string;
 }) {
   const { language } = usePreferences();
   const vi = language === "vi";
@@ -724,7 +811,7 @@ export function DocumentReader({
         <>
           <iframe
             className={styles.pdf}
-            src={`/api/documents/${document.id}#page=${initialPage}`}
+            src={`${sourceUrl}#page=${initialPage}`}
             title={document.name}
           />
           <p className={styles.panelNote}>
@@ -736,7 +823,7 @@ export function DocumentReader({
       )}
       <a
         className="secondary"
-        href={`/api/documents/${document.id}`}
+        href={sourceUrl}
         target="_blank"
         rel="noreferrer"
       >

@@ -25,21 +25,24 @@ try {
       version INTEGER PRIMARY KEY,
       applied_at TIMESTAMPTZ NOT NULL DEFAULT now()
     )`);
-    const applied = await client.query(
-      "SELECT 1 FROM web.schema_migrations WHERE version = $1",
-      [1],
+    const migrations = [
+      [1, "001_initial.sql"],
+      [2, "002_document_upload_lifecycle.sql"],
+    ];
+    const appliedVersions = await client.query(
+      "SELECT version FROM web.schema_migrations ORDER BY version",
     );
-    if (applied.rowCount) {
-      await client.query("COMMIT");
-      console.log("Web PostgreSQL schema is current (revision 1)");
-    } else {
-      const migrationPath = new URL("../migrations/postgres/001_initial.sql", import.meta.url);
+    const applied = new Set(appliedVersions.rows.map((row) => row.version));
+    for (const [version, filename] of migrations) {
+      if (applied.has(version)) continue;
+      const migrationPath = new URL(`../migrations/postgres/${filename}`, import.meta.url);
       const migration = await readFile(fileURLToPath(migrationPath), "utf8");
       await client.query(migration);
-      await client.query("INSERT INTO web.schema_migrations (version) VALUES ($1)", [1]);
-      await client.query("COMMIT");
-      console.log("Applied web PostgreSQL migration revision 1");
+      await client.query("INSERT INTO web.schema_migrations (version) VALUES ($1)", [version]);
+      console.log(`Applied web PostgreSQL migration revision ${version}`);
     }
+    await client.query("COMMIT");
+    console.log(`Web PostgreSQL schema is current (revision ${migrations.at(-1)[0]})`);
   } catch {
     await client.query("ROLLBACK").catch(() => undefined);
     console.error("Web PostgreSQL migration failed; transaction was rolled back");
