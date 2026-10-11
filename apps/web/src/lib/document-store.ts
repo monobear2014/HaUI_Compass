@@ -463,25 +463,50 @@ export async function saveDocuments(owner: string, files: File[]) {
 export async function deleteDocument(owner: string, id: string) {
   if (!/^[a-f0-9-]{36}$/.test(id)) return false;
   if (isWebPostgresConfigured()) {
-    const storageKey = await withWebPostgresTransaction(async (client) => {
+    const cleanup = await withWebPostgresTransaction(async (client) => {
       const lookup = await client.query<{ storage_key: string }>(
         `SELECT storage_key FROM web.documents
          WHERE owner = $1 AND id = $2 FOR UPDATE`,
         [owner, id],
       );
       if (!lookup.rows[0]) return null;
+      const cleanupId = randomUUID();
+      const now = new Date().toISOString();
+      await client.query(
+        `INSERT INTO web.document_storage_cleanup
+         (id, owner, document_id, storage_key, status, attempts, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, 'pending', 0, $5, $5)
+         ON CONFLICT (storage_key) DO UPDATE SET owner = EXCLUDED.owner,
+           document_id = EXCLUDED.document_id, status = 'pending',
+           last_error = NULL, updated_at = EXCLUDED.updated_at, deleted_at = NULL`,
+        [cleanupId, owner, id, lookup.rows[0].storage_key, now],
+      );
       await client.query(
         "DELETE FROM web.documents WHERE owner = $1 AND id = $2",
         [owner, id],
       );
-      return lookup.rows[0].storage_key;
+      return { cleanupId, storageKey: lookup.rows[0].storage_key };
     });
-    if (!storageKey) return false;
-    await removeDocumentContent(storageKey).catch(() => {
-      console.warn("Deleted document content cleanup failed", {
-        documentId: id,
-      });
-    });
+    if (!cleanup) return false;
+    try {
+      await removeDocumentContent(cleanup.storageKey);
+      await webPostgresPool().query(
+        `UPDATE web.document_storage_cleanup
+         SET status = 'deleted', attempts = attempts + 1, updated_at = $1, deleted_at = $1
+         WHERE id = $2 AND owner = $3`,
+        [new Date().toISOString(), cleanup.cleanupId, owner],
+      );
+    } catch {
+      await webPostgresPool()
+        .query(
+          `UPDATE web.document_storage_cleanup
+           SET status = 'failed', attempts = attempts + 1,
+               last_error = 'storage_delete_failed', updated_at = $1
+           WHERE id = $2 AND owner = $3`,
+          [new Date().toISOString(), cleanup.cleanupId, owner],
+        )
+        .catch(() => undefined);
+    }
     return true;
   }
 
@@ -525,6 +550,39 @@ export async function deleteDocument(owner: string, id: string) {
   } catch (error) {
     store.exec("ROLLBACK");
     throw error;
+  }
+}
+
+export async function retryDocumentStorageCleanup(owner: string, cleanupId: string) {
+  if (!/^[a-f0-9-]{36}$/.test(cleanupId)) return false;
+  const result = await webPostgresPool().query<{
+    storage_key: string;
+    status: "pending" | "failed" | "deleted";
+  }>(
+    `SELECT storage_key, status FROM web.document_storage_cleanup
+     WHERE owner = $1 AND id = $2`,
+    [owner, cleanupId],
+  );
+  const task = result.rows[0];
+  if (!task || task.status === "deleted") return false;
+  try {
+    await removeDocumentContent(task.storage_key);
+    await webPostgresPool().query(
+      `UPDATE web.document_storage_cleanup
+       SET status = 'deleted', attempts = attempts + 1, updated_at = $1, deleted_at = $1
+       WHERE owner = $2 AND id = $3`,
+      [new Date().toISOString(), owner, cleanupId],
+    );
+    return true;
+  } catch {
+    await webPostgresPool().query(
+      `UPDATE web.document_storage_cleanup
+       SET status = 'failed', attempts = attempts + 1,
+           last_error = 'storage_delete_failed', updated_at = $1
+       WHERE owner = $2 AND id = $3`,
+      [new Date().toISOString(), owner, cleanupId],
+    );
+    return false;
   }
 }
 

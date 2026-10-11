@@ -28,6 +28,7 @@ try {
     const migrations = [
       [1, "001_initial.sql"],
       [2, "002_document_upload_lifecycle.sql"],
+      [3, "003_document_storage_cleanup.sql"],
     ];
     const appliedVersions = await client.query(
       "SELECT version FROM web.schema_migrations ORDER BY version",

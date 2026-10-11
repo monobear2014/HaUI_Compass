@@ -73,3 +73,14 @@ test("the upload lifecycle migration adds fenced durable states", async () => {
   assert.match(migration, /expires_at/);
   assert.match(migration, /FOREIGN KEY \(document_id, owner\)/);
 });
+
+test("the cleanup migration records cross-system deletion retries", async () => {
+  const migration = await readFile(
+    join(sourceRoot, "../migrations/postgres/003_document_storage_cleanup.sql"),
+    "utf8",
+  );
+  assert.match(migration, /document_storage_cleanup/);
+  assert.match(migration, /'failed'/);
+  assert.match(migration, /attempts/);
+  assert.match(migration, /storage_key TEXT NOT NULL UNIQUE/);
+});
