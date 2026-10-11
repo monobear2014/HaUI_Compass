@@ -1,7 +1,8 @@
 # HaUI Compass staging readiness audit
 
-Audit date: 2026-10-11  
-Base commit: `98f010e` (`main`)  
+Audit date: 2026-10-11
+
+Base commit: `98f010e` (`main`)
 Scope: read-only deployment readiness review; this document does not claim a deployment.
 
 ## Summary
