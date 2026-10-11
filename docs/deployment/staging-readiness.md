@@ -5,6 +5,11 @@ Audit date: 2026-10-11
 Base commit: `98f010e` (`main`)
 Scope: read-only deployment readiness review; this document does not claim a deployment.
 
+Historical note: this audit describes the pre-private-Blob implementation observed on 2026-10-11.
+The repository-side gaps it records were subsequently addressed on this branch. The current
+deployment configuration, architecture and external verification state are maintained in
+[vercel-staging.md](vercel-staging.md); this file is retained as the historical baseline.
+
 ## Summary
 
 The current repository is not ready for a persistence-backed public staging deployment. The application runs locally as separate Next.js and FastAPI processes, but the user-facing Compass workflow is not composed over the existing PostgreSQL persistence layer. Authentication, uploaded raw files, extracted chunks, study progress, and chat history use local Node SQLite files. The FastAPI default runtime uses in-memory repositories for the learning-loop APIs. Those stores are unsuitable as durable state across serverless instances or redeploys.
