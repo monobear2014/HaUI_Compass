@@ -33,6 +33,10 @@ import {
 // PDF text extraction is internal only; no OCR or generated study plan is implied.
 let connection: DatabaseSync | undefined;
 export function documentDatabase() {
+  if (isWebPostgresConfigured())
+    throw new Error(
+      "SQLite document persistence is disabled in PostgreSQL mode",
+    );
   if (connection) return connection;
   const directory =
     process.env.COMPASS_STORAGE_DIR ||

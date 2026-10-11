@@ -24,9 +24,14 @@ const deriveKey = promisify(scrypt);
 let database: DatabaseSync | undefined;
 
 function db() {
+  if (isWebPostgresConfigured())
+    throw new Error(
+      "SQLite authentication persistence is disabled in PostgreSQL mode",
+    );
   if (database) return database;
   const directory =
-    process.env.COMPASS_STORAGE_DIR || (process.env.COMPASS_TEST_STORAGE === "1"
+    process.env.COMPASS_STORAGE_DIR ||
+    (process.env.COMPASS_TEST_STORAGE === "1"
       ? join(process.cwd(), ".playwright-data")
       : join(process.cwd(), ".demo-auth"));
   mkdirSync(directory, { recursive: true, mode: 0o700 });
@@ -106,7 +111,8 @@ export class AuthError extends Error {
 
 export async function authenticate(username: string, password: string) {
   await seedDemoUser();
-  if (isWebPostgresConfigured()) return authenticatePostgres(username, password);
+  if (isWebPostgresConfigured())
+    return authenticatePostgres(username, password);
   const connection = db();
   const cutoff = Date.now() - 60_000;
   connection
@@ -146,7 +152,10 @@ export async function authenticate(username: string, password: string) {
 async function authenticatePostgres(username: string, password: string) {
   const result = await withWebPostgresTransaction(async (client) => {
     // Serialize failed-attempt accounting for this username across instances.
-    await client.query("SELECT pg_advisory_xact_lock(hashtextextended($1, 0))", [username]);
+    await client.query(
+      "SELECT pg_advisory_xact_lock(hashtextextended($1, 0))",
+      [username],
+    );
     const cutoff = Date.now() - 60_000;
     await client.query(
       "DELETE FROM web.failed_logins WHERE username = $1 AND attempted_at < $2",
@@ -164,8 +173,13 @@ async function authenticatePostgres(username: string, password: string) {
       [username],
     );
     const row = lookup.rows[0];
-    const actual = await passwordHash(password, row?.salt ?? "unknown-account-salt");
-    const expected = row ? Buffer.from(row.password_hash, "hex") : Buffer.alloc(64);
+    const actual = await passwordHash(
+      password,
+      row?.salt ?? "unknown-account-salt",
+    );
+    const expected = row
+      ? Buffer.from(row.password_hash, "hex")
+      : Buffer.alloc(64);
     if (
       !timingSafeEqual(actual, expected) ||
       !row ||
@@ -178,7 +192,9 @@ async function authenticatePostgres(username: string, password: string) {
       return { error: "invalid_credentials" as const };
     }
 
-    await client.query("DELETE FROM web.failed_logins WHERE username = $1", [username]);
+    await client.query("DELETE FROM web.failed_logins WHERE username = $1", [
+      username,
+    ]);
     return { user: publicUser(row) };
   });
 
@@ -250,7 +266,9 @@ export async function createSession(user: DemoUser) {
   const token = randomBytes(32).toString("base64url");
   if (isWebPostgresConfigured()) {
     await withWebPostgresTransaction(async (client) => {
-      await client.query("DELETE FROM web.sessions WHERE expires_at <= $1", [Date.now()]);
+      await client.query("DELETE FROM web.sessions WHERE expires_at <= $1", [
+        Date.now(),
+      ]);
       await client.query(
         "INSERT INTO web.sessions (token_hash, user_id, expires_at) VALUES ($1, $2, $3)",
         [tokenHash(token), user.id, Date.now() + SESSION_SECONDS * 1000],
@@ -294,9 +312,10 @@ export async function getSessionUser(token?: string) {
 export async function revokeSession(token?: string) {
   if (isWebPostgresConfigured()) {
     if (token)
-      await webPostgresPool().query("DELETE FROM web.sessions WHERE token_hash = $1", [
-        tokenHash(token),
-      ]);
+      await webPostgresPool().query(
+        "DELETE FROM web.sessions WHERE token_hash = $1",
+        [tokenHash(token)],
+      );
     return;
   }
   if (token)
