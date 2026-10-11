@@ -55,3 +55,51 @@ test("async persistence boundaries preserve document, progress and chat API cont
   );
   expect((await sessions.json()).sessions).toEqual([created]);
 });
+
+test("study-set lookups and listings remain owner scoped", async ({
+  context,
+  browser,
+  baseURL,
+}) => {
+  const origin = baseURL!;
+  const register = (target: typeof context, prefix: string) =>
+    target.request.post("/api/auth/register", {
+      headers: { Origin: origin },
+      data: {
+        username: `${prefix}_${crypto.randomUUID().slice(0, 10)}`,
+        name: "Persistence owner",
+        password: "test123",
+      },
+    });
+  expect((await register(context, "owner")).status()).toBe(201);
+  const upload = await context.request.post("/api/documents", {
+    headers: { Origin: origin },
+    multipart: {
+      files: {
+        name: "private.md",
+        mimeType: "text/markdown",
+        buffer: Buffer.from("# Private study set\n\nOwner-scoped content."),
+      },
+    },
+  });
+  const document = (await upload.json()).documents[0];
+
+  const other = await browser.newContext({ baseURL: origin });
+  try {
+    expect((await register(other, "other")).status()).toBe(201);
+    expect((await other.request.get("/api/documents")).status()).toBe(200);
+    expect(
+      (await (await other.request.get("/api/documents")).json()).documents,
+    ).toEqual([]);
+    expect(
+      (await other.request.get(`/api/documents/${document.id}`)).status(),
+    ).toBe(404);
+    expect(
+      (
+        await other.request.get(`/api/documents/${crypto.randomUUID()}`)
+      ).status(),
+    ).toBe(404);
+  } finally {
+    await other.close();
+  }
+});

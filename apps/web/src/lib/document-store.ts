@@ -8,6 +8,14 @@ import { createHash, randomUUID } from "node:crypto";
 import { chmodSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
+import { chunkText } from "./document-chunks";
+import { chunkPages, type PdfPage } from "./document-chunking.cjs";
+import {
+  documentStorageKey,
+  readDocumentContent,
+  removeDocumentContent,
+  writeDocumentContent,
+} from "./document-file-storage";
 import {
   type DocumentStudyProgress,
   MAX_DOCUMENT_BYTES,
@@ -15,6 +23,11 @@ import {
   type StudyDocument,
 } from "./documents";
 import type { DocumentPersistence } from "./persistence-contracts";
+import {
+  isWebPostgresConfigured,
+  webPostgresPool,
+  withWebPostgresTransaction,
+} from "./web-database";
 
 // Local demo storage, separated by authenticated owner (unlike the shared learning API).
 // PDF text extraction is internal only; no OCR or generated study plan is implied.
@@ -69,8 +82,9 @@ type Row = {
   kind: "pdf" | "text";
   size: number;
   created_at: string;
-  headings: string;
+  headings: string | string[];
   content?: Uint8Array;
+  storage_key?: string;
   ingestion_status: StudyDocument["ingestionStatus"];
 };
 function metadata(row: Row): StudyDocument {
@@ -80,12 +94,24 @@ function metadata(row: Row): StudyDocument {
     kind: row.kind,
     size: row.size,
     createdAt: row.created_at,
-    headings: JSON.parse(row.headings),
+    headings:
+      typeof row.headings === "string"
+        ? JSON.parse(row.headings)
+        : row.headings,
     ingestionStatus: row.ingestion_status,
   };
 }
 
 export async function listDocuments(owner: string): Promise<StudyDocument[]> {
+  if (isWebPostgresConfigured()) {
+    const result = await webPostgresPool().query<Row>(
+      `SELECT id, name, kind, size, created_at, headings, ingestion_status
+       FROM web.documents WHERE owner = $1
+       ORDER BY created_at DESC, id DESC LIMIT 100`,
+      [owner],
+    );
+    return result.rows.map(metadata);
+  }
   const rows = documentDatabase()
     .prepare(
       `SELECT id, name, kind, size, created_at, headings, ingestion_status
@@ -100,6 +126,19 @@ export async function findDocument(
   includeContent = true,
 ) {
   if (!/^[a-f0-9-]{36}$/.test(id)) return null;
+  if (isWebPostgresConfigured()) {
+    const result = await webPostgresPool().query<Row>(
+      `SELECT id, name, kind, size, created_at, headings, ingestion_status,
+       storage_key FROM web.documents WHERE owner = $1 AND id = $2`,
+      [owner, id],
+    );
+    const row = result.rows[0];
+    if (!row) return null;
+    const content = includeContent
+      ? await readDocumentContent(row.storage_key!)
+      : Buffer.alloc(0);
+    return { ...metadata(row), content };
+  }
   const row = documentDatabase()
     .prepare(
       `SELECT id, name, kind, size, created_at, headings, ingestion_status${includeContent ? ", content" : ""} FROM documents WHERE owner = ? AND id = ?`,
@@ -181,7 +220,7 @@ export async function saveDocuments(owner: string, files: File[]) {
       const content = Buffer.from(await file.arrayBuffer());
       const kind = extension === "pdf" ? ("pdf" as const) : ("text" as const);
       const headings: string[] = [];
-      let pages;
+      let pages: PdfPage[] | undefined;
       if (kind === "pdf") {
         if (!content.subarray(0, 5).equals(Buffer.from("%PDF-")))
           throw new DocumentError("invalid_pdf");
@@ -238,6 +277,7 @@ export async function saveDocuments(owner: string, files: File[]) {
       };
     }),
   );
+  if (isWebPostgresConfigured()) return saveDocumentsPostgres(owner, prepared);
   const store = documentDatabase();
   store.exec("BEGIN IMMEDIATE");
   try {
@@ -329,6 +369,201 @@ export async function saveDocuments(owner: string, files: File[]) {
     if (store.isTransaction) store.exec("ROLLBACK");
     throw error;
   }
+}
+
+type PreparedDocument = {
+  id: string;
+  name: string;
+  kind: "pdf" | "text";
+  size: number;
+  content: Buffer;
+  headings: string[];
+  hash: string;
+  pages?: PdfPage[];
+};
+
+async function saveDocumentsPostgres(
+  owner: string,
+  documents: PreparedDocument[],
+) {
+  const candidates = await Promise.all(
+    documents.map(async (document) => {
+      const storageKey = documentStorageKey(document.id);
+      await writeDocumentContent(storageKey, document.content);
+      const unsupported = document.kind === "pdf" && !document.pages;
+      const chunks = unsupported
+        ? []
+        : document.pages
+          ? chunkPages(document.pages)
+          : chunkText(
+              new TextDecoder("utf-8", { fatal: true }).decode(
+                document.content,
+              ),
+              /\.(md|markdown)$/i.test(document.name),
+            );
+      return { ...document, storageKey, chunks, unsupported };
+    }),
+  );
+  const retained = new Set<string>();
+  const obsolete = new Set<string>();
+  let saved: StudyDocument[] = [];
+  try {
+    saved = await withWebPostgresTransaction(async (client) => {
+      await client.query(
+        "SELECT pg_advisory_xact_lock(hashtextextended($1, 1))",
+        [owner],
+      );
+      const usageResult = await client.query<{ count: string; bytes: string }>(
+        `SELECT COUNT(*)::text AS count, COALESCE(SUM(size), 0)::text AS bytes
+         FROM web.documents WHERE owner = $1`,
+        [owner],
+      );
+      const usage = {
+        count: Number(usageResult.rows[0]?.count ?? 0),
+        bytes: Number(usageResult.rows[0]?.bytes ?? 0),
+      };
+      const result: StudyDocument[] = [];
+      for (const document of candidates) {
+        const lookup = await client.query<Row>(
+          `SELECT id, name, kind, size, created_at, headings,
+           ingestion_status, storage_key FROM web.documents
+           WHERE owner = $1 AND hash = $2`,
+          [owner, document.hash],
+        );
+        const existing = lookup.rows[0];
+        if (
+          existing &&
+          existing.ingestion_status !== "failed" &&
+          !(existing.ingestion_status === "unsupported" && document.pages)
+        ) {
+          retained.add(existing.storage_key!);
+          result.push(metadata(existing));
+          continue;
+        }
+        if (!existing) {
+          if (
+            ++usage.count > 100 ||
+            (usage.bytes += document.size) > 50 * 1024 * 1024
+          )
+            throw new DocumentError("storage_full", 413);
+        }
+
+        const id = existing?.id ?? document.id;
+        const storageKey = existing
+          ? documentStorageKey(existing.id)
+          : document.storageKey;
+        if (existing?.storage_key && existing.storage_key !== storageKey)
+          obsolete.add(existing.storage_key);
+        if (existing && document.storageKey !== storageKey) {
+          await writeDocumentContent(storageKey, document.content);
+        }
+        retained.add(storageKey);
+        const createdAt = existing?.created_at ?? new Date().toISOString();
+        const status = document.unsupported ? "unsupported" : "pending";
+        await client.query(
+          `INSERT INTO web.documents
+           (id, owner, name, kind, size, created_at, headings, storage_key, hash, ingestion_status)
+           VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb, $8, $9, $10)
+           ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name,
+             kind = EXCLUDED.kind, size = EXCLUDED.size,
+             headings = EXCLUDED.headings, storage_key = EXCLUDED.storage_key,
+             hash = EXCLUDED.hash, ingestion_status = EXCLUDED.ingestion_status`,
+          [
+            id,
+            owner,
+            document.name,
+            document.kind,
+            document.size,
+            createdAt,
+            JSON.stringify(document.headings),
+            storageKey,
+            document.hash,
+            status,
+          ],
+        );
+        let finalStatus: StudyDocument["ingestionStatus"] = status;
+        if (!document.unsupported) {
+          await client.query("SAVEPOINT ingest_document");
+          try {
+            await client.query(
+              "DELETE FROM web.document_chunks WHERE document_id = $1",
+              [id],
+            );
+            for (const chunk of document.chunks) {
+              await client.query(
+                `INSERT INTO web.document_chunks
+                 (id, document_id, content, chunk_index, heading,
+                  start_offset, end_offset, created_at, page_number)
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+                [
+                  randomUUID(),
+                  id,
+                  chunk.content,
+                  chunk.chunk_index,
+                  chunk.heading,
+                  chunk.start_offset,
+                  chunk.end_offset,
+                  new Date().toISOString(),
+                  "page_number" in chunk ? chunk.page_number : null,
+                ],
+              );
+            }
+            await client.query(
+              "UPDATE web.documents SET ingestion_status = 'ready' WHERE id = $1",
+              [id],
+            );
+            await client.query("RELEASE SAVEPOINT ingest_document");
+            finalStatus = "ready";
+          } catch {
+            await client.query("ROLLBACK TO SAVEPOINT ingest_document");
+            await client.query("RELEASE SAVEPOINT ingest_document");
+            await client.query(
+              "DELETE FROM web.document_chunks WHERE document_id = $1",
+              [id],
+            );
+            await client.query(
+              "UPDATE web.documents SET ingestion_status = 'failed' WHERE id = $1",
+              [id],
+            );
+            finalStatus = "failed";
+            console.error("Compass ingestion failed", { documentId: id });
+          }
+        }
+        result.push({
+          id,
+          name: document.name,
+          kind: document.kind,
+          size: document.size,
+          createdAt,
+          headings: document.headings,
+          ingestionStatus: finalStatus,
+        });
+      }
+      return result;
+    });
+  } catch (error) {
+    await Promise.all(
+      candidates.map((document) =>
+        removeDocumentContent(document.storageKey).catch(() => undefined),
+      ),
+    );
+    throw error;
+  }
+  await Promise.all([
+    ...candidates
+      .filter((document) => !retained.has(document.storageKey))
+      .map((document) =>
+        removeDocumentContent(document.storageKey).catch(() => undefined),
+      ),
+    ...[...obsolete].map((key) =>
+      removeDocumentContent(key).catch(() => undefined),
+    ),
+  ]);
+  if (saved.some((document) => document.ingestionStatus === "failed"))
+    throw new DocumentError("ingestion_failed", 422);
+  return [
+    ...new Map(saved.map((document) => [document.id, document])).values(),
+  ];
 }
 
 export const documentPersistence = {
