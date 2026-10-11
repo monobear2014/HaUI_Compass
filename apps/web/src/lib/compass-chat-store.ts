@@ -11,24 +11,68 @@ import type {
   MessageCitation,
 } from "./compass-chat-types";
 import type { RetrievedChunk } from "./document-retriever";
+import type { ChatPersistence } from "./persistence-contracts";
+import {
+  isWebPostgresConfigured,
+  webPostgresPool,
+  withWebPostgresTransaction,
+} from "./web-database";
+import type { PoolClient } from "pg";
 
-export function authorizeSession(owner: string, id: string): ChatSession {
+async function authorizePostgresSession(
+  client: PoolClient,
+  owner: string,
+  id: string,
+) {
+  const result = await client.query<ChatSession>(
+    `SELECT s.id, s.study_set_id, s.title, s.created_at, s.updated_at
+     FROM web.chat_sessions s
+     JOIN web.documents d ON d.id = s.study_set_id AND d.owner = s.owner
+     WHERE s.owner = $1 AND s.id = $2`,
+    [owner, id],
+  );
+  const session = result.rows[0];
+  if (!session) throw new DocumentError("not_found", 404);
+  return session;
+}
+
+export async function authorizeSession(
+  owner: string,
+  id: string,
+): Promise<ChatSession> {
+  if (isWebPostgresConfigured()) {
+    const client = await webPostgresPool().connect();
+    try {
+      return await authorizePostgresSession(client, owner, id);
+    } finally {
+      client.release();
+    }
+  }
   const session = documentDatabase()
     .prepare(
       `SELECT id, study_set_id, title, created_at, updated_at
     FROM chat_sessions WHERE owner = ? AND id = ?`,
     )
     .get(owner, id) as ChatSession | undefined;
-  if (!session || !findDocument(owner, session.study_set_id, false))
+  if (!session || !(await findDocument(owner, session.study_set_id, false)))
     throw new DocumentError("not_found", 404);
   return session;
 }
-export function listChatSessions(
+export async function listChatSessions(
   owner: string,
   studySetId: string,
-): ChatSession[] {
-  if (!findDocument(owner, studySetId, false))
+): Promise<ChatSession[]> {
+  if (!(await findDocument(owner, studySetId, false)))
     throw new DocumentError("not_found", 404);
+  if (isWebPostgresConfigured()) {
+    const result = await webPostgresPool().query<ChatSession>(
+      `SELECT id, study_set_id, title, created_at, updated_at
+       FROM web.chat_sessions WHERE owner = $1 AND study_set_id = $2
+       ORDER BY updated_at DESC, sequence DESC LIMIT 100`,
+      [owner, studySetId],
+    );
+    return result.rows;
+  }
   const rows = documentDatabase()
     .prepare(
       `SELECT id, study_set_id, title, created_at, updated_at FROM chat_sessions
@@ -38,11 +82,11 @@ export function listChatSessions(
   // Node SQLite rows have null prototypes; React Server Components require plain objects.
   return rows.map((row) => ({ ...row }));
 }
-export function createChatSession(
+export async function createChatSession(
   owner: string,
   studySetId: string,
-): ChatSession {
-  if (!findDocument(owner, studySetId, false))
+): Promise<ChatSession> {
+  if (!(await findDocument(owner, studySetId, false)))
     throw new DocumentError("not_found", 404);
   const now = new Date().toISOString();
   const session = {
@@ -52,6 +96,15 @@ export function createChatSession(
     created_at: now,
     updated_at: now,
   };
+  if (isWebPostgresConfigured()) {
+    await webPostgresPool().query(
+      `INSERT INTO web.chat_sessions
+       (id, study_set_id, owner, title, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6)`,
+      [session.id, studySetId, owner, session.title, now, now],
+    );
+    return session;
+  }
   documentDatabase()
     .prepare(
       `INSERT INTO chat_sessions (id, study_set_id, owner, title, created_at, updated_at)
@@ -60,11 +113,35 @@ export function createChatSession(
     .run(session.id, studySetId, owner, session.title, now, now);
   return session;
 }
-export function getChatMessages(
+export async function getChatMessages(
   owner: string,
   sessionId: string,
-): ChatMessage[] {
-  const session = authorizeSession(owner, sessionId);
+): Promise<ChatMessage[]> {
+  const session = await authorizeSession(owner, sessionId);
+  if (isWebPostgresConfigured()) {
+    const messages = await webPostgresPool().query<
+      Omit<ChatMessage, "citations">
+    >(
+      `SELECT id, role, content, created_at, request_id, status
+       FROM web.chat_messages WHERE session_id = $1 ORDER BY sequence`,
+      [sessionId],
+    );
+    const citations = await webPostgresPool().query<
+      MessageCitation & { message_id: string }
+    >(
+      `SELECT mc.message_id, mc.citation_index AS "index", c.id AS chunk_id,
+       c.document_id, d.name AS filename, c.heading, c.page_number,
+       left(c.content, 500) AS excerpt, c.start_offset, c.end_offset
+       FROM web.message_citations mc
+       JOIN web.chat_messages m ON m.id = mc.message_id
+       JOIN web.document_chunks c ON c.id = mc.chunk_id
+       JOIN web.documents d ON d.id = c.document_id
+       WHERE m.session_id = $1 AND d.owner = $2 AND d.id = $3
+       ORDER BY mc.citation_index`,
+      [sessionId, owner, session.study_set_id],
+    );
+    return attachCitations(messages.rows, citations.rows);
+  }
   const db = documentDatabase();
   const messages = db
     .prepare(
@@ -83,6 +160,13 @@ export function getChatMessages(
     .all(sessionId, owner, session.study_set_id) as (MessageCitation & {
     message_id: string;
   })[];
+  return attachCitations(messages, citations);
+}
+
+function attachCitations(
+  messages: Omit<ChatMessage, "citations">[],
+  citations: (MessageCitation & { message_id: string })[],
+) {
   const byMessage = new Map<string, MessageCitation[]>();
   for (const { message_id, ...citation } of citations) {
     const sources = byMessage.get(message_id) ?? [];
@@ -95,13 +179,65 @@ export function getChatMessages(
   }));
 }
 
-export function beginTurn(
+export async function beginTurn(
   owner: string,
   sessionId: string,
   requestId: string,
   content: string,
 ) {
-  const session = authorizeSession(owner, sessionId);
+  if (isWebPostgresConfigured()) {
+    return withWebPostgresTransaction(async (client) => {
+      const session = await authorizePostgresSession(client, owner, sessionId);
+      const previous = await client.query<{ content: string }>(
+        `SELECT content FROM web.chat_messages
+         WHERE session_id = $1 AND request_id = $2 AND role = 'user'`,
+        [sessionId, requestId],
+      );
+      if (previous.rows[0] && previous.rows[0].content !== content)
+        throw new DocumentError("request_conflict", 409);
+      const completed = await client.query(
+        `SELECT id FROM web.chat_messages
+         WHERE session_id = $1 AND request_id = $2 AND role = 'assistant'`,
+        [sessionId, requestId],
+      );
+      if (completed.rowCount) return { session, completed: true, token: "" };
+
+      const token = randomUUID();
+      const lock = await client.query(
+        `UPDATE web.chat_sessions SET
+           generating_until = now() + interval '120 seconds',
+           generating_request = $1, generating_token = $2
+         WHERE id = $3 AND owner = $4 AND generating_until < now()
+         RETURNING id`,
+        [requestId, token, sessionId, owner],
+      );
+      if (!lock.rowCount) throw new DocumentError("already_generating", 409);
+      await client.query(
+        `UPDATE web.chat_messages SET status = 'failed'
+         WHERE session_id = $1 AND role = 'user' AND status = 'pending'`,
+        [sessionId],
+      );
+      const now = new Date().toISOString();
+      await client.query(
+        `INSERT INTO web.chat_messages
+         (id, session_id, role, content, created_at, request_id, status)
+         VALUES ($1, $2, 'user', $3, $4, $5, 'pending')
+         ON CONFLICT (session_id, request_id, role)
+         DO UPDATE SET status = 'pending'`,
+        [randomUUID(), sessionId, content, now, requestId],
+      );
+      const title =
+        session.title === "Cuộc trò chuyện mới"
+          ? content.slice(0, 60)
+          : session.title;
+      await client.query(
+        "UPDATE web.chat_sessions SET title = $1, updated_at = $2 WHERE id = $3",
+        [title, now, sessionId],
+      );
+      return { session, completed: false, token };
+    });
+  }
+  const session = await authorizeSession(owner, sessionId);
   const db = documentDatabase();
   db.exec("BEGIN IMMEDIATE");
   try {
@@ -159,7 +295,30 @@ export function beginTurn(
     throw error;
   }
 }
-export function failTurn(sessionId: string, requestId: string, token: string) {
+export async function failTurn(
+  sessionId: string,
+  requestId: string,
+  token: string,
+) {
+  if (isWebPostgresConfigured()) {
+    await withWebPostgresTransaction(async (client) => {
+      const lock = await client.query(
+        `UPDATE web.chat_sessions SET generating_until = TIMESTAMPTZ 'epoch',
+         generating_request = NULL, generating_token = NULL
+         WHERE id = $1 AND generating_request = $2 AND generating_token = $3
+         RETURNING id`,
+        [sessionId, requestId, token],
+      );
+      if (lock.rowCount)
+        await client.query(
+          `UPDATE web.chat_messages SET status = 'failed'
+           WHERE session_id = $1 AND request_id = $2
+             AND role = 'user' AND status = 'pending'`,
+          [sessionId, requestId],
+        );
+    });
+    return;
+  }
   const db = documentDatabase();
   db.exec("BEGIN IMMEDIATE");
   try {
@@ -178,7 +337,7 @@ export function failTurn(sessionId: string, requestId: string, token: string) {
     throw error;
   }
 }
-export function finishTurn(
+export async function finishTurn(
   owner: string,
   sessionId: string,
   requestId: string,
@@ -187,7 +346,49 @@ export function finishTurn(
   status: "answered" | "abstained",
   chunks: RetrievedChunk[],
 ) {
-  const session = authorizeSession(owner, sessionId);
+  if (isWebPostgresConfigured()) {
+    await withWebPostgresTransaction(async (client) => {
+      const session = await authorizePostgresSession(client, owner, sessionId);
+      const now = new Date().toISOString();
+      const lock = await client.query(
+        `UPDATE web.chat_sessions SET generating_until = TIMESTAMPTZ 'epoch',
+         generating_request = NULL, generating_token = NULL, updated_at = $1
+         WHERE id = $2 AND generating_request = $3 AND generating_token = $4
+           AND generating_until >= now() RETURNING id`,
+        [now, sessionId, requestId, token],
+      );
+      if (!lock.rowCount) throw new DocumentError("request_expired", 409);
+      const messageId = randomUUID();
+      await client.query(
+        `INSERT INTO web.chat_messages
+         (id, session_id, role, content, created_at, request_id, status)
+         VALUES ($1, $2, 'assistant', $3, $4, $5, $6)`,
+        [messageId, sessionId, answer, now, requestId, status],
+      );
+      for (const [index, chunk] of chunks.entries()) {
+        const source = await client.query(
+          `SELECT c.id FROM web.document_chunks c
+           JOIN web.documents d ON d.id = c.document_id
+           WHERE c.id = $1 AND d.owner = $2 AND d.id = $3`,
+          [chunk.chunk_id, owner, session.study_set_id],
+        );
+        if (!source.rowCount) throw new DocumentError("invalid_citations", 502);
+        await client.query(
+          `INSERT INTO web.message_citations
+           (id, message_id, chunk_id, citation_index)
+           VALUES ($1, $2, $3, $4)`,
+          [randomUUID(), messageId, chunk.chunk_id, index + 1],
+        );
+      }
+      await client.query(
+        `UPDATE web.chat_messages SET status = 'answered'
+         WHERE session_id = $1 AND request_id = $2 AND role = 'user'`,
+        [sessionId, requestId],
+      );
+    });
+    return;
+  }
+  const session = await authorizeSession(owner, sessionId);
   const db = documentDatabase();
   db.exec("BEGIN IMMEDIATE");
   try {
@@ -233,3 +434,10 @@ export function finishTurn(
     throw error;
   }
 }
+
+export const chatPersistence = {
+  authorizeSession,
+  listSessions: listChatSessions,
+  createSession: createChatSession,
+  getMessages: getChatMessages,
+} satisfies ChatPersistence;

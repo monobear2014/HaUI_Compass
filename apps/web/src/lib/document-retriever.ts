@@ -5,6 +5,7 @@ import {
   findDocument,
 } from "./document-store";
 import { rankDocumentChunks, type RankedChunk } from "./document-ranking.cjs";
+import { isWebPostgresConfigured, webPostgresPool } from "./web-database";
 
 export type RetrievedChunk = {
   chunk_id: string;
@@ -24,37 +25,33 @@ export interface DocumentRetriever {
     userId: string,
     documentIds?: string[],
     limit?: number,
-  ): RetrievedChunk[];
+  ): Promise<RetrievedChunk[]>;
 }
 export { documentIntent } from "./document-ranking.cjs";
 
-export class SqliteDocumentRetriever implements DocumentRetriever {
-  search(
+export class WebDocumentRetriever implements DocumentRetriever {
+  async search(
     query: string,
     studySetId: string,
     userId: string,
     documentIds?: string[],
     limit = 6,
   ) {
-    return this.searchWithScores(
-      query,
-      studySetId,
-      userId,
-      documentIds,
-      limit,
+    return (
+      await this.searchWithScores(query, studySetId, userId, documentIds, limit)
     ).map((item) => item.chunk);
   }
 
-  searchWithScores(
+  async searchWithScores(
     query: string,
     studySetId: string,
     userId: string,
     documentIds?: string[],
     limit = 6,
-  ): RankedChunk<RetrievedChunk>[] {
+  ): Promise<RankedChunk<RetrievedChunk>[]> {
     // Current repo: each study set has exactly one source document. Validate every
     // supplied ID BEFORE even reading chunks; this boundary can later join a set table.
-    const document = findDocument(userId, studySetId, false);
+    const document = await findDocument(userId, studySetId, false);
     if (!document) throw new DocumentError("not_found", 404);
     for (const id of documentIds ?? []) {
       if (id !== studySetId) throw new DocumentError("not_found", 404);
@@ -64,14 +61,60 @@ export class SqliteDocumentRetriever implements DocumentRetriever {
         `ingestion_${document.ingestionStatus ?? "pending"}`,
         422,
       );
-    const rows = documentDatabase()
-      .prepare(
-        `SELECT c.id AS chunk_id, c.document_id,
+    const rows = isWebPostgresConfigured()
+      ? (
+          await webPostgresPool().query<RetrievedChunk>(
+            `SELECT c.id AS chunk_id, c.document_id,
+          d.name AS filename, c.content, c.chunk_index, c.heading,
+          c.start_offset, c.end_offset, c.page_number
+          FROM web.document_chunks c
+          JOIN web.documents d ON d.id = c.document_id
+          WHERE d.owner = $1 AND d.id = $2 AND d.ingestion_status = 'ready'
+          ORDER BY c.chunk_index`,
+            [userId, studySetId],
+          )
+        ).rows
+      : (documentDatabase()
+          .prepare(
+            `SELECT c.id AS chunk_id, c.document_id,
       d.name AS filename, c.content, c.chunk_index, c.heading, c.start_offset, c.end_offset, c.page_number
       FROM document_chunks c JOIN documents d ON d.id = c.document_id
       WHERE d.owner = ? AND d.id = ? AND d.ingestion_status = 'ready' ORDER BY c.chunk_index`,
-      )
-      .all(userId, studySetId) as RetrievedChunk[];
+          )
+          .all(userId, studySetId) as RetrievedChunk[]);
     return rankDocumentChunks(query, rows, limit);
   }
+}
+
+export async function findDocumentChunk(
+  owner: string,
+  documentId: string,
+  chunkId: string,
+) {
+  if (isWebPostgresConfigured()) {
+    const result = await webPostgresPool().query<{
+      id: string;
+      content: string;
+      heading: string | null;
+      start_offset: number;
+      end_offset: number;
+      page_number: number | null;
+    }>(
+      `SELECT c.id, c.content, c.heading, c.start_offset, c.end_offset,
+       c.page_number FROM web.document_chunks c
+       JOIN web.documents d ON d.id = c.document_id
+       WHERE d.owner = $1 AND d.id = $2 AND c.id = $3`,
+      [owner, documentId, chunkId],
+    );
+    return result.rows[0] ?? null;
+  }
+  return (
+    documentDatabase()
+      .prepare(
+        `SELECT c.id, c.content, c.heading, c.start_offset, c.end_offset, c.page_number
+         FROM document_chunks c JOIN documents d ON d.id = c.document_id
+         WHERE d.owner = ? AND d.id = ? AND c.id = ?`,
+      )
+      .get(owner, documentId, chunkId) ?? null
+  );
 }

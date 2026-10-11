@@ -7,7 +7,7 @@ async function forward(
   request: NextRequest,
   context: RouteContext<"/compass-api/[...path]">,
 ) {
-  if (!getSessionUser(request.cookies.get(SESSION_COOKIE)?.value))
+  if (!(await getSessionUser(request.cookies.get(SESSION_COOKIE)?.value)))
     return Response.json(
       { error: { code: "unauthorized", message: "Please sign in again." } },
       { status: 401, headers: { "Cache-Control": "no-store" } },

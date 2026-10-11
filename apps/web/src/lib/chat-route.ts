@@ -9,7 +9,7 @@ export async function chatRoute(
 ) {
   const headers = { "Cache-Control": "no-store" };
   try {
-    const user = getSessionUser(request.cookies.get(SESSION_COOKIE)?.value);
+    const user = await getSessionUser(request.cookies.get(SESSION_COOKIE)?.value);
     if (!user) throw new DocumentError("unauthorized", 401);
     if (request.method !== "GET" && !sameOrigin(request))
       throw new DocumentError("invalid_origin", 403);

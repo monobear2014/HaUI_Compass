@@ -26,7 +26,9 @@ class FixtureTransport:
         timeout_seconds: float,
     ) -> object:
         self.calls += 1
-        await asyncio.sleep(0.6 if "lease" in str(payload["input"]) else 0.1)
+        # Keep lease requests in flight long enough for the web suite to inspect
+        # and expire the PostgreSQL lease before a replacement attempt completes.
+        await asyncio.sleep(1.2 if "lease" in str(payload["input"]) else 0.1)
         assert isinstance(payload["input"], str)
         context = json.loads(payload["input"])
         evidence = context["evidence"]

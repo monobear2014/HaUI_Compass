@@ -5,11 +5,11 @@ export const runtime = "nodejs";
 type Context = { params: Promise<{ id: string }> };
 export function GET(request: NextRequest, context: Context) {
   return chatRoute(request, async (owner) => ({
-    sessions: listChatSessions(owner, (await context.params).id),
+    sessions: await listChatSessions(owner, (await context.params).id),
   }));
 }
 export function POST(request: NextRequest, context: Context) {
   return chatRoute(request, async (owner) => ({
-    session: createChatSession(owner, (await context.params).id),
+    session: await createChatSession(owner, (await context.params).id),
   }));
 }

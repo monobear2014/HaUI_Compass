@@ -9,6 +9,11 @@ import { mkdirSync, chmodSync } from "node:fs";
 import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { promisify } from "node:util";
+import {
+  isWebPostgresConfigured,
+  webPostgresPool,
+  withWebPostgresTransaction,
+} from "./web-database";
 
 // Local demo only: identities persist; all identities share the fictional API workspace.
 export const SESSION_COOKIE = "compass_session";
@@ -19,9 +24,14 @@ const deriveKey = promisify(scrypt);
 let database: DatabaseSync | undefined;
 
 function db() {
+  if (isWebPostgresConfigured())
+    throw new Error(
+      "SQLite authentication persistence is disabled in PostgreSQL mode",
+    );
   if (database) return database;
   const directory =
-    process.env.COMPASS_STORAGE_DIR || (process.env.COMPASS_TEST_STORAGE === "1"
+    process.env.COMPASS_STORAGE_DIR ||
+    (process.env.COMPASS_TEST_STORAGE === "1"
       ? join(process.cwd(), ".playwright-data")
       : join(process.cwd(), ".demo-auth"));
   mkdirSync(directory, { recursive: true, mode: 0o700 });
@@ -60,6 +70,21 @@ function demoAccountEnabled() {
 
 async function seedDemoUser() {
   if (!demoAccountEnabled()) return;
+  if (isWebPostgresConfigured()) {
+    const exists = await webPostgresPool().query(
+      "SELECT id FROM web.users WHERE username = $1",
+      ["demo"],
+    );
+    if (exists.rowCount) return;
+    const salt = randomBytes(16).toString("hex");
+    const hash = await passwordHash("haui123", salt);
+    await webPostgresPool().query(
+      `INSERT INTO web.users (id, username, name, salt, password_hash)
+       VALUES ($1, $2, $3, $4, $5) ON CONFLICT (username) DO NOTHING`,
+      ["student-demo", "demo", "Sinh viên HaUI", salt, hash.toString("hex")],
+    );
+    return;
+  }
   const connection = db();
   if (connection.prepare("SELECT id FROM users WHERE username = ?").get("demo"))
     return;
@@ -86,6 +111,8 @@ export class AuthError extends Error {
 
 export async function authenticate(username: string, password: string) {
   await seedDemoUser();
+  if (isWebPostgresConfigured())
+    return authenticatePostgres(username, password);
   const connection = db();
   const cutoff = Date.now() - 60_000;
   connection
@@ -122,6 +149,63 @@ export async function authenticate(username: string, password: string) {
   return publicUser(row);
 }
 
+async function authenticatePostgres(username: string, password: string) {
+  const result = await withWebPostgresTransaction(async (client) => {
+    // Serialize failed-attempt accounting for this username across instances.
+    await client.query(
+      "SELECT pg_advisory_xact_lock(hashtextextended($1, 0))",
+      [username],
+    );
+    const cutoff = Date.now() - 60_000;
+    await client.query(
+      "DELETE FROM web.failed_logins WHERE username = $1 AND attempted_at < $2",
+      [username, cutoff],
+    );
+    const attempts = await client.query<{ count: string }>(
+      "SELECT COUNT(*)::text AS count FROM web.failed_logins WHERE username = $1",
+      [username],
+    );
+    if (Number(attempts.rows[0]?.count ?? 0) >= 5)
+      return { error: "too_many_attempts" as const };
+
+    const lookup = await client.query<UserRow>(
+      "SELECT id, username, name, salt, password_hash FROM web.users WHERE username = $1",
+      [username],
+    );
+    const row = lookup.rows[0];
+    const actual = await passwordHash(
+      password,
+      row?.salt ?? "unknown-account-salt",
+    );
+    const expected = row
+      ? Buffer.from(row.password_hash, "hex")
+      : Buffer.alloc(64);
+    if (
+      !timingSafeEqual(actual, expected) ||
+      !row ||
+      (row.id === "student-demo" && !demoAccountEnabled())
+    ) {
+      await client.query(
+        "INSERT INTO web.failed_logins (username, attempted_at) VALUES ($1, $2)",
+        [username, Date.now()],
+      );
+      return { error: "invalid_credentials" as const };
+    }
+
+    await client.query("DELETE FROM web.failed_logins WHERE username = $1", [
+      username,
+    ]);
+    return { user: publicUser(row) };
+  });
+
+  if ("error" in result) {
+    if (result.error === "too_many_attempts")
+      throw new AuthError("too_many_attempts", 429);
+    throw new AuthError("invalid_credentials", 401);
+  }
+  return result.user;
+}
+
 export async function registerUser(
   username: string,
   password: string,
@@ -136,6 +220,28 @@ export async function registerUser(
     password.length > 128
   )
     throw new AuthError("invalid_registration");
+  if (isWebPostgresConfigured()) {
+    const user = { id: randomUUID(), username, name };
+    const salt = randomBytes(16).toString("hex");
+    const hash = await passwordHash(password, salt);
+    try {
+      await webPostgresPool().query(
+        `INSERT INTO web.users (id, username, name, salt, password_hash)
+         VALUES ($1, $2, $3, $4, $5)`,
+        [user.id, username, name, salt, hash.toString("hex")],
+      );
+    } catch (error) {
+      if (
+        typeof error === "object" &&
+        error !== null &&
+        "code" in error &&
+        error.code === "23505"
+      )
+        throw new AuthError("username_taken", 409);
+      throw error;
+    }
+    return user;
+  }
   if (db().prepare("SELECT id FROM users WHERE username = ?").get(username))
     throw new AuthError("username_taken", 409);
   const user = { id: randomUUID(), username, name };
@@ -156,8 +262,20 @@ export async function registerUser(
 const tokenHash = (token: string) =>
   createHash("sha256").update(token).digest("hex");
 
-export function createSession(user: DemoUser) {
+export async function createSession(user: DemoUser) {
   const token = randomBytes(32).toString("base64url");
+  if (isWebPostgresConfigured()) {
+    await withWebPostgresTransaction(async (client) => {
+      await client.query("DELETE FROM web.sessions WHERE expires_at <= $1", [
+        Date.now(),
+      ]);
+      await client.query(
+        "INSERT INTO web.sessions (token_hash, user_id, expires_at) VALUES ($1, $2, $3)",
+        [tokenHash(token), user.id, Date.now() + SESSION_SECONDS * 1000],
+      );
+    });
+    return token;
+  }
   db().prepare("DELETE FROM sessions WHERE expires_at <= ?").run(Date.now());
   db()
     .prepare("INSERT INTO sessions VALUES (?, ?, ?)")
@@ -165,7 +283,20 @@ export function createSession(user: DemoUser) {
   return token;
 }
 
-export function getSessionUser(token?: string) {
+export async function getSessionUser(token?: string) {
+  if (isWebPostgresConfigured()) {
+    if (!token || !/^[A-Za-z0-9_-]{43}$/.test(token)) return null;
+    const result = await webPostgresPool().query<DemoUser>(
+      `SELECT u.id, u.username, u.name FROM web.sessions s
+       JOIN web.users u ON u.id = s.user_id
+       WHERE s.token_hash = $1 AND s.expires_at > $2`,
+      [tokenHash(token), Date.now()],
+    );
+    const user = result.rows[0];
+    return user && (user.id !== "student-demo" || demoAccountEnabled())
+      ? publicUser(user)
+      : null;
+  }
   if (!token || !/^[A-Za-z0-9_-]{43}$/.test(token)) return null;
   const user = db()
     .prepare(
@@ -178,7 +309,15 @@ export function getSessionUser(token?: string) {
     : null;
 }
 
-export function revokeSession(token?: string) {
+export async function revokeSession(token?: string) {
+  if (isWebPostgresConfigured()) {
+    if (token)
+      await webPostgresPool().query(
+        "DELETE FROM web.sessions WHERE token_hash = $1",
+        [tokenHash(token)],
+      );
+    return;
+  }
   if (token)
     db()
       .prepare("DELETE FROM sessions WHERE token_hash = ?")
