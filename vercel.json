@@ -24,7 +24,7 @@
     "api": {
       "root": "apps/api",
       "framework": "fastapi",
-      "entrypoint": "haui_compass.api.main:app",
+      "entrypoint": "src/haui_compass/api/main.py",
       "functions": {
         "src/**/*.py": {
           "maxDuration": 60

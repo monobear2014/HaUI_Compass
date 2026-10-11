@@ -50,14 +50,17 @@ references:
 
 - `web` root `apps/web`, framework `nextjs`;
 - `api` root `apps/api`, framework `fastapi`;
-- FastAPI entrypoint `haui_compass.api.main:app`;
+- FastAPI service entrypoint `src/haui_compass/api/main.py` (relative to the `apps/api` service
+  root);
 - web-to-api service binding in `COMPASS_API_URL`;
 - a public health rewrite only; and
 - a 60-second function duration budget for the relevant web/API function patterns.
 
-`apps/api/pyproject.toml` also declares the official Vercel entrypoint, and
-`apps/api/.python-version` pins Python 3.12. The API package declares its runtime dependencies in
-`pyproject.toml`; no `requirements.txt` is required for this repository.
+`apps/api/pyproject.toml` also declares the Python import entrypoint
+`haui_compass.api.main:app`, while the Services-level entrypoint above is the concrete file path
+required by the current Vercel CLI. `apps/api/.python-version` pins Python 3.12. The API package
+declares its runtime dependencies in `pyproject.toml`; no `requirements.txt` is required for this
+repository.
 
 The 60-second duration is an upper request budget, not a performance claim. The web server-to-
 server calls currently use a 60-second abort budget for Compass generation and the explicit LLM
