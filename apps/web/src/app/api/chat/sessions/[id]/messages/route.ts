@@ -7,7 +7,7 @@ export const runtime = "nodejs";
 type Context = { params: Promise<{ id: string }> };
 export function GET(request: NextRequest, context: Context) {
   return chatRoute(request, async (owner) => ({
-    messages: getChatMessages(owner, (await context.params).id),
+    messages: await getChatMessages(owner, (await context.params).id),
   }));
 }
 export function POST(request: NextRequest, context: Context) {

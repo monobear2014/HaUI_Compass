@@ -14,6 +14,7 @@ import {
   MAX_DOCUMENT_FILES,
   type StudyDocument,
 } from "./documents";
+import type { DocumentPersistence } from "./persistence-contracts";
 
 // Local demo storage, separated by authenticated owner (unlike the shared learning API).
 // PDF text extraction is internal only; no OCR or generated study plan is implied.
@@ -84,7 +85,7 @@ function metadata(row: Row): StudyDocument {
   };
 }
 
-export function listDocuments(owner: string): StudyDocument[] {
+export async function listDocuments(owner: string): Promise<StudyDocument[]> {
   const rows = documentDatabase()
     .prepare(
       `SELECT id, name, kind, size, created_at, headings, ingestion_status
@@ -93,7 +94,11 @@ export function listDocuments(owner: string): StudyDocument[] {
     .all(owner) as Row[];
   return rows.map(metadata);
 }
-export function findDocument(owner: string, id: string, includeContent = true) {
+export async function findDocument(
+  owner: string,
+  id: string,
+  includeContent = true,
+) {
   if (!/^[a-f0-9-]{36}$/.test(id)) return null;
   const row = documentDatabase()
     .prepare(
@@ -105,11 +110,11 @@ export function findDocument(owner: string, id: string, includeContent = true) {
     : null;
 }
 
-export function getDocumentStudyProgress(
+export async function getDocumentStudyProgress(
   owner: string,
   documentId: string,
-): DocumentStudyProgress | null {
-  if (!findDocument(owner, documentId)) return null;
+): Promise<DocumentStudyProgress | null> {
+  if (!(await findDocument(owner, documentId))) return null;
   const row = documentDatabase()
     .prepare(
       "SELECT covered, mastered, updated_at FROM document_study_progress WHERE owner = ? AND document_id = ?",
@@ -125,12 +130,12 @@ export function getDocumentStudyProgress(
     : { covered: [], mastered: [], updatedAt: null };
 }
 
-export function saveDocumentStudyProgress(
+export async function saveDocumentStudyProgress(
   owner: string,
   documentId: string,
   progress: Pick<DocumentStudyProgress, "covered" | "mastered">,
-): DocumentStudyProgress | null {
-  const document = findDocument(owner, documentId);
+): Promise<DocumentStudyProgress | null> {
+  const document = await findDocument(owner, documentId);
   if (!document) return null;
   const count =
     document.kind === "pdf" ? 0 : Math.max(document.headings.length, 1);
@@ -325,3 +330,11 @@ export async function saveDocuments(owner: string, files: File[]) {
     throw error;
   }
 }
+
+export const documentPersistence = {
+  listDocuments,
+  findDocument,
+  saveDocuments,
+  getStudyProgress: getDocumentStudyProgress,
+  saveStudyProgress: saveDocumentStudyProgress,
+} satisfies DocumentPersistence;

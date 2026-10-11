@@ -14,7 +14,10 @@ const failure = (error: string, status: number) =>
 export async function GET(request: NextRequest) {
   const user = await getSessionUser(request.cookies.get(SESSION_COOKIE)?.value);
   if (!user) return failure("unauthorized", 401);
-  return Response.json({ documents: listDocuments(user.id) }, { headers });
+  return Response.json(
+    { documents: await listDocuments(user.id) },
+    { headers },
+  );
 }
 export async function POST(request: NextRequest) {
   const user = await getSessionUser(request.cookies.get(SESSION_COOKIE)?.value);

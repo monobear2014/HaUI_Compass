@@ -23,18 +23,18 @@ export async function sendChatMessage(
   },
 ) {
   const requestStarted = performance.now();
-  const session = authorizeSession(owner, sessionId);
+  const session = await authorizeSession(owner, sessionId);
   const active = input.active_document_id ?? session.study_set_id;
   if (active !== session.study_set_id)
     throw new DocumentError("not_found", 404);
-  const document = findDocument(owner, active, false);
+  const document = await findDocument(owner, active, false);
   if (!document) throw new DocumentError("not_found", 404);
   if (document.ingestionStatus !== "ready")
     throw new DocumentError(
       `ingestion_${document.ingestionStatus ?? "pending"}`,
       422,
     );
-  const all = getChatMessages(owner, sessionId);
+  const all = await getChatMessages(owner, sessionId);
   const history = all
     .filter(
       (row) =>
@@ -45,7 +45,12 @@ export async function sendChatMessage(
     .slice(-8);
   // Resolve follow-ups without allowing old evidence to make an unrelated query match.
   const query = resolveRetrievalQuery(input.message, history);
-  const turn = beginTurn(owner, sessionId, input.request_id, input.message);
+  const turn = await beginTurn(
+    owner,
+    sessionId,
+    input.request_id,
+    input.message,
+  );
   if (turn.completed) return all;
   const trace: EvaluationTrace = {
     request_id: input.request_id,
@@ -59,7 +64,7 @@ export async function sendChatMessage(
   let generationStarted: number | undefined;
   try {
     const retrievalStarted = performance.now();
-    const ranked = new SqliteDocumentRetriever().searchWithScores(
+    const ranked = await new SqliteDocumentRetriever().searchWithScores(
       query,
       session.study_set_id,
       owner,
@@ -80,7 +85,7 @@ export async function sendChatMessage(
       ),
     }));
     if (!chunks.length) {
-      finishTurn(
+      await finishTurn(
         owner,
         sessionId,
         input.request_id,
@@ -89,7 +94,7 @@ export async function sendChatMessage(
         "abstained",
         [],
       );
-      return getChatMessages(owner, sessionId);
+      return await getChatMessages(owner, sessionId);
     }
     const key = process.env.COMPASS_SERVICE_KEY;
     if (!key) throw new DocumentError("assistant_unavailable", 503);
@@ -149,7 +154,7 @@ export async function sendChatMessage(
       status === "abstained"
         ? REFUSAL
         : answer.replace(/\[(?:c\d+|\d+)\]/g, "").trim();
-    finishTurn(
+    await finishTurn(
       owner,
       sessionId,
       input.request_id,
@@ -158,9 +163,9 @@ export async function sendChatMessage(
       status as "answered" | "abstained",
       cited as typeof chunks,
     );
-    return getChatMessages(owner, sessionId);
+    return await getChatMessages(owner, sessionId);
   } catch (error) {
-    failTurn(sessionId, input.request_id, turn.token);
+    await failTurn(sessionId, input.request_id, turn.token);
     console.error("Compass generation failed", {
       sessionId,
       code: error instanceof DocumentError ? error.code : "unavailable",

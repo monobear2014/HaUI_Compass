@@ -24,37 +24,33 @@ export interface DocumentRetriever {
     userId: string,
     documentIds?: string[],
     limit?: number,
-  ): RetrievedChunk[];
+  ): Promise<RetrievedChunk[]>;
 }
 export { documentIntent } from "./document-ranking.cjs";
 
 export class SqliteDocumentRetriever implements DocumentRetriever {
-  search(
+  async search(
     query: string,
     studySetId: string,
     userId: string,
     documentIds?: string[],
     limit = 6,
   ) {
-    return this.searchWithScores(
-      query,
-      studySetId,
-      userId,
-      documentIds,
-      limit,
+    return (
+      await this.searchWithScores(query, studySetId, userId, documentIds, limit)
     ).map((item) => item.chunk);
   }
 
-  searchWithScores(
+  async searchWithScores(
     query: string,
     studySetId: string,
     userId: string,
     documentIds?: string[],
     limit = 6,
-  ): RankedChunk<RetrievedChunk>[] {
+  ): Promise<RankedChunk<RetrievedChunk>[]> {
     // Current repo: each study set has exactly one source document. Validate every
     // supplied ID BEFORE even reading chunks; this boundary can later join a set table.
-    const document = findDocument(userId, studySetId, false);
+    const document = await findDocument(userId, studySetId, false);
     if (!document) throw new DocumentError("not_found", 404);
     for (const id of documentIds ?? []) {
       if (id !== studySetId) throw new DocumentError("not_found", 404);

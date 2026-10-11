@@ -21,24 +21,26 @@ export default async function Page({
 }) {
   const { id } = await params;
   const { mode, chat } = await searchParams;
-  const user = await getSessionUser((await cookies()).get(SESSION_COOKIE)?.value);
+  const user = await getSessionUser(
+    (await cookies()).get(SESSION_COOKIE)?.value,
+  );
   if (!user) redirect(`/login?next=${encodeURIComponent(`/study-set/${id}`)}`);
-  const document = findDocument(user.id, id);
+  const document = await findDocument(user.id, id);
   if (!document) notFound();
-  const progress = getDocumentStudyProgress(user.id, id);
+  const progress = await getDocumentStudyProgress(user.id, id);
   if (!progress) notFound();
-  const sessions = listChatSessions(user.id, id);
+  const sessions = await listChatSessions(user.id, id);
   let sessionId = sessions[0]?.id;
   if (chat) {
     try {
-      const selected = authorizeSession(user.id, chat);
+      const selected = await authorizeSession(user.id, chat);
       if (selected.study_set_id !== id) notFound();
       sessionId = selected.id;
     } catch {
       notFound();
     }
   }
-  const messages = sessionId ? getChatMessages(user.id, sessionId) : [];
+  const messages = sessionId ? await getChatMessages(user.id, sessionId) : [];
   const { content, ...metadata } = document;
   return (
     <StudySet

@@ -15,7 +15,7 @@ export async function GET(
   const user = await getSessionUser(request.cookies.get(SESSION_COOKIE)?.value);
   if (!user)
     return Response.json({ error: "unauthorized" }, { status: 401, headers });
-  const progress = getDocumentStudyProgress(user.id, (await params).id);
+  const progress = await getDocumentStudyProgress(user.id, (await params).id);
   if (!progress)
     return Response.json({ error: "not_found" }, { status: 404, headers });
   return Response.json({ progress }, { headers });
@@ -42,7 +42,11 @@ export async function PATCH(
     )
   )
     return Response.json({ error: "invalid_input" }, { status: 400, headers });
-  const progress = saveDocumentStudyProgress(user.id, (await params).id, body);
+  const progress = await saveDocumentStudyProgress(
+    user.id,
+    (await params).id,
+    body,
+  );
   if (!progress)
     return Response.json({ error: "not_found" }, { status: 404, headers });
   return Response.json({ progress }, { headers });

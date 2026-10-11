@@ -11,23 +11,27 @@ import type {
   MessageCitation,
 } from "./compass-chat-types";
 import type { RetrievedChunk } from "./document-retriever";
+import type { ChatPersistence } from "./persistence-contracts";
 
-export function authorizeSession(owner: string, id: string): ChatSession {
+export async function authorizeSession(
+  owner: string,
+  id: string,
+): Promise<ChatSession> {
   const session = documentDatabase()
     .prepare(
       `SELECT id, study_set_id, title, created_at, updated_at
     FROM chat_sessions WHERE owner = ? AND id = ?`,
     )
     .get(owner, id) as ChatSession | undefined;
-  if (!session || !findDocument(owner, session.study_set_id, false))
+  if (!session || !(await findDocument(owner, session.study_set_id, false)))
     throw new DocumentError("not_found", 404);
   return session;
 }
-export function listChatSessions(
+export async function listChatSessions(
   owner: string,
   studySetId: string,
-): ChatSession[] {
-  if (!findDocument(owner, studySetId, false))
+): Promise<ChatSession[]> {
+  if (!(await findDocument(owner, studySetId, false)))
     throw new DocumentError("not_found", 404);
   const rows = documentDatabase()
     .prepare(
@@ -38,11 +42,11 @@ export function listChatSessions(
   // Node SQLite rows have null prototypes; React Server Components require plain objects.
   return rows.map((row) => ({ ...row }));
 }
-export function createChatSession(
+export async function createChatSession(
   owner: string,
   studySetId: string,
-): ChatSession {
-  if (!findDocument(owner, studySetId, false))
+): Promise<ChatSession> {
+  if (!(await findDocument(owner, studySetId, false)))
     throw new DocumentError("not_found", 404);
   const now = new Date().toISOString();
   const session = {
@@ -60,11 +64,11 @@ export function createChatSession(
     .run(session.id, studySetId, owner, session.title, now, now);
   return session;
 }
-export function getChatMessages(
+export async function getChatMessages(
   owner: string,
   sessionId: string,
-): ChatMessage[] {
-  const session = authorizeSession(owner, sessionId);
+): Promise<ChatMessage[]> {
+  const session = await authorizeSession(owner, sessionId);
   const db = documentDatabase();
   const messages = db
     .prepare(
@@ -95,13 +99,13 @@ export function getChatMessages(
   }));
 }
 
-export function beginTurn(
+export async function beginTurn(
   owner: string,
   sessionId: string,
   requestId: string,
   content: string,
 ) {
-  const session = authorizeSession(owner, sessionId);
+  const session = await authorizeSession(owner, sessionId);
   const db = documentDatabase();
   db.exec("BEGIN IMMEDIATE");
   try {
@@ -159,7 +163,11 @@ export function beginTurn(
     throw error;
   }
 }
-export function failTurn(sessionId: string, requestId: string, token: string) {
+export async function failTurn(
+  sessionId: string,
+  requestId: string,
+  token: string,
+) {
   const db = documentDatabase();
   db.exec("BEGIN IMMEDIATE");
   try {
@@ -178,7 +186,7 @@ export function failTurn(sessionId: string, requestId: string, token: string) {
     throw error;
   }
 }
-export function finishTurn(
+export async function finishTurn(
   owner: string,
   sessionId: string,
   requestId: string,
@@ -187,7 +195,7 @@ export function finishTurn(
   status: "answered" | "abstained",
   chunks: RetrievedChunk[],
 ) {
-  const session = authorizeSession(owner, sessionId);
+  const session = await authorizeSession(owner, sessionId);
   const db = documentDatabase();
   db.exec("BEGIN IMMEDIATE");
   try {
@@ -233,3 +241,10 @@ export function finishTurn(
     throw error;
   }
 }
+
+export const chatPersistence = {
+  authorizeSession,
+  listSessions: listChatSessions,
+  createSession: createChatSession,
+  getMessages: getChatMessages,
+} satisfies ChatPersistence;
