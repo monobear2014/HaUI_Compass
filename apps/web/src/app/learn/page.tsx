@@ -8,7 +8,7 @@ import { listDocuments, getDocumentStudyProgress } from "@/lib/document-store";
 export const metadata: Metadata = { title: "Không gian học · HaUI Compass" };
 
 export default async function Page() {
-  const user = getSessionUser((await cookies()).get(SESSION_COOKIE)?.value);
+  const user = await getSessionUser((await cookies()).get(SESSION_COOKIE)?.value);
   if (!user) redirect("/login?next=%2Flearn");
   const documents = listDocuments(user.id).map((document) => ({
     ...document,

@@ -14,7 +14,7 @@ export default async function Page({
 }) {
   const query = await searchParams;
   const nextPath = safeReturnPath(query.next);
-  const user = getSessionUser((await cookies()).get(SESSION_COOKIE)?.value);
+  const user = await getSessionUser((await cookies()).get(SESSION_COOKIE)?.value);
   if (!user) redirect(`/login?next=${encodeURIComponent(nextPath)}`);
   const ids =
     typeof query.ids === "string" ? query.ids.split(",").slice(0, 3) : [];

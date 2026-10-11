@@ -14,7 +14,7 @@ export default async function Page({
   searchParams: Promise<{ page?: string }>;
 }) {
   const { id } = await params;
-  const user = getSessionUser((await cookies()).get(SESSION_COOKIE)?.value);
+  const user = await getSessionUser((await cookies()).get(SESSION_COOKIE)?.value);
   if (!user) redirect("/login");
   const document = findDocument(user.id, id);
   if (!document) notFound();

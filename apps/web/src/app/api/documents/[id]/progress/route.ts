@@ -12,7 +12,7 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const user = getSessionUser(request.cookies.get(SESSION_COOKIE)?.value);
+  const user = await getSessionUser(request.cookies.get(SESSION_COOKIE)?.value);
   if (!user)
     return Response.json({ error: "unauthorized" }, { status: 401, headers });
   const progress = getDocumentStudyProgress(user.id, (await params).id);
@@ -25,7 +25,7 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const user = getSessionUser(request.cookies.get(SESSION_COOKIE)?.value);
+  const user = await getSessionUser(request.cookies.get(SESSION_COOKIE)?.value);
   if (!user)
     return Response.json({ error: "unauthorized" }, { status: 401, headers });
   if (!sameOrigin(request))

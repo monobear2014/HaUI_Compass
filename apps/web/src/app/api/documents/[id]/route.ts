@@ -11,7 +11,7 @@ export async function GET(
     "Cache-Control": "no-store",
     "X-Content-Type-Options": "nosniff",
   };
-  const user = getSessionUser(request.cookies.get(SESSION_COOKIE)?.value);
+  const user = await getSessionUser(request.cookies.get(SESSION_COOKIE)?.value);
   if (!user)
     return Response.json({ error: "unauthorized" }, { status: 401, headers });
   const doc = findDocument(user.id, (await params).id);

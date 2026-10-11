@@ -21,7 +21,7 @@ export async function GET(
   if ((await context.params).action !== "session")
     return NextResponse.json({ error: "not_found" }, { status: 404, headers });
   return NextResponse.json(
-    { user: getSessionUser(request.cookies.get(SESSION_COOKIE)?.value) },
+    { user: await getSessionUser(request.cookies.get(SESSION_COOKIE)?.value) },
     { headers },
   );
 }
@@ -46,7 +46,7 @@ export async function POST(
   };
   try {
     if (action === "logout") {
-      revokeSession(previousToken);
+      await revokeSession(previousToken);
       const response = NextResponse.json({ ok: true }, { headers });
       response.cookies.set(SESSION_COOKIE, "", { ...options, maxAge: 0 });
       return response;
@@ -81,8 +81,8 @@ export async function POST(
             body.password,
             typeof body.name === "string" ? body.name.trim() : "",
           );
-    const token = createSession(user);
-    revokeSession(previousToken);
+    const token = await createSession(user);
+    await revokeSession(previousToken);
     const response = NextResponse.json(
       { user },
       { status: action === "register" ? 201 : 200, headers },

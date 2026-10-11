@@ -1,5 +1,5 @@
 import "server-only";
-import { Pool } from "pg";
+import { Pool, type PoolClient } from "pg";
 import { resolveWebDatabaseConfiguration } from "./web-database-config";
 
 let pool: Pool | undefined;
@@ -24,4 +24,25 @@ export function webPostgresPool(): Pool {
     console.error("Web PostgreSQL pool encountered an idle connection error");
   });
   return pool;
+}
+
+export function isWebPostgresConfigured(): boolean {
+  return resolveWebDatabaseConfiguration(process.env).kind === "postgres";
+}
+
+export async function withWebPostgresTransaction<T>(
+  operation: (client: PoolClient) => Promise<T>,
+): Promise<T> {
+  const client = await webPostgresPool().connect();
+  try {
+    await client.query("BEGIN");
+    const result = await operation(client);
+    await client.query("COMMIT");
+    return result;
+  } catch (error) {
+    await client.query("ROLLBACK").catch(() => undefined);
+    throw error;
+  } finally {
+    client.release();
+  }
 }

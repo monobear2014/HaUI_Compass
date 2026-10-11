@@ -21,7 +21,7 @@ export default async function Page({
 }) {
   const { id } = await params;
   const { mode, chat } = await searchParams;
-  const user = getSessionUser((await cookies()).get(SESSION_COOKIE)?.value);
+  const user = await getSessionUser((await cookies()).get(SESSION_COOKIE)?.value);
   if (!user) redirect(`/login?next=${encodeURIComponent(`/study-set/${id}`)}`);
   const document = findDocument(user.id, id);
   if (!document) notFound();

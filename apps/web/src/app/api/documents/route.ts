@@ -11,13 +11,13 @@ export const runtime = "nodejs";
 const headers = { "Cache-Control": "no-store" };
 const failure = (error: string, status: number) =>
   Response.json({ error }, { status, headers });
-export function GET(request: NextRequest) {
-  const user = getSessionUser(request.cookies.get(SESSION_COOKIE)?.value);
+export async function GET(request: NextRequest) {
+  const user = await getSessionUser(request.cookies.get(SESSION_COOKIE)?.value);
   if (!user) return failure("unauthorized", 401);
   return Response.json({ documents: listDocuments(user.id) }, { headers });
 }
 export async function POST(request: NextRequest) {
-  const user = getSessionUser(request.cookies.get(SESSION_COOKIE)?.value);
+  const user = await getSessionUser(request.cookies.get(SESSION_COOKIE)?.value);
   if (!user) return failure("unauthorized", 401);
   if (!sameOrigin(request)) return failure("invalid_origin", 403);
   if (!request.headers.get("content-type")?.startsWith("multipart/form-data;"))
