@@ -53,7 +53,7 @@ references:
 - FastAPI service entrypoint `src/haui_compass/api/main.py` (relative to the `apps/api` service
   root);
 - web-to-api service binding in `COMPASS_API_URL`;
-- a public health rewrite only; and
+- a public API health rewrite followed by a catch-all web rewrite; and
 - a 60-second function duration budget for the relevant web/API function patterns.
 
 `apps/api/pyproject.toml` also declares the Python import entrypoint

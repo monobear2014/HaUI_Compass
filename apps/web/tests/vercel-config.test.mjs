@@ -25,6 +25,10 @@ test("Vercel Services config keeps web routes and API service separate", () => {
       source: "/api/v1/health",
       destination: { service: "api" },
     },
+    {
+      source: "/(.*)",
+      destination: { service: "web" },
+    },
   ]);
 });
 
@@ -34,16 +38,17 @@ test("FastAPI service entrypoint is a file under its service root", async () => 
   assert.equal(config.services.api.functions["src/**/*.py"].maxDuration, 60);
 });
 
-test("public routing exposes only health and leaves Next.js API ownership intact", () => {
+test("public routing exposes API health and the web application", () => {
   assert.deepEqual(config.rewrites, [
     { source: "/api/v1/health", destination: { service: "api" } },
+    { source: "/(.*)", destination: { service: "web" } },
   ]);
   assert.ok(!config.rewrites.some(({ source }) => source === "/api/(.*)"));
-  assert.ok(!config.rewrites.some(({ source }) => source === "/(.*)"));
 });
 
 test("staging functions have an explicit duration budget", () => {
   assert.equal(config.services.web.functions["src/app/api/**/*.ts"].maxDuration, 60);
   assert.equal(config.services.web.functions["src/app/compass-api/**/*.ts"].maxDuration, 60);
   assert.equal(config.services.api.functions["src/**/*.py"].maxDuration, 60);
+  assert.equal(config.services.api.buildCommand, "mkdir -p data && cp -R ../../data/. data/");
 });

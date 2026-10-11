@@ -64,6 +64,16 @@ from haui_compass.infrastructure.retrieval.pdf import PypdfTextExtractor
 from haui_compass.infrastructure.retrieval.template_answer import TemplateGroundedAnswerProvider
 
 
+def _corpus_root() -> Path:
+    """Resolve the corpus from either the monorepo or the isolated Vercel service."""
+    source_path = Path(__file__).resolve()
+    candidates = (source_path.parents[5] / "data", source_path.parents[3] / "data")
+    for candidate in candidates:
+        if (candidate / "manifest.json").is_file():
+            return candidate
+    raise FileNotFoundError("HaUI Compass corpus manifest is missing from the API deployment")
+
+
 def build_postgres_container(
     *,
     settings: DatabaseSettings | None = None,
@@ -109,7 +119,6 @@ def build_postgres_container(
         else "not_configured"
     )
     llm_timeout = llm_settings.timeout_seconds if llm_settings is not None else 2.0
-    corpus_root = Path(__file__).resolve().parents[5] / "data"
     return AppContainer(
         pdf_text_extractor=PypdfTextExtractor(),
         compass_answer=GroundedAnswerService(
@@ -119,7 +128,7 @@ def build_postgres_container(
             unavailable_reason=unavailable_reason,
         ),
         query_knowledge=QueryKnowledge(
-            retriever=LocalLexicalKnowledgeRetriever(ingest_manifest(corpus_root)),
+            retriever=LocalLexicalKnowledgeRetriever(ingest_manifest(_corpus_root())),
             template=TemplateGroundedAnswerProvider(),
             provider=llm_adapter,
             timeout_seconds=llm_timeout,

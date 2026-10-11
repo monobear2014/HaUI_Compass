@@ -25,6 +25,7 @@
       "root": "apps/api",
       "framework": "fastapi",
       "entrypoint": "src/haui_compass/api/main.py",
+      "buildCommand": "mkdir -p data && cp -R ../../data/. data/",
       "functions": {
         "src/**/*.py": {
           "maxDuration": 60
@@ -37,6 +38,12 @@
       "source": "/api/v1/health",
       "destination": {
         "service": "api"
+      }
+    },
+    {
+      "source": "/(.*)",
+      "destination": {
+        "service": "web"
       }
     }
   ]
