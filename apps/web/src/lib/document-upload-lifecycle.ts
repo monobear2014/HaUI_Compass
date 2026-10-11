@@ -108,7 +108,11 @@ function descriptorParts(descriptor: UploadDescriptor) {
 }
 
 function requireDirectUploadRuntime() {
-  if (!isWebPostgresConfigured() || documentStorage().kind !== "vercel-blob")
+  if (
+    !isWebPostgresConfigured() ||
+    documentStorage().kind !== "vercel-blob" ||
+    !process.env.BLOB_WEBHOOK_PUBLIC_KEY?.trim()
+  )
     throw new DocumentError("direct_upload_unavailable", 503);
 }
 
