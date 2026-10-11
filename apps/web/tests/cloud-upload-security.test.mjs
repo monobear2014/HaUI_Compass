@@ -29,7 +29,10 @@ test("browser completion data cannot choose the object identity", async () => {
   assert.match(source, /payload\.storageKey !== pathname/);
   assert.match(source, /row\.storage_key !== trusted\.storageKey/);
   assert.match(source, /blob\.size !== row\.expected_size/);
-  assert.match(source, /readDocumentContent\(intent\.storage_key\)/);
+  assert.match(source, /readDocumentContent\(claimedIntent\.storage_key\)/);
+  assert.match(source, /status = 'uploaded'/);
+  assert.match(source, /status = 'ingesting'/);
+  assert.match(source, /retryUploadIntent/);
 });
 
 test("staging does not accept the legacy proxied upload path", async () => {

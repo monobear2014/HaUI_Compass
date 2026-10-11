@@ -363,12 +363,12 @@ export async function completeUploadIntent(
       throw new DocumentError("invalid_upload_completion", 400);
     const now = new Date().toISOString();
     await client.query(
-      `UPDATE web.document_upload_intents SET status = 'ingesting', updated_at = $1,
+      `UPDATE web.document_upload_intents SET status = 'uploaded', updated_at = $1,
        completed_at = COALESCE(completed_at, $1) WHERE id = $2`,
       [now, row.id],
     );
     await client.query(
-      "UPDATE web.documents SET ingestion_status = 'ingesting' WHERE id = $1",
+      "UPDATE web.documents SET ingestion_status = 'uploaded' WHERE id = $1",
       [row.document_id],
     );
     return row;
@@ -377,27 +377,55 @@ export async function completeUploadIntent(
   const intent = transition as UploadIntentRow;
   if (intent.status === "ready") return { status: "ready" as const, documentId: intent.document_id };
 
+  const claimed = await withWebPostgresTransaction(async (client) => {
+    const result = await client.query<UploadIntentRow>(
+      `SELECT id, owner, document_id, storage_key, name, kind, content_type,
+              expected_size, status, error_code, expires_at
+       FROM web.document_upload_intents WHERE id = $1 AND owner = $2 FOR UPDATE`,
+      [intent.id, intent.owner],
+    );
+    const row = result.rows[0];
+    if (!row) throw new DocumentError("invalid_upload_completion", 403);
+    if (row.status === "ready") return row;
+    if (row.status === "ingesting") return null;
+    if (row.status !== "uploaded")
+      throw new DocumentError("invalid_upload_completion", 409);
+    await client.query(
+      "UPDATE web.document_upload_intents SET status = 'ingesting', updated_at = $1 WHERE id = $2",
+      [new Date().toISOString(), row.id],
+    );
+    await client.query(
+      "UPDATE web.documents SET ingestion_status = 'ingesting' WHERE id = $1",
+      [row.document_id],
+    );
+    return row;
+  });
+  if (!claimed) return { status: "ingesting" as const };
+  const claimedIntent = claimed as UploadIntentRow;
+  if (claimedIntent.status === "ready")
+    return { status: "ready" as const, documentId: claimedIntent.document_id };
+
   let content: Buffer;
   let pages: PdfPage[] | undefined;
   let headings: string[];
   try {
-    content = await readDocumentContent(intent.storage_key);
-    ({ headings, pages } = await validateActualContent(intent, content));
+    content = await readDocumentContent(claimedIntent.storage_key);
+    ({ headings, pages } = await validateActualContent(claimedIntent, content));
   } catch (error) {
     const code = error instanceof DocumentError ? error.code : "ingestion_failed";
     await withWebPostgresTransaction(async (client) => {
       await client.query(
         `UPDATE web.document_upload_intents SET status = 'failed', error_code = $1,
          updated_at = $2 WHERE id = $3 AND status = 'ingesting'`,
-        [code, new Date().toISOString(), intent.id],
+        [code, new Date().toISOString(), claimedIntent.id],
       );
       await client.query(
         "DELETE FROM web.document_chunks WHERE document_id = $1",
-        [intent.document_id],
+        [claimedIntent.document_id],
       );
       await client.query(
         "UPDATE web.documents SET ingestion_status = 'failed' WHERE id = $1",
-        [intent.document_id],
+        [claimedIntent.document_id],
       );
     });
     throw error;
@@ -408,32 +436,32 @@ export async function completeUploadIntent(
     await withWebPostgresTransaction(async (client) => {
       const duplicate = await client.query<{ id: string }>(
         "SELECT id FROM web.documents WHERE owner = $1 AND hash = $2 AND id <> $3 FOR UPDATE",
-        [intent.owner, hash, intent.document_id],
+        [claimedIntent.owner, hash, claimedIntent.document_id],
       );
       if (duplicate.rows[0]) {
         duplicateDocument = true;
         await client.query(
           `UPDATE web.document_upload_intents SET status = 'failed', error_code = 'duplicate_document',
            updated_at = $1 WHERE id = $2`,
-          [new Date().toISOString(), intent.id],
+          [new Date().toISOString(), claimedIntent.id],
         );
         await client.query(
           "UPDATE web.documents SET ingestion_status = 'failed', hash = $1 WHERE id = $2",
-          [hash, intent.document_id],
+          [hash, claimedIntent.document_id],
         );
         return;
       }
-      const count = await persistChunks(client, intent.document_id, intent, content, pages);
+      const count = await persistChunks(client, claimedIntent.document_id, claimedIntent, content, pages);
       void count;
       await client.query(
         `UPDATE web.documents SET name = $1, size = $2, headings = $3::jsonb, hash = $4,
          ingestion_status = 'ready' WHERE id = $5`,
-        [intent.name, content.byteLength, JSON.stringify(headings), hash, intent.document_id],
+        [claimedIntent.name, content.byteLength, JSON.stringify(headings), hash, claimedIntent.document_id],
       );
       await client.query(
         `UPDATE web.document_upload_intents SET status = 'ready', updated_at = $1,
          error_code = NULL WHERE id = $2`,
-        [new Date().toISOString(), intent.id],
+        [new Date().toISOString(), claimedIntent.id],
       );
     });
   } catch (error) {
@@ -441,15 +469,15 @@ export async function completeUploadIntent(
       await client.query(
         `UPDATE web.document_upload_intents SET status = 'failed', error_code = 'ingestion_failed',
          updated_at = $1 WHERE id = $2 AND status = 'ingesting'`,
-        [new Date().toISOString(), intent.id],
+        [new Date().toISOString(), claimedIntent.id],
       );
       await client.query(
         "DELETE FROM web.document_chunks WHERE document_id = $1",
-        [intent.document_id],
+        [claimedIntent.document_id],
       );
       await client.query(
         "UPDATE web.documents SET ingestion_status = 'failed' WHERE id = $1",
-        [intent.document_id],
+        [claimedIntent.document_id],
       );
     }).catch(() => undefined);
     throw error;
@@ -457,10 +485,10 @@ export async function completeUploadIntent(
   if (duplicateDocument)
     return {
       status: "failed" as const,
-      documentId: intent.document_id,
+      documentId: claimedIntent.document_id,
       errorCode: "duplicate_document",
     };
-  return { status: "ready" as const, documentId: intent.document_id };
+  return { status: "ready" as const, documentId: claimedIntent.document_id };
 }
 
 export async function reconcileUploadIntent(owner: string, intentId: string) {
@@ -505,6 +533,42 @@ export async function getUploadIntentStatus(owner: string, intentId: string) {
     errorCode: intent.error_code,
     document: document.rows[0] ?? null,
   };
+}
+
+export async function retryUploadIntent(owner: string, intentId: string) {
+  requireDirectUploadRuntime();
+  const intent = await withWebPostgresTransaction(async (client) => {
+    const result = await client.query<UploadIntentRow>(
+      `SELECT id, owner, document_id, storage_key, name, kind, content_type,
+              expected_size, status, error_code, expires_at
+       FROM web.document_upload_intents WHERE owner = $1 AND id = $2 FOR UPDATE`,
+      [owner, intentId],
+    );
+    const row = result.rows[0];
+    if (!row) return null;
+    if (row.status !== "failed" || row.error_code === "duplicate_document")
+      throw new DocumentError("upload_not_retryable", 409);
+    if (row.expires_at <= Date.now())
+      throw new DocumentError("expired_upload_intent", 409);
+    await client.query(
+      `UPDATE web.document_upload_intents SET status = 'uploaded', error_code = NULL,
+       updated_at = $1 WHERE id = $2`,
+      [new Date().toISOString(), row.id],
+    );
+    await client.query(
+      "UPDATE web.documents SET ingestion_status = 'uploaded' WHERE id = $1",
+      [row.document_id],
+    );
+    return row;
+  });
+  if (!intent) return null;
+  const object = await documentContentHead(intent.storage_key);
+  if (!object) throw new DocumentError("storage_read_failed", 503);
+  await completeUploadIntent(
+    JSON.stringify({ intentId, owner, storageKey: intent.storage_key }),
+    { pathname: intent.storage_key, size: object.size, contentType: object.contentType },
+  );
+  return getUploadIntentStatus(owner, intentId);
 }
 
 export async function cleanupUploadObject(key: string) {
