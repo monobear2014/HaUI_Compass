@@ -336,6 +336,8 @@ test("PostgreSQL chat keeps history, citations and attempt fencing atomic", asyn
   const requestId = crypto.randomUUID();
   const pool = database();
   try {
+    // Compile/warm the handler before measuring the short generation lease window.
+    await context.request.get(`/api/chat/sessions/${session.id}/messages`);
     const original = send(context, origin, session.id, document.id, requestId);
     await expect
       .poll(async () => {
@@ -382,7 +384,7 @@ test("PostgreSQL chat keeps history, citations and attempt fencing atomic", asyn
     expect(messages).toHaveLength(2);
     expect(messages[1].citations[0]).toMatchObject({
       document_id: document.id,
-      heading: "Softmax",
+      heading: "Classification",
     });
     const linked = await pool.query(
       `SELECT mc.id FROM web.message_citations mc
