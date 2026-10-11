@@ -63,8 +63,12 @@ Learning-loop APIs and data contracts are unchanged.
 
 The upload screen accepts PDF, UTF-8 TXT and Markdown (1–3 files, at most 5 MB
 each), with drag-and-drop, removal of selected files, errors/retry and a fictional
-sample. `/api/documents` stores files in local, gitignored
-`.demo-auth/documents.sqlite`, isolated by authenticated owner. Both metadata and
+sample. Local development stores files in the gitignored
+`.demo-auth/documents.sqlite`, isolated by authenticated owner. When
+`HAUI_COMPASS_WEB_DATABASE_URL` is set, authentication, document/study-set metadata,
+chunks, chat/citations and progress use the `web` PostgreSQL schema; raw file bytes
+remain behind an opaque `storage_key` in local file storage pending the separate
+object-storage milestone. Both metadata and
 content reads require that owner; writes require the same Origin. Validation is
 server-side too, batches are atomic, duplicate content reuses its record, request
 streams are bounded, and each account is limited to 100 files / 50 MB.
@@ -86,7 +90,8 @@ assignment planner; it does not claim to plan automatically from uploads.
 The separate Knowledge screen continues to search the registered corpus.
 Compass Assistant retrieves only the authenticated owner's current uploaded
 document. When the backend LLM is enabled, bounded relevant excerpts are sent to
-the configured provider. Storage still uses the existing local SQLite files.
+the configured provider. Production and Vercel runtimes fail closed without
+`HAUI_COMPASS_WEB_DATABASE_URL`; local development continues to support SQLite.
 See [Compass Assistant setup, APIs and migrations](../../docs/features/compass-assistant.md).
 The original project illustration and generation prompt are documented in
 [public/compass/README.md](public/compass/README.md).
@@ -167,6 +172,19 @@ npm run build
 npx playwright install chromium
 npm test
 ```
+
+To verify web persistence against an isolated PostgreSQL test database, start the
+`postgres-test` service and point the command only at that database:
+
+```bash
+docker compose -f ../../docker-compose.postgres.yml up -d postgres-test
+HAUI_COMPASS_WEB_DATABASE_URL=postgresql://haui:change-me@127.0.0.1:54330/haui_compass_test npm run test:postgres
+```
+
+`test:postgres` applies the forward-only web migration and then exercises owner
+isolation, reconnect persistence, chunk/PDF metadata, transaction/ingestion rollback,
+deletion cascades, concurrent progress writes, chat history/citations and lease
+attempt fencing. Never use a user, staging or production database for this command.
 
 Playwright starts the demo on 8001 and web on 3000 if absent. Locally it may reuse
 existing servers: ensure the frontend points at this demo, not an unrelated API.

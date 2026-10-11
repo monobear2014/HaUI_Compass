@@ -47,3 +47,17 @@ test("local SQLite entry points fail closed when PostgreSQL is selected", async 
     /function db\(\)[\s\S]*?if \(isWebPostgresConfigured\(\)\)[\s\S]*?SQLite authentication persistence is disabled/,
   );
 });
+
+test("the PostgreSQL migration stores references, not document bytes", async () => {
+  const migration = await readFile(
+    join(sourceRoot, "../migrations/postgres/001_initial.sql"),
+    "utf8",
+  );
+  assert.match(migration, /CREATE TABLE web\.documents/);
+  assert.match(migration, /storage_key TEXT NOT NULL UNIQUE/);
+  assert.match(migration, /CREATE TABLE web\.document_chunks/);
+  assert.match(migration, /CREATE TABLE web\.document_study_progress/);
+  assert.match(migration, /CREATE TABLE web\.chat_sessions/);
+  assert.match(migration, /CREATE TABLE web\.message_citations/);
+  assert.doesNotMatch(migration, /\b(?:BYTEA|BLOB)\b/i);
+});
