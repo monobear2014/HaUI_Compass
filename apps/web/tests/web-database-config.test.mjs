@@ -34,3 +34,13 @@ test("Vercel preview without the web PostgreSQL URL also fails closed", () => {
     /HAUI_COMPASS_WEB_DATABASE_URL is required/,
   );
 });
+
+test("the explicit local production test harness may use SQLite", () => {
+  assert.deepEqual(
+    resolveWebDatabaseConfiguration({
+      NODE_ENV: "production",
+      COMPASS_TEST_STORAGE: "1",
+    }),
+    { kind: "sqlite" },
+  );
+});

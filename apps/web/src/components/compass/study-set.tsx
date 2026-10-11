@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { DocumentStudyProgress, StudyDocument } from "@/lib/documents";
 import { usePreferences } from "../preferences";
 import { CIcon } from "./primitives";
@@ -108,6 +108,17 @@ export function StudySet({
   const [sourceError, setSourceError] = useState(false);
   const sourceRef = useRef<HTMLElement>(null);
   const citationRequest = useRef(0);
+  useEffect(() => {
+    if (!source) return;
+    const frame = requestAnimationFrame(() => {
+      sourceRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+      sourceRef.current?.focus({ preventScroll: true });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [source]);
   async function navigateCitation(citation: MessageCitation) {
     const request = ++citationRequest.current;
     setSource(null);
@@ -142,16 +153,6 @@ export function StudySet({
         (topic) => topic.title === citation.heading,
       );
       if (index >= 0) setActive(index);
-      // Wait for the source card to render before scrolling and focusing it.
-      requestAnimationFrame(() =>
-        sourceRef.current?.scrollIntoView({
-          behavior: "smooth",
-          block: "center",
-        }),
-      );
-      requestAnimationFrame(() =>
-        sourceRef.current?.focus({ preventScroll: true }),
-      );
     } catch {
       if (request === citationRequest.current) setSourceError(true);
     }
