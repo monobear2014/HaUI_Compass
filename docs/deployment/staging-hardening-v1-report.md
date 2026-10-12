@@ -195,14 +195,20 @@ later inspection or normal disposable-environment teardown.
 Target supplied for this closure: https://haui-compass-3udu92iyx-nam-4b71.vercel.app/
 
 An unauthenticated request to both `/` and `/api/v1/health` returned HTTP 302 to Vercel SSO. In the
-authorized Chrome profile, `/api/v1/health` returned HTTP 200 with `{"status":"ok"}`. The Preview
-homepage tab showed the HaUI Compass document title, but its captured page viewport was entirely
-white and had no accessible page content. Student workflows could not safely proceed from that
-state.
+authorized Chrome profile, `/api/v1/health` returned HTTP 200 with `{"status":"ok"}`. The user
+confirmed the Preview page is visible in their signed-in Chrome tab, and the attached Preview tab's
+accessibility tree contained the HaUI Compass homepage content. An earlier white screenshot came
+from the wrong/stale browser capture context and is not evidence of a rendering failure.
+
+Registration is currently at the username step. The page states “By continuing, you agree to our
+Terms and Data & privacy.” The source confirms the first Continue button only reveals the remaining
+registration fields, while Create account submits registration. Because the user must accept the
+linked terms for account creation, test-account creation is handed off to the user before any
+agreement action is taken. No staging account, document, or Blob object has been created.
 
 | Staging resource/check | Student A | Student B | Anonymous | Result |
 |---|---|---|---|---|
-| Registration/login | Not run | Not run | SSO redirects at the deployment edge | Blocked by blank Preview page |
+| Registration/login | Not run | Not run | SSO redirects at the deployment edge | Awaiting user-created synthetic accounts after terms acceptance |
 | Study Set creation | Not run | Not run | — | Blocked |
 | TXT/MD/PDF upload and ready ingestion | Not run | Not run | — | Blocked |
 | Grounded response and citation | Not run | Not run | — | Blocked; 0 live model requests |
@@ -227,13 +233,15 @@ was created, so there is no cloud test data to clean up.
   at the tested host, but not its full Vercel configuration.
 - No Production deployment, Vercel setting, cloud migration, account, document, or Blob object was
   changed or created during this closure.
-- No code commit was needed. This report update is the only requested repository change; its
-  authorship and push status are recorded in the accompanying final delivery.
+- Report-only commit `f8a2349a378c831723a4d382405f79bd62791820` is authored by `Nguyen hoai nam`
+  (`namnh.audit@gmail.com`); no co-author or AI attribution is present. This commit has not been
+  pushed because the required live acceptance and target deployment verification are incomplete.
 
 ### Remaining blockers
 
-1. The supplied Preview homepage renders blank in the authorized browser. Restore or diagnose its
-   page rendering, then complete the two-student workflow, ownership matrix and private Blob tests.
+1. Have the user create two synthetic student accounts in the supplied Preview and leave Student A
+   signed in after accepting the displayed Terms and Data & privacy. Then complete the student
+   workflows, ownership matrix, and private Blob tests.
 2. Reopen the Vercel project settings/deployment details for the supplied URL to verify branch
    tracking, protection, Ready state, services and deployed SHA. No Production deployment should
    be triggered.
@@ -244,4 +252,5 @@ was created, so there is no cloud test data to clean up.
 
 Acceptance remains **PARTIAL** because the full local Playwright and PostgreSQL suites are green,
 but essential live Preview acceptance and the target deployment/settings verification remain
-incomplete.
+incomplete. The Preview page itself is visible; the current live-test handoff is the user-controlled
+terms acceptance needed to create the two synthetic accounts.
