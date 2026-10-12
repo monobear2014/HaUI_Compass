@@ -225,9 +225,11 @@ was created, so there is no cloud test data to clean up.
 ### Deployment and Git closure
 
 - Preview health endpoint: HTTP 200 in the authorized Chrome session.
-- Preview web/API Ready state and deployed SHA: **not verified** for the supplied `3udu92iyx`
-  deployment. The open Vercel dashboard showed a different, stale deployment (`e1c2bd4`) marked
-  Ready, so it is not evidence for the requested Preview.
+- Vercel's deployment list identifies the supplied `3udu92iyx` URL as a **Ready Preview** from
+  `feat/vercel-staging-deployment`, deployed at `2026-10-12 14:58:36 Asia/Ho_Chi_Minh` from
+  commit `48700ba080afdf895ba85bf945049b1964fee60e`. This matches the requested baseline SHA.
+  The deployment detail page did not expose service-level data during this check, so separate
+  `web` and `api` Ready states remain unverified.
 - Production Branch `main`, Preview Branch `feat/vercel-staging-deployment`, and project-level
   Deployment Protection: **not re-verified** in project settings. SSO redirects confirm protection
   at the tested host, but not its full Vercel configuration.
@@ -242,9 +244,9 @@ was created, so there is no cloud test data to clean up.
 1. Have the user create two synthetic student accounts in the supplied Preview and leave Student A
    signed in after accepting the displayed Terms and Data & privacy. Then complete the student
    workflows, ownership matrix, and private Blob tests.
-2. Reopen the Vercel project settings/deployment details for the supplied URL to verify branch
-   tracking, protection, Ready state, services and deployed SHA. No Production deployment should
-   be triggered.
+2. Reopen Vercel project settings to verify Production Branch `main`, Preview Branch
+   `feat/vercel-staging-deployment`, and project-level Deployment Protection; separately verify
+   service-level readiness for `web` and `api`. No Production deployment should be triggered.
 3. The original four timeout traces were unavailable. If they recur, retain their failed traces
    and browser/server timing logs to identify the stalled action.
 4. The API key displayed in the IDE context is exposed in this conversation. Its owner should
