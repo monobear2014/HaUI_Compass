@@ -235,9 +235,11 @@ was created, so there is no cloud test data to clean up.
   at the tested host, but not its full Vercel configuration.
 - No Production deployment, Vercel setting, cloud migration, account, document, or Blob object was
   changed or created during this closure.
-- Report-only commit `f8a2349a378c831723a4d382405f79bd62791820` is authored by `Nguyen hoai nam`
-  (`namnh.audit@gmail.com`); no co-author or AI attribution is present. This commit has not been
-  pushed because the required live acceptance and target deployment verification are incomplete.
+- Report-only commits made during this closure are `f8a2349a378c831723a4d382405f79bd62791820`,
+  `56a679ed07f8103663d72eb9df567781e1b611c6`, and
+  `538c040561deba4bb4e21d15a4b711fe5d157a5b`. All three are authored by `Nguyen hoai nam`
+  (`namnh.audit@gmail.com`), with no co-author or AI attribution. They have not been pushed because
+  the required live acceptance and project-settings verification are incomplete.
 
 ### Remaining blockers
 
