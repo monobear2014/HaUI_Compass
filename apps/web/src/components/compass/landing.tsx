@@ -129,6 +129,7 @@ export function CompassLanding() {
             src="/compass/study-hero.png"
             alt=""
             fill
+            unoptimized
             sizes="100vw"
             priority
           />

@@ -24,7 +24,12 @@ test("HaUI Compass landing uses its own identity and explains real student flows
   await expect(page.locator("body")).not.toContainText(
     /Cursus|Neural Forge|SSA101|institutional access/i,
   );
-  await expect(page.locator('img[src*="study-hero"]')).toBeVisible();
+  const heroImage = page.locator('img[src*="study-hero"]');
+  await expect(heroImage).toBeVisible();
+  await expect(heroImage).toHaveAttribute("src", "/compass/study-hero.png");
+  await expect
+    .poll(() => heroImage.evaluate((image: HTMLImageElement) => image.naturalWidth))
+    .toBeGreaterThan(0);
   await expect(page.locator("video")).toHaveCount(0);
   await expect(page.locator(".app-shell")).toHaveCount(0);
   await page.screenshot({ path: info.outputPath("compass-hero.png") });
