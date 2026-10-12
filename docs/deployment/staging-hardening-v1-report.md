@@ -258,3 +258,100 @@ Acceptance remains **PARTIAL** because the full local Playwright and PostgreSQL 
 but essential live Preview acceptance and the target deployment/settings verification remain
 incomplete. The Preview page itself is visible; the current live-test handoff is the user-controlled
 terms acceptance needed to create the two synthetic accounts.
+
+## Staging hardening v1.2 — live student workflow
+
+**Status: PARTIAL**
+Run date: 2026-10-12 (Asia/Ho_Chi_Minh). Deployed baseline: `48700ba080afdf895ba85bf945049b1964fee60e`.
+
+### Computer Use and accounts
+
+- Native Computer Use was available through the CUA browser/app interface. The Preview was tested
+  in Chrome and Safari; Student A and Student B used separate browser storage sessions.
+- Both existing synthetic accounts authenticated successfully. The user completed the Vercel
+  sign-in step when prompted. No new accounts were registered.
+- Refreshing Student B's assistant page restored the existing conversation and prior messages.
+- The deployed Preview remained the supplied URL and baseline commit throughout this run.
+
+### Live cloud results
+
+| Scenario | Result |
+|---|---|
+| Student A and B sign-in | Passed; separate sessions, each showed its own identity. |
+| Student B TXT upload | Passed; reached ready and appeared in Study Set. |
+| Student B Markdown upload | Failed on deployed build with `invalid_content_type`. |
+| Student B text PDF upload | Passed; two-page PDF rendered and extracted page-2 text. |
+| Grounded PDF question | Passed on second query: answer stated 17 days and cited `student-b-manual.pdf`, page 2. |
+| First PDF question | Assistant abstained on a valid, but more indirect, question about page and interval. |
+| Chat history after refresh | Passed; earlier question and response remained visible. |
+| Student A opening Student B Study Set URL | 404 page in Student A session. |
+| Anonymous access to `/`, `/learn`, `/api/v1/health` | HTTP 302 from Vercel Deployment Protection. This is edge behavior, not the app's anonymous API status. |
+
+Live model requests: **2**. No more than three were made. The successful citation identified page 2;
+the source page visibly contained the interval statement. The chat conversation was restored after
+refresh. Logout/re-login persistence, an out-of-document abstention, and cross-user chat/citation
+access were not tested.
+
+Synthetic test files created for Student B remain in staging; no deletion or direct database edits
+were made. Student A had no test materials. Sanitized resource IDs observed: TXT
+`1aea0167-14b8-4476-bc77-025d2d688452`; PDF `b0bd9340-8a6d-46bb-b02d-120987dbca19`; chat
+`c732dd50-d5c4-4819-8f9a-fea1cd55dc79`.
+
+### Security and ownership evidence
+
+| Resource | Owner (Student B) | Other student (Student A) | Anonymous |
+|---|---|---|---|
+| Study Set | Opened in B session | 404 page at known B Study Set URL | Vercel edge 302; app contract not reached |
+| Document metadata | PDF ready/viewer opened | Per-document route is not a valid app route; no conclusion | Vercel edge 302 |
+| Private bytes | PDF page viewer rendered extracted contents | Direct unauthorized Blob retrieval not attempted | Direct Blob retrieval not attempted |
+| Chat | B conversation and history visible | Not tested | Not tested |
+| Citation | Page-2 source citation opened in B session | Not tested | Not tested |
+
+The UI's PDF viewer used the application's private-document flow, but the live unauthorized Blob
+retrieval and expiry contract were not independently exercised. The Vercel page redirect blocked
+anonymous app requests; these results do not establish API-level anonymous 401/403 statuses.
+
+### Infrastructure
+
+- Vercel listed the supplied deployment as **Ready Preview**, branch
+  `feat/vercel-staging-deployment`, SHA `48700ba080afdf895ba85bf945049b1964fee60e`.
+- Settings showed Production branch `main`; Preview branch setting was **All unassigned Git
+  branches**. Deployment Protection's **Require Log In** was enabled for **All Deployments**;
+  password protection was off.
+- Deployment detail showed the `web` Next.js and `api` FastAPI services and `/api/v1/health` route,
+  but separate service readiness was not exposed. Anonymous health request returned 302 at the
+  protection edge; an authenticated health response was not independently captured in this run.
+- Student B's successful persistent upload and PDF ingestion demonstrate that the application
+  storage/ingestion path operated for this workflow. Neon connectivity and Blob authorization
+  boundaries were not independently inspected.
+- No Production deployment or Vercel setting was changed.
+
+### Targeted Markdown fix and local verification
+
+On the deployed build, `.md` and `.markdown` files failed with `invalid_content_type`, while TXT and
+PDF succeeded. The upload UI had forwarded browser-provided `File.type` unchanged when present;
+Safari supplied a type rejected by the server's supported Markdown MIME list. The working tree now
+chooses canonical MIME types by the already-validated filename extension. A regression test supplies
+an `.md` file with `application/octet-stream` and asserts that the upload intent sends
+`text/markdown`.
+
+Focused local Playwright check: **1 passed**. The first invocation used a nonexistent `chromium`
+project selector and exited before running tests; rerun with the configured `desktop` project passed.
+This local fix has not been deployed to Preview and therefore does not change the live failure.
+
+### Git and remaining acceptance gates
+
+- Branch remains `feat/vercel-staging-deployment`; remote HEAD remains `48700ba`; the local fix/report
+  commit is HEAD (five commits ahead of remote, including four documentation commits).
+- Commit subject: `fix(web): canonicalize document upload MIME types`, authored by
+  `Nguyen hoai nam <namnh.audit@gmail.com>` with no co-author trailer.
+- No push was made because the live acceptance gates remain incomplete; there is no Preview
+  containing the fix.
+- No full fresh Playwright or PostgreSQL suite was run during this live workflow. The earlier
+  v1.1 local results above remain separate evidence.
+
+Remaining risks: **P2** Markdown upload is broken on the deployed Preview and needs a new Preview
+plus live retest; **P2** the first supported PDF question abstained despite relevant content;
+cross-user tests for document bytes, chat, citations, and private Blob are incomplete; anonymous
+app authorization statuses are masked by Vercel's 302; logout/re-login persistence and out-of-scope
+abstention remain unverified. Acceptance remains **PARTIAL**. Do not promote to Production.

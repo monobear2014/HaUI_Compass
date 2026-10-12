@@ -179,14 +179,16 @@ export function DocumentUpload({ nextPath }: { nextPath: string }) {
           files: files.map((file) => ({
             name: file.name,
             size: file.size,
-            contentType:
-              file.type ||
-              (file.name.toLowerCase().endsWith(".pdf")
-                ? "application/pdf"
-                : file.name.toLowerCase().endsWith(".md") ||
-                    file.name.toLowerCase().endsWith(".markdown")
-                  ? "text/markdown"
-                  : "text/plain"),
+            // Safari and some desktop file providers report a nonstandard MIME
+            // type for Markdown. The server validates against the filename's
+            // supported type, so send the canonical type for that extension.
+            contentType: (() => {
+              const name = file.name.toLowerCase();
+              if (name.endsWith(".pdf")) return "application/pdf";
+              if (name.endsWith(".md") || name.endsWith(".markdown"))
+                return "text/markdown";
+              return "text/plain";
+            })(),
           })),
         }),
         signal: AbortSignal.timeout(20_000),

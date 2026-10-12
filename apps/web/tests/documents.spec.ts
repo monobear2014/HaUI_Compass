@@ -183,6 +183,25 @@ test("selection validates formats and limits, and a failed upload keeps files fo
   await expect(page).toHaveURL(/\/study-set\/[a-f0-9-]{36}$/);
 });
 
+test("upload intent uses canonical MIME types for Markdown files", async ({ page }) => {
+  await page.goto("/onboarding/upload?next=%2Fplan");
+  await page.locator('input[type="file"]').setInputFiles({
+    name: "notes.md",
+    mimeType: "application/octet-stream",
+    buffer: Buffer.from("# Notes"),
+  });
+  let received: unknown;
+  await page.route("**/api/documents/upload-intent", async (route) => {
+    received = route.request().postDataJSON();
+    await route.fulfill({ status: 503, json: { error: "unavailable" } });
+  });
+  await page.getByRole("button", { name: "Upload & continue" }).click();
+  await expect(page.locator("main").getByRole("alert")).toBeVisible();
+  expect(received).toEqual({
+    files: [{ name: "notes.md", size: 7, contentType: "text/markdown" }],
+  });
+});
+
 test("upload API enforces owner isolation, same-origin writes, server validation and atomic batches", async ({
   context,
   request,
