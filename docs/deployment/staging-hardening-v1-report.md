@@ -359,7 +359,7 @@ abstention remain unverified. Acceptance remains **PARTIAL**. Do not promote to 
 ## Staging acceptance v1.2 — final closure attempt
 
 **Status: PARTIAL — cloud gates not completed.**
-Run date: 2026-10-12 (Asia/Ho_Chi_Minh). Branch: `feat/vercel-staging-deployment`.
+Run date: 2026-10-13 (Asia/Ho_Chi_Minh). Branch: `feat/vercel-staging-deployment`.
 Starting HEAD: `71b9d7d916face296285942c5f2563dd19b2e31f`.
 
 ### Credential safety gate
@@ -400,18 +400,43 @@ No live model call was made. No cloud migration or destructive database cleanup 
 
 ### Cloud acceptance and deployment
 
-No deployment was started, so there is no new Preview URL or deployed SHA for this closure.
-Production Branch and Preview targeting were not rechecked in Vercel settings. TXT/MD/PDF cloud
-uploads, metadata refresh, Student A/B isolation for metadata/bytes/chunks/chat/citations, private
-Blob authorization, anonymous application authorization, and logout/re-login history persistence
-remain unverified on the new build. The earlier v1.1 observations above are not evidence for this
-commit.
+- Preview URL: <https://haui-compass-git-feat-vercel-staging-deployment-nam-4b71.vercel.app/>.
+- Vercel deployment status: **Ready**, environment **Preview**, branch
+  `feat/vercel-staging-deployment`, SHA `796a6a6133dab639129375c4f30e0e4faf721c03` (`796a6a6`).
+  Deployment details listed the `web` Next.js and `api` FastAPI services.
+- Vercel settings confirmed Production branch tracking `main`; Preview tracking is enabled for
+  all unassigned branches, which includes this feature branch. The Preview variable list contains
+  `OPENAI_API_KEY` scoped to `feat/vercel-staging-deployment`; its value was not revealed. The
+  user confirmed the exposed key was revoked and the rotated staging key was saved.
+- Direct Preview request to `/api/v1/health` returned `{"status":"ok"}`. The landing page
+  rendered in Safari.
+- Anonymous navigation to the known Student B Study Set path was redirected by the application
+  to `/login?next=%2Fstudy-set%2Fb0bd9340-8a6d-46bb-b02d-120987dbca19`. The login page rendered,
+  rather than a Vercel SSO page, so this is evidence of the application authentication boundary.
+- Anonymous `GET /api/documents/b0bd9340-8a6d-46bb-b02d-120987dbca19` and
+  `GET /api/chat/sessions/c732dd50-d5c4-4819-8f9a-fea1cd55dc79/messages` both returned
+  `{"error":"unauthorized"}` from the application. The document route also serves the private
+  document byte stream after authorization, so its 401 covers anonymous byte access through that
+  route. No chunk ID or direct Blob URL was available anonymously to test those routes directly.
+- Direct unauthenticated `curl` requests to the Preview returned Vercel Authentication HTTP 302
+  for `/`, `/api/v1/health`, the known Study Set, document, and chat routes. Those edge redirects
+  are recorded separately and are not treated as application authorization evidence. The
+  application 401 results above came from the existing signed-in Vercel browser profile without a
+  HaUI Compass student session.
+- TXT/MD/PDF cloud uploads, metadata refresh, Student A/B isolation for metadata/bytes/chunks/chat/
+  citations, private Blob authorization, PDF page citation, and chat history after refresh/re-login
+  have not yet been tested on this build. The earlier v1.1 observations above are not evidence for
+  this commit. Student B must authenticate to the new hostname; the old Preview session cookie did
+  not transfer to the branch alias. Although the user indicated both sessions were ready, direct
+  inspection of Safari and Chrome on the branch alias showed the application login page in both.
+  A handoff is pending for the user to sign in manually to the new hostname in each browser.
 
 | Staging check | Student A | Student B | Anonymous |
 |---|---|---|---|
 | Markdown upload on new Preview | Not run | Not run | — |
 | TXT/PDF ingestion and metadata refresh | Not run | Not run | — |
-| Document metadata, bytes, chunks, chat, citations | Not run | Not run | Not run at app boundary |
+| Document metadata, bytes, chat history | Not run | Not run | API returned 401 `unauthorized` |
+| Chunks and citations | Not run | Not run | No chunk ID available anonymously |
 | Owner access | Not run | Not run | — |
 | Private Blob through application authorization | Not run | Not run | Not run |
 | PDF correct-document/page citation | Not run | Not run | — |
@@ -436,10 +461,19 @@ threshold or retrieval behavior was tuned.
 
 ### Git state and remaining risks
 
-At report update time, the branch was clean and five commits ahead of
-`origin/feat/vercel-staging-deployment`; no push was made. The report update itself is now an
-uncommitted working-tree change. The prior five commits remain in local history; no PR, merge,
-force push, or Production deployment occurred.
+The six local commits ahead at the start of this v1.2 continuation (five existing commits plus
+`796a6a6` for local verification evidence) were pushed to
+`origin/feat/vercel-staging-deployment`. The current cloud evidence in this report is an
+uncommitted working-tree change. No PR, merge, force push, or Production deployment occurred.
+
+Commits pushed since the prior remote head `48700ba`:
+
+- `f8a2349` — `docs(staging): close v1.1 acceptance evidence`
+- `56a679e` — `docs(staging): correct preview acceptance status`
+- `538c040` — `docs(staging): verify preview deployment record`
+- `76bff41` — `docs(staging): record closure commit authorship`
+- `71b9d7d` — `fix(web): canonicalize document upload MIME types`
+- `796a6a6` — `docs(staging): record v1.2 local verification`
 
 Acceptance remains **PARTIAL**. The Markdown fix is locally verified, but essential cloud gates,
 the Preview deployment with the rotated key, cross-user/private-Blob authorization checks, and
