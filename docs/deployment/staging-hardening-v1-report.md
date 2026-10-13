@@ -355,3 +355,93 @@ plus live retest; **P2** the first supported PDF question abstained despite rele
 cross-user tests for document bytes, chat, citations, and private Blob are incomplete; anonymous
 app authorization statuses are masked by Vercel's 302; logout/re-login persistence and out-of-scope
 abstention remain unverified. Acceptance remains **PARTIAL**. Do not promote to Production.
+
+## Staging acceptance v1.2 — final closure attempt
+
+**Status: PARTIAL — cloud gates not completed.**
+Run date: 2026-10-12 (Asia/Ho_Chi_Minh). Branch: `feat/vercel-staging-deployment`.
+Starting HEAD: `71b9d7d916face296285942c5f2563dd19b2e31f`.
+
+### Credential safety gate
+
+The exposed key value was not read from `.env`, fetched from Vercel, or copied into this report.
+No live LLM calls or Vercel deployment actions were made during this attempt. The user must
+explicitly confirm that the exposed key is revoked and a replacement staging key is saved as
+`OPENAI_API_KEY` in Vercel Preview scoped to this branch before those actions can proceed.
+
+### Review of commit `71b9d7d`
+
+The upload component now selects the canonical MIME type from the already-validated filename
+extension: PDF → `application/pdf`, Markdown → `text/markdown`, and TXT → `text/plain`. This
+removes dependence on browser-provided MIME metadata for these supported formats. The server
+remains authoritative: it validates extension, size, and an extension-specific allowlist before
+creating intents; unsupported extensions and MIME mismatches still fail. TXT and PDF continue to
+use their existing canonical types and extraction paths.
+
+The new Playwright regression uses `notes.md` with browser MIME `application/octet-stream`, the
+value that caused the original `invalid_content_type` failure, and observes `text/markdown` in the
+upload-intent request. The server-side validation/owner-isolation test also passed. The fix is
+adequate; implementation was not changed.
+
+### Local verification
+
+| Check | Result |
+|---|---|
+| Focused upload regression and upload API owner/validation test | 2 passed |
+| Web config/security tests | 25 passed |
+| Full Playwright suite | 148 passed, 8 skipped, 0 failed (156 total; skips require PostgreSQL integration setup) |
+| Web typecheck | Passed as part of the chained verification command |
+| Web lint | Passed as part of the chained verification command |
+| Web production build | Passed with Next.js 16.3.6 |
+| API suite: `uv run --offline pytest -q` | 1,577 passed, 14 skipped; PostgreSQL test database not configured |
+| `git diff --check` for the pending branch diff | Passed before this report update |
+
+No live model call was made. No cloud migration or destructive database cleanup was run.
+
+### Cloud acceptance and deployment
+
+No deployment was started, so there is no new Preview URL or deployed SHA for this closure.
+Production Branch and Preview targeting were not rechecked in Vercel settings. TXT/MD/PDF cloud
+uploads, metadata refresh, Student A/B isolation for metadata/bytes/chunks/chat/citations, private
+Blob authorization, anonymous application authorization, and logout/re-login history persistence
+remain unverified on the new build. The earlier v1.1 observations above are not evidence for this
+commit.
+
+| Staging check | Student A | Student B | Anonymous |
+|---|---|---|---|
+| Markdown upload on new Preview | Not run | Not run | — |
+| TXT/PDF ingestion and metadata refresh | Not run | Not run | — |
+| Document metadata, bytes, chunks, chat, citations | Not run | Not run | Not run at app boundary |
+| Owner access | Not run | Not run | — |
+| Private Blob through application authorization | Not run | Not run | Not run |
+| PDF correct-document/page citation | Not run | Not run | — |
+| Chat history after refresh and re-login | Not run | Not run | — |
+
+### PDF false-abstain investigation
+
+Code inspection shows chat requests require the active document to be `ready`, then query retrieval
+with the authorized study set, owner, and active document ID. The retriever validates the document
+and returns ranked chunks; there is no local score threshold that would force an abstention when
+chunks exist. If chunks are empty, the application abstains before calling the model. Otherwise
+the API model may answer or abstain, and the web layer rejects answered responses without valid
+citations or abstentions carrying citations. Existing PDF E2E tests cover page citation and
+missing-evidence abstention locally.
+
+The earlier cloud run did not retain a sanitized trace for the first query, so its ingestion-ready
+state at request time, resolved wording, retrieved chunk scores/content, and model decision are
+unknown. The subsequent page-2 cited answer proves the document could be ready and retrievable
+later, but does not establish readiness or retrieval results for the earlier question. Root cause
+cannot be established from available evidence; this remains an unresolved quality risk. No ranking
+threshold or retrieval behavior was tuned.
+
+### Git state and remaining risks
+
+At report update time, the branch was clean and five commits ahead of
+`origin/feat/vercel-staging-deployment`; no push was made. The report update itself is now an
+uncommitted working-tree change. The prior five commits remain in local history; no PR, merge,
+force push, or Production deployment occurred.
+
+Acceptance remains **PARTIAL**. The Markdown fix is locally verified, but essential cloud gates,
+the Preview deployment with the rotated key, cross-user/private-Blob authorization checks, and
+the PDF false-abstain diagnosis are unverified. Continue only after the credential safety gate is
+explicitly confirmed and use the existing authorized Student A and Student B sessions.
