@@ -1,6 +1,13 @@
 # HaUI Compass staging hardening v1 — evidence report
 
 **Status: PARTIAL**
+
+Latest closure, 2026-10-15: **PARTIAL**. The final cloud functionality/security matrix is recorded
+in the final section. Code Preview `3f3b8bb` is Ready, MD/TXT/PDF upload and grounded PDF RAG pass,
+and no raw API/Blob master credential was retrieved. A temporary bearer-URL tool-output exception
+prevents describing this as a strictly zero-token-exposure acceptance run. Earlier dated sections
+below are historical evidence, not the latest status.
+
 Run date: 2026-10-12 (Asia/Ho_Chi_Minh)
 Scope: branch `feat/vercel-staging-deployment`; baseline `b5fbba014b5635a471dab0e4c4a7f2702082ba31`.
 
@@ -365,9 +372,8 @@ Starting HEAD: `71b9d7d916face296285942c5f2563dd19b2e31f`.
 ### Credential safety gate
 
 The exposed key value was not read from `.env`, fetched from Vercel, or copied into this report.
-No live LLM calls or Vercel deployment actions were made during this attempt. The user must
-explicitly confirm that the exposed key is revoked and a replacement staging key is saved as
-`OPENAI_API_KEY` in Vercel Preview scoped to this branch before those actions can proceed.
+The user explicitly confirmed that the exposed key was revoked and a replacement staging key was
+saved as `OPENAI_API_KEY` in Vercel Preview scoped to this branch. No live LLM calls were made.
 
 ### Review of commit `71b9d7d`
 
@@ -400,16 +406,20 @@ No live model call was made. No cloud migration or destructive database cleanup 
 
 ### Cloud acceptance and deployment
 
-- Preview URL: <https://haui-compass-git-feat-vercel-staging-deployment-nam-4b71.vercel.app/>.
-- Vercel deployment status: **Ready**, environment **Preview**, branch
-  `feat/vercel-staging-deployment`, SHA `796a6a6133dab639129375c4f30e0e4faf721c03` (`796a6a6`).
-  Deployment details listed the `web` Next.js and `api` FastAPI services.
+- Code deployment: **Ready**, environment **Preview**, branch
+  `feat/vercel-staging-deployment`, SHA `796a6a6133dab639129375c4f30e0e4faf721c03` (`796a6a6`),
+  URL <https://haui-compass-d04ko9hre-nam-4b71.vercel.app/>.
+- Latest report-only deployment: **Ready**, SHA
+  `3da54c8241b36893d76e85bbf20d8b9eec5d5bc3` (`3da54c8`), URL
+  <https://haui-compass-j8ef9dlfn-nam-4b71.vercel.app/>. The stable branch alias
+  <https://haui-compass-git-feat-vercel-staging-deployment-nam-4b71.vercel.app/> resolves to this
+  latest deployment. Deployment details listed the `web` Next.js and `api` FastAPI services.
 - Vercel settings confirmed Production branch tracking `main`; Preview tracking is enabled for
   all unassigned branches, which includes this feature branch. The Preview variable list contains
   `OPENAI_API_KEY` scoped to `feat/vercel-staging-deployment`; its value was not revealed. The
   user confirmed the exposed key was revoked and the rotated staging key was saved.
-- Direct Preview request to `/api/v1/health` returned `{"status":"ok"}`. The landing page
-  rendered in Safari.
+- Direct Preview request to `/api/v1/health` on the branch alias returned `{"status":"ok"}`.
+  The landing page rendered in Safari.
 - Anonymous navigation to the known Student B Study Set path was redirected by the application
   to `/login?next=%2Fstudy-set%2Fb0bd9340-8a6d-46bb-b02d-120987dbca19`. The login page rendered,
   rather than a Vercel SSO page, so this is evidence of the application authentication boundary.
@@ -428,8 +438,10 @@ No live model call was made. No cloud migration or destructive database cleanup 
   have not yet been tested on this build. The earlier v1.1 observations above are not evidence for
   this commit. Student B must authenticate to the new hostname; the old Preview session cookie did
   not transfer to the branch alias. Although the user indicated both sessions were ready, direct
-  inspection of Safari and Chrome on the branch alias showed the application login page in both.
-  A handoff is pending for the user to sign in manually to the new hostname in each browser.
+  inspection after the user said both Study Set pages were open still showed Safari at the login
+  page and Chrome at a blocked/error page. No student identity or signed-in Study Set was visible;
+  the student-session-dependent cases below therefore remain unverified. No credentials were
+  entered or recovered by the agent.
 
 | Staging check | Student A | Student B | Anonymous |
 |---|---|---|---|
@@ -446,8 +458,10 @@ No live model call was made. No cloud migration or destructive database cleanup 
 
 Code inspection shows chat requests require the active document to be `ready`, then query retrieval
 with the authorized study set, owner, and active document ID. The retriever validates the document
-and returns ranked chunks; there is no local score threshold that would force an abstention when
-chunks exist. If chunks are empty, the application abstains before calling the model. Otherwise
+and returns ranked chunks. The ranking core rejects queries with missing named anchors, then
+requires a positive score and either coverage >= 0.3 or a matching anchor. Those filters can produce
+zero candidates even when stored chunks exist. If candidates are empty, the application abstains
+before calling the model. Otherwise
 the API model may answer or abstain, and the web layer rejects answered responses without valid
 citations or abstentions carrying citations. Existing PDF E2E tests cover page citation and
 missing-evidence abstention locally.
@@ -461,10 +475,9 @@ threshold or retrieval behavior was tuned.
 
 ### Git state and remaining risks
 
-The six local commits ahead at the start of this v1.2 continuation (five existing commits plus
-`796a6a6` for local verification evidence) were pushed to
-`origin/feat/vercel-staging-deployment`. The current cloud evidence in this report is an
-uncommitted working-tree change. No PR, merge, force push, or Production deployment occurred.
+All seven commits listed below are pushed to
+`origin/feat/vercel-staging-deployment`; HEAD was `3da54c8` and the working tree was clean before
+this final report correction. No PR, merge, force push, or Production deployment occurred.
 
 Commits pushed since the prior remote head `48700ba`:
 
@@ -474,8 +487,192 @@ Commits pushed since the prior remote head `48700ba`:
 - `76bff41` — `docs(staging): record closure commit authorship`
 - `71b9d7d` — `fix(web): canonicalize document upload MIME types`
 - `796a6a6` — `docs(staging): record v1.2 local verification`
+- `3da54c8` — `docs(staging): record Preview v1.2 acceptance status`
 
 Acceptance remains **PARTIAL**. The Markdown fix is locally verified, but essential cloud gates,
-the Preview deployment with the rotated key, cross-user/private-Blob authorization checks, and
-the PDF false-abstain diagnosis are unverified. Continue only after the credential safety gate is
-explicitly confirmed and use the existing authorized Student A and Student B sessions.
+the Student A/B uploads, metadata and data isolation, owner access, private-Blob boundary, PDF page
+citation on this build, and chat persistence are unverified. Anonymous app-level checks were
+partially verified as recorded above; unauthenticated Vercel-edge 302s were not counted as proof.
+The PDF false-abstain root cause remains unresolved. Preview used the rotated key configuration;
+there were zero real LLM calls during this acceptance attempt.
+
+
+## Final cloud acceptance evidence — 2026-10-15, authenticated Chrome contexts
+
+This section supersedes the incomplete cloud matrix in the earlier continuation sections.
+**Final status: PARTIAL.** Functional/security verification passed for the recorded cases,
+including signed-GET expiration. The evidence-hygiene exception below prevents a strict
+zero-token-exposure SUCCESS / STAGING READY claim.
+
+### Deployment under test and authorization contexts
+
+- Code SHA: `3f3b8bb2472f97214ac6c665403595f12bcb0c66`.
+- Ready Preview: <https://haui-compass-djq3cyp24-nam-4b71.vercel.app/>; stable branch alias points
+  to this build. Both tests and deployment are from `feat/vercel-staging-deployment`.
+- Student A: ordinary Chrome profile on the stable alias, UI identity `student A`.
+- Student B: independent Chrome Incognito window on the same alias, UI identity `student B`.
+  User sign-in restored B's three existing materials, including the previously uploaded Markdown.
+- App-anonymous context: ordinary Chrome on the immutable `djq3cyp24` hostname, authorized by the
+  existing Vercel profile but without a HaUI student session. GET `/api/auth/session` returned
+  HTTP 200 with `user` absent/null (logged as authenticated=false). This context reached the app
+  normally; Deployment Protection was not disabled or bypassed.
+- Final-build `/api/v1/health` returned HTTP 200 and `{"status":"ok"}` in B's authorized context.
+
+### Markdown, TXT and PDF cloud regression
+
+Three unique synthetic fixtures were selected in B's native file picker and uploaded together.
+Network inspection observed POST `/api/documents/upload-intent` **HTTP 200**. Its request payload:
+
+| File | Bytes | Requested MIME | Document ID | Upload-intent ID |
+|---|---:|---|---|---|
+| `acceptance-20261015.md` | 116 | `text/markdown` | `59a43664-4408-474f-9594-97ce4e1c6540` | `c6c1dfdf-6281-4fdf-add3-692b34f625af` |
+| `acceptance-20261015.pdf` | 3,167 | `application/pdf` | `300cb90e-161b-4568-84e1-abb9fdc90d35` | `b5404dc6-d640-4688-a3bf-305b40907b37` |
+| `acceptance-20261015.txt` | 119 | `text/plain` | `c95db999-179d-4e51-a923-65db8d1c7204` | `2628a126-a48f-4a02-b6ec-9457b4496acb` |
+
+All three corresponding Blob PUT requests returned **HTTP 200**. For the Markdown PUT, the actual
+request header was `Content-Type: text/markdown` and `X-Vercel-Blob-Access: private`. Each
+`GET /api/documents/upload-intent/{id}` was subsequently revisited as a fresh browser navigation:
+**HTTP 200**, intent `status: ready`, document `ingestionStatus: ready`, with the IDs above.
+
+The ready page listed all three saved files. Markdown reader displayed the synthetic Seabird /
+23-day facts; TXT reader displayed its different synthetic note and 23-day inspection cycle.
+The new PDF loaded in Chrome's embedded PDF viewer as a three-page document (page 1: Softmax).
+After navigation/refresh, B's learning space still showed six materials, including these three.
+No indefinite loading state was observed in completed upload/reader/chat flows.
+
+### Deterministic RAG defect and smallest fix
+
+The original question was recovered from B's persisted cloud chat. Extracting the original
+synthetic PDF locally and using production `chunkPages`/`rankDocumentChunks` reproduced zero
+candidates: `which`, normalized `states` → `state`, `often`, and `should` were absent mandatory
+ASCII anchors. The simpler `What is the calibration interval?` retrieved page 2 with score
+1.3862943611198906. The new regression first failed (`undefined !== 2`) while four other ranking
+tests passed. This is a demonstrated retrieval defect matching the observed pair of outcomes;
+the original historical request trace was not retained, so that runtime path is not independently
+proven from server telemetry.
+
+The fix strips the reporting phrase `which/what page state(s)` from query terms while retaining
+`page`, and treats the evidenced functional words `often`/`should` as stop words. It preserves the
+technical noun `state` elsewhere and still refuses an absent Kubernetes anchor. No threshold,
+candidate limit or lexical architecture changed. Afterward the exact original query retrieves
+page 2 (score 2.0794415416798357, coverage 0.6); all five ranking tests pass and all 63 baseline
+retrieval results remain unchanged. The live original-question retest below is separate evidence.
+
+### Cloud RAG, false-abstain repair and persistence
+
+On this final code build, B created a new chat and sent the recovered original question:
+`Which page states how often calibration should be done, and what is the interval?`
+The assistant answered that page 2 specifies every 17 days, with a citation to
+`student-b-manual.pdf`, page 2. The citation excerpt contains that exact supporting fact.
+The selected conversation, question, answer and citation remained after refresh.
+
+B then asked `What is the Kubernetes deployment policy?`; the assistant abstained with the
+standard insufficient-evidence response. The missing named anchor causes zero retrieved chunks
+before model invocation. A's grounded supervised-learning answer and its citation also persisted
+after refresh. B's re-login in a separate browser restored expected previously persisted data.
+
+- New B conversation: `dc4e8db2-e98d-4918-a441-7b7e2bb675be`.
+- A conversation: `6f3d5e86-6133-486e-8c14-d08f765ab6f6`.
+- A cited chunk: `9f77f2d4-4076-405e-9a42-cb8c593504bd`.
+- B page-2 chunk: `4d5e21cf-0ebc-439b-aa83-bddc0452d3f4`.
+- Live LLM requests for this acceptance continuation: **2 of maximum 3**. The Kubernetes send
+  followed the deterministic zero-candidate abstention path. No model request was needed to read
+  historical chats, inspect citations, or run the security matrix.
+
+### Observed cloud authorization matrix
+
+All numeric entries below are observed application HTTP results on code `3f3b8bb`; edge 302s are
+excluded. Study Set authorization is checked through the owner-scoped Study Set chat-session API;
+A's own and foreign Study Set HTML requests additionally returned 200 and 404 respectively.
+Document metadata is represented by owner-scoped listing/progress and the same owner lookup used
+by the document routes; there is no separate per-ID metadata-only API to imply was tested.
+Citation resolution uses the extracted-chunk endpoint, so those rows intentionally share a route.
+
+| Resource / boundary | Owner | A accessing B | B accessing A | App-anonymous |
+|---|---|---|---|---|
+| Study Set (`/api/study-sets/{document}/chat/sessions`) | 200 | 404 | 404 | 401 |
+| Document listing/progress metadata | 200 | 404 for foreign progress | 404 for foreign progress | 401 |
+| Document byte route (`/api/documents/{id}`) | 200 for A text and B PDF | 404 for B PDF | 404 for A text | 401 for B PDF |
+| Extracted chunk (`/api/documents/{id}/chunks/{chunk}`) | 200 for A and B | 404 | 404 | 401 |
+| Chat history (`/api/chat/sessions/{id}/messages`) | 200 for A and new B chat | 404 | 404 | 401 |
+| Citation resolution (same chunk route) | 200 for A and B | 404 | 404 | 401 |
+
+The reverse byte check uses A's Markdown source, because A has no owned PDF. Anonymous checks use
+B's known existing resources; not every resource ID in both accounts was separately tested.
+The original B historical chat also returned 200 for B. Tests use existing real app users and
+synthetic documents; no forged session, copied cookie or test-auth bypass was used.
+
+A GET for B's new Markdown byte route with its actual storage key supplied as a query parameter
+still returned **404**. Knowing the storage key does not grant access through that app route.
+Direct access to the same private Blob pathname, without any signed token or storage credential,
+returned **403** from storage in a separate unauthenticated terminal request.
+
+### Private Blob bearer URL and evidence handling
+
+The Vercel store was observed labelled **Private**. The upload is scoped to the owner's intent,
+pathname, MIME and maximum size. Raw `BLOB_READ_WRITE_TOKEN` remains server-side in reviewed code;
+it was never retrieved from the environment or Vercel. The tested browser upload used scoped,
+temporary presigned authority, not a printed/read master credential. This is a bounded review and
+network observation, not an exhaustive audit of all assets and traffic.
+
+A reader-issued signed GET was exercised with `credentials: omit`; it returned **200**. This
+confirms its intended bearer property: after authorized issuance, possession can grant temporary
+access without an application cookie. It is not claimed to be student-bound. An expiry check against the same URL returned **403 after 311,264 ms**, beyond the five-minute
+default lifetime. Initial GET was observed at 16:26:27 and the expired GET at 16:31:37 on
+2026-10-15 (Asia/Ho_Chi_Minh). The URL stayed inside that page and was never printed by the
+expiry script. Thus both temporary bearer access and expiration were observed on cloud.
+
+**Evidence-hygiene exception:** an earlier native accessibility snapshot included a temporary GET
+URL, and later broad header filtering inadvertently included partial presigned upload URL strings
+and signature suffixes. These were tool-output observations, not committed artifacts or raw
+OpenAI/Blob master keys. Subsequent collection uses strict field allowlists and prints only status,
+MIME, IDs and access mode. The report does not claim that no temporary token material ever appeared
+in tool output. This violates the task's stricter no-token-logging requirement; a clean acceptance
+status must not silently omit it. Synthetic data and short-lived/path-scoped grants limit scope.
+
+### Final local checks and Git publication
+
+- Previous remote reported in the task: `48700ba080afdf895ba85bf945049b1964fee60e`.
+- Actual fetched remote and local head at this continuation's start:
+  `3da54c8241b36893d76e85bbf20d8b9eec5d5bc3`, ahead/behind 0/0. The seven commits since `48700ba`
+  were already pushed and are listed in the earlier v1.2 section.
+- New code commit: `3f3b8bb2472f97214ac6c665403595f12bcb0c66`,
+  `fix(rag): normalize page-location question phrasing`, exactly two code/test files.
+- All seven prior commits and this code commit are authored by
+  `Nguyen hoai nam <namnh.audit@gmail.com>`, preserving the configured email, without co-author
+  or AI attribution. No branch history was rewritten.
+- Environment: macOS workspace, Next.js 16.3.6, local isolated fixture web/API servers, one
+  Playwright worker. No Neon URL was supplied to regression tests.
+- The web config/security suite also passed all 25 cases. Focused MIME/owner-validation tests
+  passed 2/2. Changed tracked files were scanned for common credential and signed-URL patterns:
+  zero matches. No actual `.env` is tracked; only `apps/web/.env.example` is tracked.
+
+
+Full web regression after the RAG change: **148 passed, 8 skipped, 0 failed**. Ranking tests:
+**5 passed** (the new test was first observed failing). The 63-turn offline corpus has no changed
+baseline retrieval results. TypeScript, ESLint, Next.js build and `git diff --check` pass.
+The fresh API run on 2026-10-15 has **1,577 passed, 14 skipped**; PostgreSQL-only skips remain
+skips, and the historical isolated PostgreSQL runs are not represented as fresh executions.
+No persistence/API code changed, no cloud database fixture run or migration was performed.
+
+Report corrections present at task start remain preserved in the final report-only commit
+containing this section. That evidence commit uses the configured author name/email and contains
+no co-author or AI trailer. Its exact final SHA, remote equality, clean-worktree result and resulting
+Ready Preview URL are reported in the final handoff after publication; the report cannot embed
+its own containing commit hash. The cloud checks above targeted code `3f3b8bb`; the report-only
+commit does not change that tested application code. Only the staging branch is authorized for
+publication. No PR, merge, force push, Production change or cloud cleanup was performed.
+
+### Residual risks
+
+- **P0/P1 confirmed application defect:** none demonstrated by the bounded acceptance checks;
+  this does not replace a comprehensive security audit.
+- **P2 process/evidence exception:** temporary bearer URL material appeared in tool output, as
+  disclosed above. Do not label this a zero-exposure run or silently declare strict SUCCESS.
+- **P3:** repeated pg connection-string SSL-mode compatibility warnings; separate PostgreSQL
+  integration results were not rerun; authorization tests are representative, not exhaustive.
+- **Signed-GET expiration:** passed (initial 200; expired 403 after 311 seconds).
+- **Strict closure:** PARTIAL solely because the no-token-logging invariant was not met in earlier
+  tool output. No raw API/Blob master credential was retrieved, copied into an artifact, or
+  committed. Later signed-URL tests used status-only output. Synthetic staging data is retained;
+  no account/document was deleted and no direct cloud SQL cleanup was performed.
