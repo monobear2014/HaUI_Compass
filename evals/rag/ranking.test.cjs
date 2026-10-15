@@ -27,6 +27,22 @@ const rows = [
   },
 ];
 
+test("page-location phrasing retrieves the supported calibration interval", () => {
+  const { chunkPages } = require("../../apps/web/src/lib/document-chunking.cjs");
+  const chunks = chunkPages([
+    { page_number: 1, text: "Synthetic Student B PDF manual\nThe reserve battery code is 5804." },
+    { page_number: 2, text: "Page two of the synthetic manual\nThe calibration interval is every 17 days." },
+  ]);
+  const query = "Which page states how often calibration should be done, and what is the interval?";
+  const ranked = rankDocumentChunks(query, chunks);
+  assert.equal(ranked[0]?.chunk.page_number, 2);
+  assert.match(ranked[0].chunk.content, /every 17 days/);
+  assert.deepEqual(rankDocumentChunks(query.replace("calibration", "Kubernetes"), chunks), []);
+  // Reporting grammar must not discard the technical noun "state" elsewhere.
+  assert.deepEqual(rankDocumentChunks("What is a state machine?", chunks), []);
+  assert.ok(tokens("state machine").includes("state"));
+});
+
 test("ordinary English question words are not mandatory technical anchors", () => {
   const pages = [
     {

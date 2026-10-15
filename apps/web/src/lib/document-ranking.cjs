@@ -12,7 +12,8 @@ const stopWords = new Set(
 stopWords.add("checklist");
 // PDF extension exposed ordinary English question phrasing mistaken for named
 // technical anchors. Normalize only these evidenced functional query words.
-for (const word of ["affect", "direction", "defined"]) stopWords.add(word);
+for (const word of ["affect", "direction", "defined", "often", "should"])
+  stopWords.add(word);
 
 function normalizedToken(token) {
   // Conservative ASCII plural normalization, used identically for query/evidence.
@@ -59,7 +60,11 @@ function rankDocumentChunks(query, rows, limit = 6) {
       anchored: false,
     }));
   }
-  const terms = tokens(query);
+  // A page-location question uses "states" as a reporting verb, not the
+  // technical noun "state". Keep that noun meaningful in other queries.
+  const terms = tokens(
+    query.replace(/\b(?:which|what)\s+page\s+states?\b/gi, "page"),
+  );
   if (!terms.length) return [];
   const tokenSets = rows.map(
     (row) => new Set(tokens(`${row.heading ?? ""} ${row.content}`)),
