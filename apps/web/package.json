@@ -13,7 +13,7 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "test": "playwright test",
-    "test:config": "node --experimental-strip-types --test tests/*.test.mjs",
+    "test:config": "node --experimental-strip-types --test tests/*.test.mjs ../../scripts/test-staging-evidence.mjs",
     "test:postgres": "npm run db:migrate && playwright test tests/postgres-persistence.spec.ts --project=desktop",
     "db:migrate": "node scripts/migrate-web-postgres.mjs"
   },

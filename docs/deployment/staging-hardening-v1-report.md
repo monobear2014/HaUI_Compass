@@ -2,11 +2,14 @@
 
 **Status: PARTIAL**
 
-Latest closure, 2026-10-15: **PARTIAL**. The final cloud functionality/security matrix is recorded
-in the final section. Code Preview `3f3b8bb` is Ready, MD/TXT/PDF upload and grounded PDF RAG pass,
-and no raw API/Blob master credential was retrieved. A temporary bearer-URL tool-output exception
-prevents describing this as a strictly zero-token-exposure acceptance run. Earlier dated sections
-below are historical evidence, not the latest status.
+Latest closure, 2026-10-15, v1.3: **PARTIAL**. Signed-URL evidence redaction and focused
+regressions pass; the original exposure is traced to native browser automation output and
+retained agent transcripts. Both recovered GET delegations have expired. No matching credential
+material was found in reviewed repository history or local test artifacts. Complete confinement
+beyond the authorized tool/transcript context cannot be established from the available records;
+provider-side retention/access was not verified. Rotation of the API key separately supplied in
+IDE/chat context also remains unconfirmed. See the final v1.3 section for the current decision.
+Earlier sections remain historical evidence, not fresh verification.
 
 Run date: 2026-10-12 (Asia/Ho_Chi_Minh)
 Scope: branch `feat/vercel-staging-deployment`; baseline `b5fbba014b5635a471dab0e4c4a7f2702082ba31`.
@@ -676,3 +679,132 @@ publication. No PR, merge, force push, Production change or cloud cleanup was pe
   tool output. No raw API/Blob master credential was retrieved, copied into an artifact, or
   committed. Later signed-URL tests used status-only output. Synthetic staging data is retained;
   no account/document was deleted and no direct cloud SQL cleanup was performed.
+
+
+## Staging hardening v1.3 — signed URL evidence redaction
+
+**Final recommendation: PARTIAL**
+
+Run date: 2026-10-15 (Asia/Ho_Chi_Minh). Baseline and last supplied deployment:
+`c92929baabd3f71aeeca4cbe66cbb6c006288126`, branch `feat/vercel-staging-deployment`.
+The supplied `2p3cxplr6` Preview was not accessed in this closure. All earlier cloud
+functionality/security passes remain historical evidence; no new live cloud or LLM result
+is implied by this section.
+
+### Root cause and exact exposure boundary
+
+The application intentionally returns temporary, path-scoped GET authority after an owner
+lookup, including the source passed to the PDF reader. Returning that URL to the authorized
+browser is legitimate. The evidence collector then traversed the native accessibility tree,
+which included the embedded reader's URL. Its output crossed the tool-return boundary into
+the agent transcript before any redaction. A later DevTools collector filtered lines broadly
+rather than selecting safe fields, exposing partial upload URLs and signature suffixes.
+This is an evidence-collection defect; no application business-logic change was justified.
+
+The original local JSONL transcripts were inspected without printing their contents or URLs.
+References below identify records, not bearer credentials. Times are Asia/Ho_Chi_Minh.
+
+| Original evidence | Exact collector / record | Finding |
+|---|---|---|
+| Thread `01a130cf-d524-7a91-a800-eb4908d0994d`, 2026-10-12 | `safari.getAXState`, MCP event line 895; duplicate function output 896; repeated snapshot 939/940 | Signed GET authority appeared at 23:05:15 and 23:05:58. Delegation permits only `get`; encoded expiry 23:10:13.192 on 2026-10-12. |
+| Thread `01a13e9d-35f7-7a71-ae8a-4443303398af`, 2026-10-15 | `safari.getAXState`, MCP event line 560; duplicate function output 561 | Signed GET authority appeared at 15:36:29. Delegation permits only `get`; encoded expiry 15:41:26.818 on 2026-10-15. |
+| Same 2026-10-15 thread | Chrome DevTools accessibility/header filtering, MCP event 1591; duplicate function output 1592 | Partial presigned upload URL strings and signature suffixes at 16:11:05. Broad line filtering and truncation are not credential redaction. |
+
+Expiry values were decoded in memory from historical delegation payloads; their signatures
+were not independently verified and no decoded pathname, token or signature was printed.
+Both recovered GET grants are past their encoded expiry. The earlier cloud check separately
+observed signed GET 200 followed by 403 after 311,264 ms; it is not a fresh check of each exposed
+URL. No expiry or completeness claim is made for the truncated upload fragments.
+
+### Exposure classification and durable artifact review
+
+| Surface | Finding and limit |
+|---|---|
+| Application logs | No credential-marker match in reviewed local log artifacts. Hosted application logs were not retrieved; absence there is not established. |
+| Backend/browser response | Legitimate owner-authorized signed reader source and scoped upload authority. No response/auth behavior changed. |
+| Playwright traces | No credential-marker match in reviewed local traces, including 468 ZIP members. These are local fixture traces, not a recording of the native cloud session. |
+| Browser automation output | Confirmed at the exact native accessibility and DevTools collection calls above. |
+| CLI/debugging output | No matching credential in reviewed local CLI/debug log artifacts. The confirmed upload-fragment output was browser-tool output, not an application CLI log. |
+| Agent transcript | Confirmed, including duplicate MCP event/function-output records in the original local JSONL audit logs. Tool output also entered the agent service context; this was not strictly local-only processing. |
+| Committed report/repository | No credential-marker match in 958 historical Git blobs reachable from local refs. The report describes the incident without containing its credentials. |
+
+The artifact scan covered 738 tracked/local artifact files, including `artifacts/`, available
+`apps/web/test-results`/`playwright-report`, `/tmp/haui*` files, the cloud synthetic fixtures and
+flake trace archives. It checked actual Vercel delegation/signature assignments and common
+AWS/Google/access-token query markers without echoing matches. The historical scan preceded
+this change's synthetic fixtures. These are bounded pattern scans, not proof that every possible
+secret encoding or external copy has been found. No editable report or test artifact containing
+actual signed authority was found, so no such file required sanitization.
+
+**Observed scope:** the authorized browser automation session and its retained agent transcript.
+No evidence of a public artifact, repository publication of the credential, or unauthorized
+recipient was found. However, the reviewed records do not establish the access/retention scope
+of provider-side tool/transcript logs or hosted application logs. Complete confinement beyond
+that authorized context cannot be asserted. This is an evidence limitation, not a demonstrated
+unauthorized disclosure.
+
+Original platform-managed transcript records remain affected and were preserved as audit
+records. Their local files are not claimed to be immutable; provider-side copies and deletion
+capabilities were not inspected. No transcript, Git history, cloud log, account or Blob object
+was deleted or rewritten. The recovered GET material is expired; partial upload fragments
+remain recorded without a claim that they constitute a complete usable credential.
+
+### Preventive changes
+
+- `scripts/staging-evidence.mjs`: strict allowlisted HTTP evidence (`status`, access outcome,
+  resource type, phase, numeric elapsed time and expiration outcome). Cookies, headers, bodies,
+  URLs and arbitrary error messages are excluded before output or persistence.
+- URL redaction masks every query value, including `vercel-blob-delegation`,
+  `vercel-blob-signature`, provider-specific and unknown parameters; host/path/userinfo/fragment
+  are removed as well. Normal evidence records need no URL.
+- The standalone probe retains original authority in memory for fetch, omits cookies, refuses
+  redirects, cancels the body and suppresses URL-bearing transport errors. A network failure
+  remains unverified rather than being recorded as a storage authorization denial.
+- Root `AGENTS.md` and `signed-url-evidence.md` require sanitization before tool returns and
+  prohibit raw native snapshots/network dumps when signed authority is present. Helpers do not
+  intercept third-party snapshots; future collectors must use the documented safe path.
+- `apps/web` config tests now include the evidence regressions. No app route, signing lifetime,
+  ownership lookup, Blob permission, Vercel Authentication or deployment setting changed.
+
+### Fresh regression results
+
+| Check | Result |
+|---|---|
+| `node --test scripts/test-staging-evidence.mjs` | 4 passed. Synthetic parameters masked; statuses retained; original signed request preserved; saved evidence excludes authority/private data; fetch errors suppressed. |
+| `npm run test:config` in `apps/web` | 29 passed, including the 4 new cases and existing private-store fail-closed, upload scope, owner-before-signing and authorized streaming checks. |
+| Focused desktop Playwright | 4 passed in 13.3 s: upload owner isolation/validation, session protection, PDF ingestion/original bytes/page citation/foreign-owner denial, Study Set owner scope. |
+| Web ESLint | Passed. |
+| Node syntax checks for both evidence scripts | Passed. |
+| `git diff --check` | Passed. |
+
+The synthetic HTTP regression observes 200 with the unchanged synthetic signed request, 403
+without authority and 403 after simulated expiry; it writes a temporary evidence JSON file,
+checks that no full URL, token, cookie or private bytes are stored, then removes only that
+synthetic temporary directory. It does not claim to validate Vercel cryptography. Existing
+cloud 200/403 expiry evidence and prior private Blob isolation results are preserved above.
+No new cloud document-access test was required for this collection-only change. No full E2E,
+API suite, database migration, production build or live model call was repeated.
+
+### Acceptance decision and remaining risks
+
+The targeted redaction implementation and relevant regressions pass. The original bearer URL
+incident is no longer unidentified: its exact collector, transcript records, GET scope and
+encoded expiry are documented. Retained expired GET evidence does not by itself require an
+application auth change or history rewrite, and this run does not claim zero historical exposure.
+
+**PARTIAL** follows the requested acceptance rule because the available evidence cannot fully
+establish confinement beyond the authorized tool/transcript context. Provider-side log
+access/retention and hosted application logs remain unverified. Separately, an API key was
+again supplied through IDE/chat context in this task; its owner has not confirmed revocation
+or rotation. No key was read from `.env`, tested, copied into evidence or committed by this run.
+That unresolved credential risk must not be silently declared resolved by signed-URL redaction.
+
+To reconsider STAGING READY, establish the remaining exposure/retention boundary through the
+relevant platform audit controls and confirm rotation of the separately exposed API key. Do
+not mint another signed URL or repeat the full workflow merely to replace historical evidence.
+No destructive cloud cleanup is necessary for the expired GET grants demonstrated here.
+
+Publication is restricted to the staging branch with author `Nguyen hoai nam
+<namnh.audit@gmail.com>`, no co-author/AI attribution, PR, merge, force push or Production
+operation. The resulting commit and push verification are supplied in the task handoff;
+this report cannot embed its own containing commit hash.
