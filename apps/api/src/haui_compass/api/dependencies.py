@@ -274,13 +274,14 @@ def build_container(
     )
 
 
+def database_url_configured() -> bool:
+    return bool(os.getenv("HAUI_COMPASS_DATABASE_URL") or os.getenv("DATABASE_URL"))
+
+
 def build_runtime_container() -> AppContainer:
     """Read process configuration at the composition boundary used by normal startup."""
     llm_settings = LLMSettings.from_env()
-    database_url_configured = bool(
-        os.getenv("HAUI_COMPASS_DATABASE_URL") or os.getenv("DATABASE_URL")
-    )
-    if database_url_configured:
+    if database_url_configured():
         # Import only when PostgreSQL is configured so local/test startup keeps its
         # lightweight in-memory composition and dependency boundaries stay explicit.
         from haui_compass.api.postgres_dependencies import build_postgres_container

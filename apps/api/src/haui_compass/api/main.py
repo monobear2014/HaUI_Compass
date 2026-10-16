@@ -1,4 +1,6 @@
-from typing import cast
+import os
+from collections.abc import Sequence
+from typing import Any, cast
 
 from fastapi import FastAPI
 
@@ -9,9 +11,12 @@ from haui_compass.api.v1.routes import container_from_app, router
 from haui_compass.api.v1.weekly import router as weekly_router
 
 
-def create_app(container: AppContainer | None = None) -> FastAPI:
+def create_app(
+    container: AppContainer | None = None, *, dependencies: Sequence[Any] = ()
+) -> FastAPI:
     resolved = container or build_container()
-    app = FastAPI(title="HaUI Compass API", version="0.1.0")
+    # App-level dependencies apply to every route, including routes added after creation.
+    app = FastAPI(title="HaUI Compass API", version="0.1.0", dependencies=list(dependencies))
     app.state.container = resolved
 
     def get_container() -> AppContainer:
@@ -25,4 +30,14 @@ def create_app(container: AppContainer | None = None) -> FastAPI:
     return app
 
 
-app = create_app(build_runtime_container())
+def build_runtime_app() -> FastAPI:
+    """Select the process composition from explicit configuration at startup."""
+    if os.getenv("HAUI_COMPASS_SIMULATED_WORKSPACES") == "1":
+        # Staging demo: per-account simulated Canvas data behind the web session.
+        from haui_compass.api.simulated_workspaces import build_simulated_workspace_app
+
+        return build_simulated_workspace_app()
+    return create_app(build_runtime_container())
+
+
+app = build_runtime_app()
