@@ -137,7 +137,7 @@ it read-only before anything else (step 2 below).
 | Web typecheck, lint, `test:config` | Passed; 29 config tests |
 | Web production build | Passed |
 | Staging-equivalent Playwright (`playwright.staging.config.ts`), desktop + mobile | 2 passed |
-| Existing Playwright suite (local demo API) | See the final report for the run on the last commit |
+| Existing Playwright suite (local demo API), desktop + mobile | 150 passed, 8 skipped (web-PostgreSQL-only specs), 0 failed |
 
 Staging-equivalent stack: `next build` + `next start` (`NODE_ENV=production`), FastAPI
 `main:app` with `HAUI_COMPASS_SIMULATED_WORKSPACES=1`, one PostgreSQL 16 database holding the
