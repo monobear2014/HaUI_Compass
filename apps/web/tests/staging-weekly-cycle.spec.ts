@@ -146,6 +146,38 @@ test("hai sinh viên staging có tuần học, đồng hồ và dữ liệu riê
     },
   );
   expect(forged.status()).toBe(403);
+  // Neither the media type nor a borrowed task id lets B change A's tasks.
+  const execution = (student: unknown, taskId: string) =>
+    JSON.stringify({
+      student,
+      task_id: taskId,
+      record_id: crypto.randomUUID(),
+      started_at: new Date(Date.parse(ctxB.now) - 30 * 60_000).toISOString(),
+      ended_at: ctxB.now,
+      outcome: "completed",
+    });
+  const attempts: [string, string, number][] = [
+    [execution(ctxA.student, ctxA.tasks[0].id), "application/json", 403],
+    [execution(ctxA.student, ctxA.tasks[0].id), "application/JSON", 403],
+    [
+      execution(ctxA.student, ctxA.tasks[0].id),
+      "Application/Json; charset=utf-8",
+      403,
+    ],
+    [execution(ctxA.student, ctxA.tasks[0].id), "text/plain", 415],
+    [execution(ctxB.student, ctxA.tasks[0].id), "application/JSON", 404],
+  ];
+  for (const [data, contentType, status] of attempts) {
+    const attempt = await contextB.request.post(
+      "/compass-api/task-executions",
+      { headers: { Origin: origin, "Content-Type": contentType }, data },
+    );
+    expect(attempt.status(), contentType).toBe(status);
+  }
+  const ctxAAfter = await (
+    await contextA.request.get("/compass-api/demo/context")
+  ).json();
+  expect(ctxAAfter.tasks).toEqual(ctxA.tasks);
   const internal = await contextB.request.post(
     "/compass-api/internal/compass/answer",
     { headers: { Origin: origin }, data: { message: "x", evidence: [] } },
