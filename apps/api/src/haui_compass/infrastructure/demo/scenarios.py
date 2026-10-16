@@ -3,7 +3,7 @@
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from enum import StrEnum
-from uuid import UUID
+from uuid import UUID, uuid5
 
 from haui_compass.application.lms_mapping import assignment_id_for
 from haui_compass.application.ports.lms import (
@@ -81,12 +81,28 @@ def _hanoi(anchor: datetime, days: int, hour: int, minute: int = 0) -> datetime:
     return anchor + timedelta(days=days, hours=hour - DEMO_DAY_START_HOUR, minutes=minute)
 
 
-def week_scenario(anchor: datetime) -> Scenario:
-    """Two-week Canvas-like fixture that starts with no plan, so the student plans the week."""
-    student = ExternalRef("mock-canvas", "showcase-week")
+# Namespace for per-student fixture task ids; changing it changes every seeded task id.
+_TASK_NAMESPACE = UUID("2b0f3f5e-7c1d-4a8e-9d36-5c4e1f0a7b92")
+SHOWCASE_WEEK_STUDENT = ExternalRef("mock-canvas", "showcase-week")
+
+
+def week_scenario(anchor: datetime, student: ExternalRef = SHOWCASE_WEEK_STUDENT) -> Scenario:
+    """Two-week Canvas-like fixture that starts with no plan, so the student plans the week.
+
+    The single-presenter showcase keeps its historical identifiers. Any other ``student`` gets
+    its own course/assignment refs and task ids, so many students can hold the same fixture in
+    one database without sharing a row.
+    """
+    showcase = student == SHOWCASE_WEEK_STUDENT
+    prefix = "week" if showcase else f"{student.id}/week"
 
     def ref(key: str) -> ExternalRef:
-        return ExternalRef(student.provider, f"week-{key}")
+        return ExternalRef(student.provider, f"{prefix}-{key}")
+
+    def task_id(position: int) -> TaskId:
+        if showcase:
+            return TaskId(UUID(int=301 + position))
+        return TaskId(uuid5(_TASK_NAMESPACE, f"{student.provider}|{student.id}|{position}"))
 
     courses = tuple(
         LMSCourseRecord(ref=ref(key), name=name, code=code)
@@ -152,7 +168,7 @@ def week_scenario(anchor: datetime) -> Scenario:
         for title, minutes in items:
             tasks.append(
                 Task(
-                    id=TaskId(UUID(int=301 + len(tasks))),
+                    id=task_id(len(tasks)),
                     assignment_id=assignment_id_for(assignments[index].ref),
                     title=title,
                     estimated_duration=timedelta(minutes=minutes),
