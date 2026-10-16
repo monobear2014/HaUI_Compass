@@ -17,6 +17,8 @@ _IMPORTED_ACADEMIC_TABLES = frozenset(
         "imported_courses",
         "imported_assignments",
         "imported_submissions",
+        # Introduced by 0003.
+        "weekly_goals",
     }
 )
 

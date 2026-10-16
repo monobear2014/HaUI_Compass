@@ -4,6 +4,7 @@ from datetime import datetime
 from uuid import UUID
 
 from sqlalchemy import (
+    JSON,
     CheckConstraint,
     DateTime,
     ForeignKey,
@@ -276,3 +277,21 @@ class ReflectionSignalRow(Base):
     actual_seconds: Mapped[int | None] = mapped_column(Integer, nullable=True)
     workload: Mapped[str | None] = mapped_column(String(32), nullable=True)
     topic: Mapped[str | None] = mapped_column(String(500), nullable=True)
+
+
+class WeeklyGoalRow(Base):
+    __tablename__ = "weekly_goals"
+    __table_args__ = (
+        UniqueConstraint("student_id", "period_start", "period_end", name="uq_weekly_goal_scope"),
+        CheckConstraint("target_minutes >= 0", name="ck_weekly_goal_target"),
+        Index("ix_weekly_goals_student", "student_id", "period_start"),
+    )
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    student_id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), nullable=False)
+    period_start: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    period_end: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    goal_text: Mapped[str] = mapped_column(String(500), nullable=False)
+    target_minutes: Mapped[int] = mapped_column(Integer, nullable=False)
+    # [[starts_at_iso, ends_at_iso], ...] in UTC; small, always read with the goal.
+    study_windows: Mapped[list[list[str]]] = mapped_column(JSON, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
