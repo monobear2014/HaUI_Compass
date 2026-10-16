@@ -10,7 +10,7 @@ cd apps/web && COMPASS_API_URL=http://127.0.0.1:8001 npm run dev
 ```
 
 Open http://127.0.0.1:3000/login → **Điền tài khoản demo** (`demo` / `haui123`) → Sinh viên →
-**Để sau**. The demo starts on **Tuần học mẫu** (Monday 09:00, no plan). To restart, open
+**Để sau, vào không gian học**. The demo starts on **Tuần học mẫu** (Monday 09:00, no plan). To restart, open
 **Tuỳ chọn → Kịch bản demo → Đặt lại kịch bản**.
 
 ## Script
