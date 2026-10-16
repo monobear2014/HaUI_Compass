@@ -112,6 +112,21 @@ Production identity, real LMS integration, arbitrary task/window management, dur
 reflection browsing and frontend-to-PostgreSQL demo composition remain **PLANNED**.
 See [web setup and limitations](../apps/web/README.md).
 
+**Weekly Cycle v1 is IMPLEMENTED, development/demo-only:** the student workspace connects
+Plan → Do → Adapt → Reflect → next week. A student sets a weekly goal and free time, may confirm
+AI-assisted task breakdowns, previews a deterministic Weekly Planner proposal with deadline risk,
+and explicitly approves it. Today supports start/complete/pause (student-reported minutes),
+missed-session and deadline alerts, and links to materials/Compass Assistant. Adaptation previews a
+deterministic replan with risk before/after and is persisted only on confirmation. The weekly
+review is rule-based (explicit thresholds); optional LLM reflection prompts fall back to an offline
+template. Confirmed reflection drafts next week's goal through transparent adjustments (carry-over,
+±20 % target for reported workload, estimate buffer advice, deferred work, difficult topics); the
+planner itself is unchanged. Weekly goals persist in memory or PostgreSQL (Alembic `0003`, not yet
+applied to any cloud database). The opt-in demo starts on an unplanned Canvas-like two-week fixture
+with demo-only time controls. See the [weekly cycle demo](demo/weekly-cycle-demo.md).
+**PLANNED:** per-account learning-data isolation, the learning loop on the staging API, calibrated
+estimates and planner use of student priorities.
+
 **PostgreSQL Persistence v0 is IMPLEMENTED:** synchronous SQLAlchemy 2.x,
 psycopg, Alembic, typed relational models/adapters, and a small transaction boundary are present.
 The default in-memory composition remains available. A real PostgreSQL instance is required to
