@@ -47,6 +47,7 @@ test("hai sinh viên staging có tuần học, đồng hồ và dữ liệu riê
   const origin = baseURL!;
   const studentA = account("sva");
   const studentB = account("svb");
+  const editedTitle = "Phân tích yêu cầu đồ án (đã chỉnh)";
   const contextA = await browser.newContext();
   const page = await contextA.newPage();
   await vietnamese(page);
@@ -72,6 +73,9 @@ test("hai sinh viên staging có tuần học, đồng hồ và dữ liệu riê
     .getByLabel("Tuần này bạn muốn đạt được điều gì?")
     .fill("Nộp bài CSDL và Lab 2 đúng hạn");
   await page.getByRole("button", { name: "Chia thành bước nhỏ" }).click();
+  // The student edits a suggestion before confirming it.
+  await page.getByLabel("Candidate 1 title").fill(editedTitle);
+  await page.getByLabel("Candidate 1 estimate").fill("45");
   await page.getByRole("button", { name: "Thêm công việc đã chọn" }).click();
   await expect(
     page.locator(".weekly-assignment").filter({ hasText: "Đồ án nhỏ" }),
@@ -80,6 +84,7 @@ test("hai sinh viên staging có tuần học, đồng hồ và dữ liệu riê
   await expect(
     page.getByRole("heading", { name: "Kế hoạch đề xuất cho tuần này" }),
   ).toBeVisible();
+  await expect(page.getByText(editedTitle).first()).toBeVisible();
   await page.getByRole("button", { name: "Duyệt kế hoạch" }).click();
   await expect(page.getByText("Đã duyệt kế hoạch tuần.")).toBeVisible();
   await noTechnicalJson(page);
