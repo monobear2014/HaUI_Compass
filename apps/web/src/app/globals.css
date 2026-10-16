@@ -1738,3 +1738,214 @@ html[data-theme="dark"] .next-action .why-box {
     grid-column: 1;
   }
 }
+
+/* Weekly cycle: plan wizard, adaptation, review, demo clock */
+button.text-link {
+  border: 0;
+  background: none;
+  padding: 0;
+  min-height: 0;
+  cursor: pointer;
+}
+.weekly-step {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+.weekly-step h2 {
+  margin: 0 0 var(--space-2);
+}
+.weekly-step .window-input {
+  grid-template-columns: 32px 1fr 1fr auto;
+}
+.weekly-step textarea {
+  width: 100%;
+  font: inherit;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  resize: vertical;
+}
+.weekly-progress {
+  display: flex;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: weekly-step;
+  font-size: 13px;
+  color: var(--secondary);
+}
+.weekly-progress li {
+  counter-increment: weekly-step;
+}
+.weekly-progress li::before {
+  content: counter(weekly-step) ". ";
+}
+.weekly-progress li[aria-current="step"] {
+  color: var(--text);
+  font-weight: 650;
+}
+.weekly-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-3);
+}
+.weekly-summary-card p {
+  margin: 0 0 var(--space-3);
+}
+.weekly-risks {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.weekly-risks li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) 0;
+  border-top: 1px solid var(--border);
+}
+.weekly-suggestions ul,
+.weekly-columns ul,
+.weekly-coach ul,
+.week-history ul {
+  margin: 0;
+  padding-left: 20px;
+  display: grid;
+  gap: 6px;
+}
+.weekly-assignment {
+  display: flex;
+  gap: var(--space-4);
+  padding: var(--space-3) 0;
+  border-top: 1px solid var(--border);
+}
+.weekly-assignment > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  flex: 1;
+}
+.weekly-alerts {
+  display: grid;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+}
+.weekly-alert {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--warning-soft);
+  color: var(--warning);
+}
+.weekly-alert p {
+  margin: 0;
+  flex: 1;
+  color: var(--text);
+}
+.weekly-alert.danger {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+.weekly-alert.success {
+  background: var(--accent-soft);
+  color: var(--success);
+  margin-bottom: var(--space-4);
+}
+.weekly-review {
+  margin-bottom: var(--space-5);
+  display: grid;
+  gap: var(--space-4);
+}
+.weekly-review h3 {
+  margin: 0 0 var(--space-2);
+  font-size: 14px;
+}
+.weekly-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+.weekly-stats > div {
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+.weekly-stats strong {
+  font-size: 22px;
+}
+.weekly-stats span {
+  color: var(--secondary);
+  font-size: 12px;
+}
+.weekly-columns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
+}
+.weekly-coach {
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--accent-soft);
+}
+.weekly-coach p {
+  margin: var(--space-2) 0;
+}
+.week-history {
+  padding: var(--space-3) 0;
+  border-top: 1px solid var(--border);
+}
+.week-history p {
+  margin: 4px 0;
+}
+.demo-clock {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  margin-bottom: var(--space-4);
+  padding: var(--space-2) var(--space-3);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  color: var(--secondary);
+}
+.demo-clock span {
+  flex: 1;
+  min-width: 180px;
+}
+@media (max-width: 700px) {
+  .weekly-step .window-input {
+    grid-template-columns: 24px 1fr;
+  }
+  .weekly-step .window-input > button {
+    grid-column: 2;
+  }
+  .weekly-stats,
+  .weekly-columns {
+    grid-template-columns: 1fr;
+  }
+  .weekly-actions > * {
+    flex: 1;
+    justify-content: center;
+  }
+}
+a.primary {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+  padding: 9px 14px;
+  border: 1px solid var(--text);
+  font-weight: 600;
+}

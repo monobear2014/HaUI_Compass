@@ -1,10 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import {
   api,
   Candidate,
+  DEMO_MODE,
   date,
   dayKey,
   label,
@@ -13,7 +15,6 @@ import {
   Replan,
   Task,
   time,
-  Window,
 } from "@/lib/api";
 import { Icon } from "./icons";
 import {
@@ -26,6 +27,17 @@ import {
   Status,
 } from "./ui";
 import { usePreferences } from "./preferences";
+import {
+  AdaptFlow,
+  FinishTask,
+  PlanWizard,
+  useActiveTask,
+  useCopy,
+  useRiskText,
+  WeekAlerts,
+  WeekHistoryList,
+  WeeklySummary,
+} from "./weekly";
 import { useWorkspace } from "./workspace";
 
 function message(error: unknown) {
@@ -58,11 +70,20 @@ function Feedback({ error, success }: { error: string; success?: string }) {
 export function Today() {
   const { context, recommendation, history, refresh, loading } = useWorkspace();
   const { language, t } = usePreferences();
+  const c = useCopy();
+  const riskText = useRiskText();
   const locale = language === "vi" ? "vi-VN" : "en-GB";
   const [recording, setRecording] = useState<Task | null>(null);
+  const [finishing, setFinishing] = useState<"completed" | "partial" | null>(
+    null,
+  );
+  const [saved, setSaved] = useState("");
+  const { active, start, clear } = useActiveTask();
   if (!context) return null;
   const rec = recommendation?.recommendation;
-  const task = context.tasks.find((item) => item.id === rec?.task_id);
+  const recommended = context.tasks.find((item) => item.id === rec?.task_id);
+  const activeTask = context.tasks.find((item) => item.id === active?.taskId);
+  const task = activeTask || recommended;
   const plan = history.at(-1);
   const todayBlocks =
     plan?.blocks.filter(
@@ -81,13 +102,9 @@ export function Today() {
         ) === index,
     )
     .slice(0, 3);
-  const riskText = (level: string) =>
-    ({
-      high: language === "vi" ? "Rủi ro cao" : "High risk",
-      medium: language === "vi" ? "Cần chú ý" : "Needs attention",
-      low: language === "vi" ? "Trong tầm kiểm soát" : "On track",
-      unknown: language === "vi" ? "Chưa đủ dữ liệu" : "Not enough data",
-    })[level] || level;
+  const taskRisk = recommendation?.assignment_risks.find(
+    (risk) => risk.assignment_id === task?.assignment_id,
+  );
   return (
     <>
       <PageHeading
@@ -108,34 +125,65 @@ export function Today() {
           </button>
         }
       />
+      {!plan && (
+        <div className="weekly-alert success no-plan" role="status">
+          <Icon name="plan" size={18} />
+          <p>
+            <strong>
+              {c("Tuần này chưa có kế hoạch", "No plan for this week yet")}
+            </strong>{" "}
+            {c(
+              "— đặt mục tiêu và thời gian rảnh, Compass sẽ đề xuất lịch để bạn duyệt.",
+              "— set a goal and free time; Compass proposes a schedule to approve.",
+            )}
+          </p>
+          <Link className="primary" href="/plan">
+            {c("Lập kế hoạch tuần", "Plan my week")}
+            <Icon name="arrow" size={16} />
+          </Link>
+        </div>
+      )}
+      <WeekAlerts plan={plan} />
+      {saved && (
+        <p className="form-success" role="status">
+          <Icon name="check" size={16} />
+          {saved}
+        </p>
+      )}
       <div className="today-grid focused-today">
         <div className="today-primary">
           <section className="next-action panel">
             <div className="section-heading">
               <span className="eyebrow accent inline">
                 <Icon name="compass" size={17} />
-                {language === "vi" ? "VIỆC NÊN LÀM" : "YOUR NEXT STEP"}
+                {activeTask
+                  ? c("ĐANG LÀM", "IN PROGRESS")
+                  : language === "vi"
+                    ? "VIỆC NÊN LÀM"
+                    : "YOUR NEXT STEP"}
               </span>
             </div>
-            {task && rec?.evidence ? (
+            {task ? (
               <>
                 <p className="course-label">
                   {task.course} · {task.assignment_title}
                 </p>
                 <h2 className="action-title">{task.title}</h2>
                 <div className="action-meta">
-                  <Badge
-                    tone={
-                      rec.evidence.risk_level === "high"
-                        ? "danger"
-                        : rec.evidence.risk_level === "unknown"
-                          ? "warning"
-                          : "neutral"
-                    }
-                  >
-                    <Icon name="alert" size={13} />
-                    {riskText(rec.evidence.risk_level)}
-                  </Badge>
+                  {taskRisk && (
+                    <Badge
+                      tone={
+                        taskRisk.level === "high"
+                          ? "danger"
+                          : taskRisk.level === "unknown"
+                            ? "warning"
+                            : "neutral"
+                      }
+                    >
+                      <Icon name="alert" size={13} />
+                      {riskText(taskRisk.level)}
+                    </Badge>
+                  )}
                   <span>
                     <Icon name="plan" size={16} />
                     {t("common.due")}{" "}
@@ -152,78 +200,102 @@ export function Today() {
                   </span>
                   <span>
                     <Icon name="clock" size={16} />
-                    {minutes(rec.evidence.estimated_duration_seconds)}{" "}
+                    {minutes(task.estimated_duration_seconds)}{" "}
                     {t("common.minutes")}
                   </span>
                 </div>
                 <div className="action-bottom">
+                  {activeTask ? (
+                    <>
+                      <button
+                        className="primary"
+                        onClick={() => setFinishing("completed")}
+                      >
+                        {c("Hoàn thành", "Complete")}
+                        <Icon name="check" size={17} />
+                      </button>
+                      <button
+                        className="secondary"
+                        onClick={() => setFinishing("partial")}
+                      >
+                        {c("Tạm dừng", "Pause")}
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      className={plan ? "primary" : "secondary"}
+                      onClick={() => start(task.id)}
+                    >
+                      {c("Bắt đầu", "Start")}
+                      <Icon name="arrow" size={17} />
+                    </button>
+                  )}
                   <button
-                    className="primary"
+                    className="text-link"
                     onClick={() => setRecording(task)}
                   >
                     {t("today.recordWork")}
-                    <Icon name="arrow" size={17} />
                   </button>
-                  <Link href="/reflect" className="text-link">
-                    {language === "vi"
-                      ? "Nhìn lại buổi học"
-                      : "Review your study session"}
-                    <Icon name="reflect" size={15} />
+                  <Link href="/learn" className="text-link">
+                    {c(
+                      "Tài liệu & Trợ lý Compass",
+                      "Materials & Compass Assistant",
+                    )}
+                    <Icon name="ask" size={15} />
                   </Link>
                 </div>
-                <details className="why-box compact-disclosure">
-                  <summary>{t("today.explanation")}</summary>
-                  <p lang="vi">
-                    {recommendation?.explanation?.text ||
-                      rec.reason_codes
-                        ?.map((code) => label(code, language))
-                        .join(" ")}
-                  </p>
-                  <details className="decision-evidence">
-                    <summary>{t("today.evidence")}</summary>
-                    <Badge>
-                      {recommendation?.explanation?.source === "ai"
-                        ? t("today.online")
-                        : t("today.offline")}
-                    </Badge>
-                    <p className="fine-print">{t("today.decisionText")}</p>
-                    <p>
-                      {t("today.ranking")}{" "}
-                      <code>{rec.evidence.deciding_dimension}</code>
+                {recommended && rec?.evidence && task.id === recommended.id && (
+                  <details className="why-box compact-disclosure">
+                    <summary>{t("today.explanation")}</summary>
+                    <p lang="vi">
+                      {recommendation?.explanation?.text ||
+                        rec.reason_codes
+                          ?.map((code) => label(code, language))
+                          .join(" ")}
                     </p>
-                    <ul>
-                      {rec.reason_codes?.map((code) => (
-                        <li key={code}>
-                          <code>{code}</code> · {label(code, language)}
-                        </li>
-                      ))}
-                    </ul>
-                    <ul>
-                      {rec.evidence.risk_reason_codes.map((code) => (
-                        <li key={code}>
-                          <code>{code}</code> · {label(code, language)}
-                        </li>
-                      ))}
-                    </ul>
-                    <pre>
-                      {JSON.stringify(
-                        recommendation?.assignment_risks.find(
-                          (risk) => risk.assignment_id === task.assignment_id,
-                        )?.evidence,
-                        null,
-                        2,
+                    <details className="decision-evidence">
+                      <summary>{t("today.evidence")}</summary>
+                      <Badge>
+                        {recommendation?.explanation?.source === "ai"
+                          ? t("today.online")
+                          : t("today.offline")}
+                      </Badge>
+                      <p className="fine-print">{t("today.decisionText")}</p>
+                      <ul>
+                        {[
+                          ...(rec.reason_codes || []),
+                          ...rec.evidence.risk_reason_codes,
+                        ].map((code) => (
+                          <li key={code}>{label(code, language)}</li>
+                        ))}
+                      </ul>
+                      {taskRisk && (
+                        <p className="fine-print">
+                          {c("Còn", "Remaining")}{" "}
+                          {minutes(
+                            taskRisk.evidence.remaining_effort_seconds || 0,
+                          )}{" "}
+                          {c(
+                            "phút việc · thời gian rảnh trước hạn",
+                            "min of work · free time before deadline",
+                          )}{" "}
+                          {minutes(
+                            taskRisk.evidence.available_capacity_seconds || 0,
+                          )}{" "}
+                          {t("common.minutes")}
+                        </p>
                       )}
-                    </pre>
+                    </details>
                   </details>
-                </details>
+                )}
               </>
             ) : (
               <Empty title={t("today.clearForNow")}>
                 <p>{t("today.clearForNowText")}</p>
                 <Link className="secondary" href="/reflect">
                   {language === "vi"
-                    ? "Nhìn lại buổi học"
-                    : "Review your studying"}
+                    ? "Tổng kết & phản tư tuần"
+                    : "Review your week"}
                   <Icon name="arrow" size={16} />
                 </Link>
               </Empty>
@@ -238,13 +310,31 @@ export function Today() {
               </Link>
             </div>
             {todayBlocks.length ? (
-              todayBlocks.map((block, i) => (
-                <BlockRow
-                  key={i}
-                  block={block}
-                  task={context.tasks.find((item) => item.id === block.task_id)}
-                />
-              ))
+              todayBlocks.map((block, i) => {
+                const blockTask = context.tasks.find(
+                  (item) => item.id === block.task_id,
+                );
+                return (
+                  <BlockRow
+                    key={i}
+                    block={block}
+                    task={blockTask}
+                    action={
+                      blockTask &&
+                      blockTask.status !== "completed" &&
+                      blockTask.id !== activeTask?.id ? (
+                        <button
+                          className="secondary small"
+                          aria-label={`${c("Bắt đầu", "Start")} ${blockTask.title}`}
+                          onClick={() => start(blockTask.id)}
+                        >
+                          {c("Bắt đầu", "Start")}
+                        </button>
+                      ) : undefined
+                    }
+                  />
+                );
+              })
             ) : (
               <div className="quiet-empty">
                 <p>
@@ -314,14 +404,6 @@ export function Today() {
                   {risk.reason_codes.map((code) => (
                     <p key={code}>{label(code, language)}</p>
                   ))}
-                  <details className="decision-evidence">
-                    <summary>
-                      {language === "vi"
-                        ? "Dữ liệu tính toán"
-                        : "Calculation data"}
-                    </summary>
-                    <pre>{JSON.stringify(risk.evidence, null, 2)}</pre>
-                  </details>
                 </details>
               ))}
             </details>
@@ -347,6 +429,21 @@ export function Today() {
       </div>
       {recording && (
         <RecordWork task={recording} onClose={() => setRecording(null)} />
+      )}
+      {finishing && activeTask && (
+        <FinishTask
+          task={activeTask}
+          outcome={finishing}
+          onClose={() => setFinishing(null)}
+          onSaved={() => {
+            clear();
+            setSaved(
+              finishing === "completed"
+                ? c("Đã hoàn thành: ", "Completed: ") + activeTask.title
+                : c("Đã lưu tiến độ: ", "Progress saved: ") + activeTask.title,
+            );
+          }}
+        />
       )}
     </>
   );
@@ -454,28 +551,57 @@ function RecordWork({ task, onClose }: { task: Task; onClose: () => void }) {
 export function WeeklyPlan() {
   const { context, history, revision } = useWorkspace();
   const { t, language } = usePreferences();
-  const [editing, setEditing] = useState(false);
+  const c = useCopy();
+  const [adapting, setAdapting] = useState(false);
+  const [approved, setApproved] = useState(false);
+  useEffect(() => {
+    // Today's "Reschedule" link opens the adaptation flow directly.
+    if (new URLSearchParams(window.location.search).get("adapt") !== "1")
+      return;
+    const frame = window.requestAnimationFrame(() => setAdapting(true));
+    return () => window.cancelAnimationFrame(frame);
+  }, []);
   if (!context) return null;
   const plan = history.at(-1);
+  if (!plan)
+    return (
+      <>
+        <PageHeading
+          title={c("Lập kế hoạch tuần", "Plan your week")}
+          description={c(
+            "Đặt mục tiêu, chọn thời gian rảnh, xem đề xuất của Compass rồi duyệt.",
+            "Set a goal, choose free time, review Compass's proposal, then approve it.",
+          )}
+        />
+        <PlanWizard onApproved={() => setApproved(true)} />
+      </>
+    );
   return (
     <>
       <PageHeading
         title={t("plan.title")}
         description={t("plan.description")}
         action={
-          <button className="primary" onClick={() => setEditing(!editing)}>
-            <Icon name={plan ? "refresh" : "plus"} size={16} />
-            {editing
-              ? t("plan.closeEditor")
-              : plan
-                ? t("plan.adjust")
-                : t("plan.generate")}
-          </button>
+          !adapting && (
+            <button className="primary" onClick={() => setAdapting(true)}>
+              <Icon name="refresh" size={16} />
+              {t("plan.adjust")}
+            </button>
+          )
         }
       />
-      {editing ? (
-        <PlanEditor plan={plan} onDone={() => setEditing(false)} />
-      ) : plan ? (
+      {approved && plan.revision === 1 && !adapting && (
+        <div className="weekly-alert success" role="status">
+          <Icon name="check" size={18} />
+          <p>{c("Đã duyệt kế hoạch tuần.", "Weekly plan approved.")}</p>
+          <Link className="secondary small" href="/today">
+            {c("Bắt đầu hôm nay", "Start today")}
+          </Link>
+        </div>
+      )}
+      {adapting ? (
+        <AdaptFlow plan={plan} onDone={() => setAdapting(false)} />
+      ) : (
         <>
           <div className="plan-toolbar">
             <div>
@@ -533,177 +659,17 @@ export function WeeklyPlan() {
             <Link className="text-link" href="/reflect">
               <Icon name="reflect" size={16} />
               {language === "vi"
-                ? "Nhìn lại buổi học"
-                : "Review your study session"}
+                ? "Tổng kết & phản tư tuần"
+                : "Review your week"}
             </Link>
             <Link className="text-link" href="/history">
               <Icon name="history" size={16} />
               {language === "vi" ? "Xem các bản đã lưu" : "See saved versions"}
             </Link>
           </div>
-          <details className="compact-disclosure">
-            <summary>
-              {t("common.demo")} · {t("plan.planner")}
-            </summary>
-            <p className="fine-print">{t("plan.readOnly")}</p>
-            <p className="fine-print">
-              {t("plan.planner")} v{plan.planner_version}
-            </p>
-          </details>
         </>
-      ) : (
-        <Empty title={t("plan.blankTitle")}>
-          <p>{t("plan.blankText")}</p>
-        </Empty>
       )}
     </>
-  );
-}
-
-function PlanEditor({ plan, onDone }: { plan?: Plan; onDone: () => void }) {
-  const { context, refresh, setRevision } = useWorkspace();
-  const { t } = usePreferences();
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
-  const [windows, setWindows] = useState<Window[]>(
-    () => context?.study_windows || [],
-  );
-  if (!context) return null;
-  const ctx = context;
-  async function submit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const data = new FormData(event.currentTarget);
-    setBusy(true);
-    setError("");
-    try {
-      const submittedWindows: Window[] = windows.map((_, i) => ({
-        starts_at: new Date(String(data.get("start-" + i))).toISOString(),
-        ends_at: new Date(String(data.get("end-" + i))).toISOString(),
-      }));
-      const body = {
-        student: ctx.student,
-        period: ctx.period,
-        study_windows: submittedWindows,
-        record_id: crypto.randomUUID(),
-      };
-      if (plan) {
-        const result = await api<Replan>("weekly-plans/replan", {
-          ...body,
-          effective_at: ctx.now,
-          remaining_efforts: ctx.tasks
-            .filter((t) => t.status !== "completed")
-            .map((t) => ({
-              task_id: t.id,
-              remaining_duration_seconds: Number(data.get(t.id)) * 60,
-            })),
-        });
-        setRevision(result);
-      } else {
-        await api<Plan>("weekly-plans", body);
-      }
-      await refresh();
-      onDone();
-    } catch (err) {
-      setError(message(err));
-    } finally {
-      setBusy(false);
-    }
-  }
-  return (
-    <section className="panel editor">
-      <div className="section-heading">
-        <h2>{plan ? t("plan.adjustTitle") : t("plan.createTitle")}</h2>
-      </div>
-      <form onSubmit={submit} className="form-stack">
-        <p className="muted">{t("plan.availability")}</p>
-        <div className="window-inputs">
-          {windows.map((window, i) => (
-            <div
-              className="window-input"
-              key={`${window.starts_at}:${window.ends_at}`}
-            >
-              <span className="window-number">0{i + 1}</span>
-              <label>
-                {t("common.start")}
-                <input
-                  name={"start-" + i}
-                  type="datetime-local"
-                  defaultValue={localInput(window.starts_at)}
-                  required
-                />
-              </label>
-              <label>
-                {t("common.end")}
-                <input
-                  name={"end-" + i}
-                  type="datetime-local"
-                  defaultValue={localInput(window.ends_at)}
-                  required
-                />
-              </label>
-              {plan && (
-                <button
-                  aria-label={`${t("plan.removeWindow")} ${i + 1}`}
-                  className="secondary small"
-                  type="button"
-                  onClick={() =>
-                    setWindows((current) =>
-                      current.filter(
-                        (candidate) =>
-                          candidate.starts_at !== window.starts_at ||
-                          candidate.ends_at !== window.ends_at,
-                      ),
-                    )
-                  }
-                >
-                  {t("common.remove")}
-                </button>
-              )}
-            </div>
-          ))}
-        </div>
-        {plan && (
-          <fieldset>
-            <legend>{t("plan.remaining")}</legend>
-            <p className="fine-print">{t("plan.remainingHint")}</p>
-            {ctx.tasks
-              .filter((t) => t.status !== "completed")
-              .map((task) => (
-                <label className="remaining-input" key={task.id}>
-                  <span>
-                    {task.title}
-                    <small>{task.course}</small>
-                  </span>
-                  <input
-                    aria-label={"Remaining minutes for " + task.title}
-                    type="number"
-                    name={task.id}
-                    min={0}
-                    step={1}
-                    defaultValue={minutes(task.estimated_duration_seconds)}
-                    required
-                  />
-                  <span>{t("common.minutes")}</span>
-                </label>
-              ))}
-          </fieldset>
-        )}
-        <Feedback error={error} />
-        <div className="inline">
-          <button className="primary" disabled={busy}>
-            {busy
-              ? t("common.saving")
-              : plan
-                ? t("plan.createRevision")
-                : t("plan.generateWeekly")}
-            <Icon name="arrow" size={16} />
-          </button>
-          <button className="secondary" type="button" onClick={onDone}>
-            {t("common.cancel")}
-          </button>
-        </div>
-      </form>
-    </section>
   );
 }
 
@@ -803,8 +769,11 @@ function ChangeReview({
 }
 
 export function Reflect() {
-  const { context, refresh } = useWorkspace();
+  const { context, refresh, advanceClock } = useWorkspace();
   const { t, language } = usePreferences();
+  const c = useCopy();
+  const router = useRouter();
+  const [moving, setMoving] = useState(false);
   const [candidates, setCandidates] = useState<Candidate[] | null>(null);
   const [selected, setSelected] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
@@ -894,6 +863,7 @@ export function Reflect() {
         title={t("reflection.title")}
         description={t("reflection.description")}
       />
+      <WeeklySummary />
       <div className="reflection-grid focused-reflection">
         <ol
           className="reflection-steps"
@@ -1036,14 +1006,29 @@ export function Reflect() {
           </section>
         )}
         <Feedback error={error} success={success} />
-        {success && (
-          <Link href="/plan" className="secondary">
-            {language === "vi"
-              ? "Tiếp tục với kế hoạch tuần"
-              : "Continue to your weekly plan"}
-            <Icon name="arrow" size={16} />
-          </Link>
-        )}
+        {success &&
+          (ctx.mode === DEMO_MODE ? (
+            <button
+              className="primary"
+              disabled={moving}
+              onClick={async () => {
+                // Demo-only: jump to next Monday so the next week can be planned now.
+                setMoving(true);
+                await advanceClock("next_week");
+                router.push("/plan");
+              }}
+            >
+              {c("Lập kế hoạch tuần sau", "Plan next week")}
+              <Icon name="arrow" size={16} />
+            </button>
+          ) : (
+            <Link href="/plan" className="secondary">
+              {language === "vi"
+                ? "Tiếp tục với kế hoạch tuần"
+                : "Continue to your weekly plan"}
+              <Icon name="arrow" size={16} />
+            </Link>
+          ))}
       </div>
     </>
   );
@@ -1124,9 +1109,12 @@ export function History() {
           </Empty>
         )}
       </section>
+      <WeekHistoryList />
       <details className="compact-disclosure history-note">
         <summary>
-          {language === "vi" ? "Về các bản kế hoạch đã lưu" : "About saved plans"}
+          {language === "vi"
+            ? "Về các bản kế hoạch đã lưu"
+            : "About saved plans"}
         </summary>
         <Icon name="history" size={18} />
         <p>{t("history.note")}</p>

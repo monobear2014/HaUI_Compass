@@ -60,7 +60,15 @@ export function Status({ status }: { status: string }) {
     </Badge>
   );
 }
-export function BlockRow({ block, task }: { block: Block; task?: Task }) {
+export function BlockRow({
+  block,
+  task,
+  action,
+}: {
+  block: Block;
+  task?: Task;
+  action?: React.ReactNode;
+}) {
   const { t } = usePreferences();
   const seconds =
     (Date.parse(block.ends_at) - Date.parse(block.starts_at)) / 1000;
@@ -91,6 +99,7 @@ export function BlockRow({ block, task }: { block: Block; task?: Task }) {
         </span>
       </div>
       {task && <Status status={task.status} />}
+      {action}
     </div>
   );
 }
@@ -137,13 +146,15 @@ export function Attention({ plan, tasks }: { plan: Plan; tasks: Task[] }) {
   );
 }
 export function PlanDays({ plan, tasks }: { plan: Plan; tasks: Task[] }) {
+  const { language, t } = usePreferences();
+  const locale = language === "vi" ? "vi-VN" : "en-GB";
   const days = new Map<string, Block[]>();
   for (const block of plan.blocks) {
-    const day = date(block.starts_at, {
-      weekday: "short",
-      day: "numeric",
-      month: "short",
-    });
+    const day = date(
+      block.starts_at,
+      { weekday: "short", day: "numeric", month: "short" },
+      locale,
+    );
     const blocks = days.get(day) || [];
     blocks.push(block);
     days.set(day, blocks);
@@ -163,7 +174,7 @@ export function PlanDays({ plan, tasks }: { plan: Plan; tasks: Task[] }) {
                   0,
                 ),
               )}{" "}
-              min
+              {t("common.minutes")}
             </span>
           </div>
           {blocks.map((block, i) => (

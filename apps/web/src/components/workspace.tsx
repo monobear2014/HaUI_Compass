@@ -16,6 +16,7 @@ type Workspace = {
   scenarios: DemoScenario[];
   switching: boolean;
   selectScenario: (id: string) => Promise<void>;
+  advanceClock: (to: "next_day" | "next_week") => Promise<void>;
   context: Context | null;
   history: Plan[];
   recommendation: Recommendation | null;
@@ -97,6 +98,22 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     },
     [refresh],
   );
+  const advanceClock = useCallback(
+    async (to: "next_day" | "next_week") => {
+      setError("");
+      try {
+        // Demo-only: the opt-in fictional API moves its own clock forward.
+        await api<Context>("demo/clock/advance", { to });
+        setRevision(null);
+        await refresh();
+      } catch (err) {
+        setError(
+          err instanceof Error ? err.message : "Could not change demo time.",
+        );
+      }
+    },
+    [refresh],
+  );
   useEffect(() => {
     void api<DemoScenario[]>("demo/scenarios")
       .then(setScenarios)
@@ -119,6 +136,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
         scenarios,
         switching,
         selectScenario,
+        advanceClock,
         context,
         history,
         recommendation,

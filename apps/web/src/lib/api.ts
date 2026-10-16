@@ -275,3 +275,115 @@ const viLabels: Record<string, string> = {
 export function label(code: string, language: "en" | "vi" = "en") {
   return (language === "vi" ? viLabels[code] : labels[code]) || code.replaceAll("_", " ");
 }
+
+export type ProposedPlan = Omit<
+  Plan,
+  "record_id" | "revision" | "parent_record_id" | "saved_at"
+>;
+export type AssignmentRisk = Recommendation["assignment_risks"][number];
+export type PlanProposal = {
+  plan: ProposedPlan;
+  assignment_risks: AssignmentRisk[];
+};
+export type Adjustment = {
+  code:
+    | "carry_over"
+    | "workload_too_heavy"
+    | "workload_too_light"
+    | "underestimated"
+    | "deferred_first"
+    | "difficult_topic";
+  detail: string;
+  task_ids: string[];
+};
+export type GoalDraft = {
+  period: Period;
+  saved: boolean;
+  goal_text: string;
+  target_minutes: number;
+  study_windows: Window[];
+  adjustments: Adjustment[];
+  previous_period: Period | null;
+};
+export type AdaptationProposal = {
+  baseline_record_id: string;
+  baseline_revision: number;
+  plan: ProposedPlan;
+  changes: Replan["changes"];
+  moved_duration_seconds: number;
+  newly_unplanned_duration_seconds: number;
+  risks_before: AssignmentRisk[];
+  risks_after: AssignmentRisk[];
+};
+export type WeeklyGoal = {
+  period: Period;
+  goal_text: string;
+  target_minutes: number;
+  study_windows: Window[];
+  updated_at: string;
+};
+export type WeeklyReview = {
+  period: Period;
+  as_of: string;
+  goal: WeeklyGoal | null;
+  planned_seconds: number;
+  actual_seconds: number;
+  plan_revisions: number;
+  active_days: number;
+  tasks: {
+    task_id: string;
+    title: string;
+    assignment_title: string;
+    status: Task["status"];
+    estimated_duration_seconds: number;
+    actual_duration_seconds: number;
+    sessions: number;
+    completed_this_period: boolean;
+    scheduled: boolean;
+    missed: boolean;
+  }[];
+  deadlines: {
+    assignment_id: string;
+    title: string;
+    deadline: string;
+    state: "done" | "missed" | "upcoming";
+    open_tasks: number;
+  }[];
+  strengths: string[];
+  weaknesses: string[];
+  coaching: {
+    summary: string;
+    questions: string[];
+    source: "template" | "ai";
+    fallback_reason: string | null;
+  };
+};
+export type WeekHistory = {
+  period: Period;
+  goal: WeeklyGoal | null;
+  reflections: {
+    record_id: string;
+    period: Period;
+    confirmed_at: string;
+    signals: {
+      kind: Candidate["kind"];
+      task_id?: string | null;
+      topic?: string | null;
+      workload?: string | null;
+      estimated_duration_seconds?: number | null;
+      actual_duration_seconds?: number | null;
+    }[];
+  }[];
+};
+export const DEMO_MODE = "fictional_in_memory_demo";
+/** Past scheduled blocks whose task has not been started yet. */
+export function missedBlocks(plan: Plan | undefined, context: Context) {
+  if (!plan) return [];
+  const now = Date.parse(context.now);
+  return plan.blocks.filter(
+    (block) =>
+      Date.parse(block.ends_at) <= now &&
+      context.tasks.find((task) => task.id === block.task_id)?.status ===
+        "not_started",
+  );
+}

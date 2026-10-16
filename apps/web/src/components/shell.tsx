@@ -7,6 +7,7 @@ import type { StudyDocument } from "@/lib/documents";
 import type { TranslationKey } from "@/lib/i18n";
 import { Icon } from "./icons";
 import { usePreferences } from "./preferences";
+import { DemoClockBar } from "./weekly";
 import { useWorkspace } from "./workspace";
 import styles from "./learning-shell.module.css";
 
@@ -289,6 +290,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
                 : "Unable to sign out. Please retry."}
             </p>
           )}
+          {!libraryRoute && <DemoClockBar />}
           {!libraryRoute && error && (
             <div className="message error" role="alert">
               <Icon name="alert" />
