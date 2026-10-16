@@ -149,9 +149,9 @@ def _check_in_process_demo(settings: LLMSettings, checks: list[PreflightCheck]) 
         checks.append(_check("Backend", CheckStatus.PASS, "in-process demo app"))
         scenarios = client.get("/api/v1/demo/scenarios")
         scenarios.raise_for_status()
-        if {row["id"] for row in scenarios.json()} != {"normal", "crunch", "disrupted"}:
+        if {row["id"] for row in scenarios.json()} != {"week", "normal", "crunch", "disrupted"}:
             raise RuntimeError("canonical demo scenarios are unavailable")
-        checks.append(_check("Demo scenarios", CheckStatus.PASS, "3 canonical fixtures"))
+        checks.append(_check("Demo scenarios", CheckStatus.PASS, "4 canonical fixtures"))
 
         first = client.post("/api/v1/demo/scenarios/select", json={"scenario_id": "normal"})
         first.raise_for_status()
@@ -192,9 +192,9 @@ def _check_external_backend(url: str, checks: list[PreflightCheck]) -> None:
         checks.append(_check("Backend", CheckStatus.PASS, base))
         scenarios = client.get(f"{base}/api/v1/demo/scenarios")
         scenarios.raise_for_status()
-        if {row["id"] for row in scenarios.json()} != {"normal", "crunch", "disrupted"}:
+        if {row["id"] for row in scenarios.json()} != {"week", "normal", "crunch", "disrupted"}:
             raise RuntimeError("canonical demo scenarios are unavailable")
-        checks.append(_check("Demo scenarios", CheckStatus.PASS, "3 canonical fixtures"))
+        checks.append(_check("Demo scenarios", CheckStatus.PASS, "4 canonical fixtures"))
         first = client.post(f"{base}/api/v1/demo/scenarios/select", json={"scenario_id": "normal"})
         first.raise_for_status()
         second = client.post(f"{base}/api/v1/demo/scenarios/select", json={"scenario_id": "normal"})

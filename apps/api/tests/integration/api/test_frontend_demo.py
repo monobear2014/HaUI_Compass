@@ -7,6 +7,7 @@ from fastapi.testclient import TestClient
 
 from haui_compass.api.demo import create_demo_app
 from haui_compass.api.main import create_app
+from haui_compass.infrastructure.demo.scenarios import ScenarioId
 from support.clocks import FixedClock
 
 
@@ -17,7 +18,7 @@ def test_demo_is_opt_in() -> None:
 
 def test_seeded_context_tracks_execution_and_plan_history() -> None:
     now = datetime(2026, 9, 29, 8, tzinfo=UTC)
-    with TestClient(create_demo_app(FixedClock(now))) as client:
+    with TestClient(create_demo_app(FixedClock(now), initial=ScenarioId.CRUNCH)) as client:
         context = client.get("/api/v1/demo/context").json()
         assert context["mode"] == "fictional_in_memory_demo"
         assert len(context["tasks"]) == 4

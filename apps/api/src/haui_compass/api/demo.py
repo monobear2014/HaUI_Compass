@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import cast
+from typing import Literal, cast
 from uuid import UUID
 
 from fastapi import FastAPI
@@ -21,6 +21,7 @@ from haui_compass.application.ports.tasks import StoredTask
 from haui_compass.application.use_cases.persisted_learning_loop import (
     GeneratePersistedWeeklyPlanRequest,
 )
+from haui_compass.domain.plans.plan import PlanPeriod, StudyWindow
 from haui_compass.infrastructure.config.llm import LLMSettings
 from haui_compass.infrastructure.demo.scenarios import (
     LABELS as DEMO_LABELS,
@@ -29,6 +30,7 @@ from haui_compass.infrastructure.demo.scenarios import (
     DemoClock,
     Scenario,
     ScenarioId,
+    SteppingDemoClock,
     scenario_data,
 )
 from haui_compass.infrastructure.lms.mock import MockLMSProvider
@@ -74,6 +76,10 @@ class SelectScenarioDTO(ApiModel):
     scenario_id: ScenarioId
 
 
+class AdvanceClockDTO(ApiModel):
+    to: Literal["next_day", "next_week"]
+
+
 @dataclass(frozen=True)
 class DemoSession:
     container: AppContainer
@@ -87,7 +93,7 @@ def build_demo_container(
     llm_settings: LLMSettings | None = None,
 ) -> tuple[AppContainer, Scenario]:
     """Compose one isolated fixture at the opt-in demo boundary."""
-    resolved_clock = DemoClock((clock or DemoClock()).now())
+    resolved_clock = SteppingDemoClock((clock or DemoClock()).now())
     scenario = scenario_data(identifier, resolved_clock.now())
     container = build_container(
         clock=resolved_clock,
@@ -102,20 +108,49 @@ def build_demo_container(
                 saved_at=resolved_clock.now(),
             )
         )
-    container.generate_persisted_weekly_plan.execute(
-        GeneratePersistedWeeklyPlanRequest(
-            student=scenario.student,
-            period=scenario.period,
-            study_windows=scenario.windows,
-            record_id=PlanRecordId(UUID(int=201)),
+    if identifier is not ScenarioId.WEEK:
+        # The weekly-cycle scenario starts unplanned so the student proposes and approves it.
+        container.generate_persisted_weekly_plan.execute(
+            GeneratePersistedWeeklyPlanRequest(
+                student=scenario.student,
+                period=scenario.period,
+                study_windows=scenario.windows,
+                record_id=PlanRecordId(UUID(int=201)),
+            )
         )
-    )
     return container, scenario
+
+
+def current_week(scenario: Scenario, now: datetime) -> tuple[PlanPeriod, int]:
+    weeks = max(0, (now - scenario.period.start) // timedelta(days=7))
+    shift = timedelta(days=7 * weeks)
+    return (
+        PlanPeriod(start=scenario.period.start + shift, end=scenario.period.end + shift),
+        weeks,
+    )
+
+
+def current_windows(
+    session: "DemoSession", period: PlanPeriod, weeks: int
+) -> tuple[StudyWindow, ...]:
+    """The student's saved free time for this week, else the fixture's usual free time."""
+    container, scenario = session.container, session.scenario
+    goal = container.weekly_cycle.goals(scenario.student)
+    saved = next((g for g in goal if g.period == period), None)
+    if saved is not None:
+        return saved.study_windows
+    shift = timedelta(days=7 * weeks)
+    return tuple(
+        StudyWindow(starts_at=w.starts_at + shift, ends_at=w.ends_at + shift)
+        for w in scenario.windows
+    )
 
 
 def snapshot(session: DemoSession) -> DemoContextDTO:
     container, scenario = session.container, session.scenario
     now = container.clock.now()
+    period, weeks = current_week(scenario, now)
+    windows = current_windows(session, period, weeks)
     courses = {c.ref: c.name for c in scenario.records[0]}
     assignments = {assignment_id_for(a.ref): a for a in scenario.records[1]}
     tasks = []
@@ -158,7 +193,7 @@ def snapshot(session: DemoSession) -> DemoContextDTO:
         duration = sum(
             (
                 max(timedelta(0), min(w.ends_at, assignment.deadline) - max(w.starts_at, now))
-                for w in scenario.windows
+                for w in windows
             ),
             timedelta(0),
         )
@@ -170,11 +205,10 @@ def snapshot(session: DemoSession) -> DemoContextDTO:
         scenario_label=DEMO_LABELS[scenario.id],
         generation=session.generation,
         student={"provider": scenario.student.provider, "id": scenario.student.id},
-        period={"start": scenario.period.start, "end": scenario.period.end},
-        study_windows=[{"starts_at": w.starts_at, "ends_at": w.ends_at} for w in scenario.windows],
+        period={"start": period.start, "end": period.end},
+        study_windows=[{"starts_at": w.starts_at, "ends_at": w.ends_at} for w in windows],
         available_minutes=int(
-            sum((w.ends_at - w.starts_at for w in scenario.windows), timedelta(0)).total_seconds()
-            / 60
+            sum((w.ends_at - w.starts_at for w in windows), timedelta(0)).total_seconds() / 60
         ),
         assignment_capacities=capacities,
         now=now,
@@ -183,8 +217,12 @@ def snapshot(session: DemoSession) -> DemoContextDTO:
     )
 
 
-def create_demo_app(clock: Clock | None = None, llm_settings: LLMSettings | None = None) -> FastAPI:
-    container, scenario = build_demo_container(ScenarioId.CRUNCH, clock, llm_settings)
+def create_demo_app(
+    clock: Clock | None = None,
+    llm_settings: LLMSettings | None = None,
+    initial: ScenarioId = ScenarioId.WEEK,
+) -> FastAPI:
+    container, scenario = build_demo_container(initial, clock, llm_settings)
     app = create_app(container)
     app.state.demo = DemoSession(container, scenario, 1)
 
@@ -210,6 +248,18 @@ def create_demo_app(clock: Clock | None = None, llm_settings: LLMSettings | None
         result = snapshot(next_session)
         app.state.demo = next_session
         return result
+
+    @app.post("/api/v1/demo/clock/advance", response_model=DemoContextDTO)
+    def advance(request: AdvanceClockDTO) -> DemoContextDTO:
+        # Demo-only time travel so one presenter can walk through a whole week.
+        current = session()
+        demo_clock = current.container.clock
+        assert isinstance(demo_clock, SteppingDemoClock)
+        if request.to == "next_day":
+            demo_clock.advance_to_next_day()
+        else:
+            demo_clock.advance_to_next_week()
+        return snapshot(current)
 
     return app
 
