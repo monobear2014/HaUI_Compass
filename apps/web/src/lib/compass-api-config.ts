@@ -27,3 +27,10 @@ export function resolveCompassApiUrl(
     throw new Error("COMPASS_API_URL is required in staging/production");
   return "http://127.0.0.1:8000";
 }
+
+// The learning API decodes exactly these as JSON (case-insensitive, any parameters);
+// the proxy forwards no other request body.
+export function isJsonMediaType(contentType: string | null | undefined) {
+  const essence = contentType?.split(";")[0].trim().toLowerCase() ?? "";
+  return /^application\/([!#$&^_.+\w-]+\+)?json$/.test(essence);
+}

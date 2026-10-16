@@ -1,6 +1,9 @@
 import { NextRequest } from "next/server";
 import { getSessionUser, sameOrigin, SESSION_COOKIE } from "@/lib/demo-auth";
-import { resolveCompassApiUrl } from "@/lib/compass-api-config";
+import {
+  isJsonMediaType,
+  resolveCompassApiUrl,
+} from "@/lib/compass-api-config";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -50,14 +53,22 @@ async function forward(
         { error: { code: "payload_too_large" } },
         { status: 413 },
       );
+    if (
+      body?.byteLength &&
+      !isJsonMediaType(request.headers.get("content-type"))
+    )
+      return Response.json(
+        { error: { code: "unsupported_media_type" } },
+        { status: 415 },
+      );
     // The API trusts the account only together with the shared service key, so a
     // browser can never choose whose learning data it reads or writes.
     const serviceKey = process.env.COMPASS_SERVICE_KEY;
     const response = await fetch(target, {
       method: request.method,
       headers: {
-        "Content-Type":
-          request.headers.get("content-type") || "application/json",
+        // Only JSON is forwarded, in its canonical form; the API still re-checks it.
+        "Content-Type": "application/json",
         "X-Compass-User": user.id,
         ...(serviceKey ? { "X-Compass-Service-Key": serviceKey } : {}),
       },
