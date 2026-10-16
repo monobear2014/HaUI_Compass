@@ -26,9 +26,18 @@ given all accounts one shared, in-memory student, clock and reset.
 - `HAUI_COMPASS_SIMULATED_WORKSPACES=1` composes `main:app` with per-account workspaces. Off by
   default; normal startup and the local demo are unchanged.
 - The web `/compass-api/*` proxy sends `X-Compass-User` (session account id) and
-  `X-Compass-Service-Key`, and refuses `internal/*` paths.
+  `X-Compass-Service-Key`, and refuses `internal/*` paths. It forwards only JSON bodies (any
+  case or parameters, e.g. `application/JSON; charset=utf-8`), as `application/json`; any other
+  body gets `415`.
 - The API, in this mode, requires the key and account on every learning route, and returns
-  `403 forbidden_student` for any query/body student the account does not own.
+  `403 forbidden_student` for any query/body student the account does not own. Every value of a
+  repeated query parameter and every `student`, `student_id`/`student_provider` and
+  `student_external_id`/`source` at any depth of the body is checked. The check decodes the body
+  exactly as FastAPI does; a non-empty body FastAPI would not decode as JSON (or one without a
+  media type) is refused with `415` before any handler runs. Tasks, executions and candidate
+  sessions are looked up under the request's (checked) student, so another account's task id is
+  `404`. Fixed 2026-10-16: the check previously ran only when the media type contained the
+  lowercase substring `json`, so `application/JSON` bypassed it.
 - First visit seeds the account's own two-week Canvas-like fixture (5 assignments, 3 courses,
   5 tasks, no plan) anchored at Monday 09:00 (Hanoi) of the real current week. The account's
   virtual clock starts there and moves only with "Sang ngày mai" / "Sang tuần mới".
@@ -151,8 +160,10 @@ Covered by the staging E2E, per viewport:
   80 minutes) → Adapt (missed sessions, busy day, preview, apply revision 2) → Reflect (review,
   confirm signals) → next week (carry-over and difficult-topic suggestions, approve).
 - Student B, registered mid-week: no plan, own Monday clock, different task ids; reading A's
-  history and forging A in a request body both return `403`; `internal/*` returns `403`;
-  advancing B's clock does not move A's.
+  history and forging A in a request body both return `403`; forging A's task execution with
+  `application/json`, `application/JSON` or a charset returns `403`, `text/plain` returns `415`,
+  and A's task id under B's own student returns `404`, with A's tasks unchanged; `internal/*`
+  returns `403`; advancing B's clock does not move A's.
 - Persistence: A signs in again and still sees the plan, reflection and next-week clock.
 - Reset by B creates generation 2 for B only; A's history is unchanged.
 - No raw JSON or internal identifiers in the main content.
