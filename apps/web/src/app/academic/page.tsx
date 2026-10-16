@@ -1,7 +1,16 @@
 "use client";
 
 import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
-import { api, apiDelete, date, label, minutes } from "@/lib/api";
+import {
+  ACADEMIC_SOURCE_KEY,
+  ACADEMIC_STUDENT_KEY,
+  academicStudentId,
+  api,
+  apiDelete,
+  date,
+  label,
+  minutes,
+} from "@/lib/api";
 import { useWorkspace } from "@/components/workspace";
 import Link from "next/link";
 import { usePreferences } from "@/components/preferences";
@@ -25,11 +34,16 @@ type Academic = {
   }[];
   submissions_data: { assignment_external_id: string; status: string }[];
 };
-const student = "pilot-student";
 const version = "haui-compass-academic-import-v1";
 
 export default function AcademicPage() {
   const { context, refresh } = useWorkspace();
+  // On staging the imported data is owned by the signed-in account.
+  const student = academicStudentId(context);
+  const remember = (selected: Source) => {
+    window.localStorage.setItem(ACADEMIC_SOURCE_KEY, selected);
+    window.localStorage.setItem(ACADEMIC_STUDENT_KEY, student);
+  };
   const { t, language } = usePreferences();
   const [source, setSource] = useState<Source>("manual");
   const [data, setData] = useState<Academic | null>(null);
@@ -58,7 +72,7 @@ export default function AcademicPage() {
         if ((err as { status?: number }).status !== 404) setError(String(err));
       }
     },
-    [source],
+    [source, student],
   );
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -95,7 +109,7 @@ export default function AcademicPage() {
         submissions: [],
       });
       setNotice(t("academic.manualImported"));
-      window.localStorage.setItem("haui-compass-academic-source", "manual");
+      remember("manual");
       window.dispatchEvent(new Event("academic-data-changed"));
       await load("manual");
     } catch (err) {
@@ -115,12 +129,15 @@ export default function AcademicPage() {
           content,
         });
         setSource("csv");
-        window.localStorage.setItem("haui-compass-academic-source", "csv");
+        remember("csv");
         await load("csv");
       } else if (file.name.endsWith(".json")) {
-        await api("academic-data/import", JSON.parse(content));
+        await api("academic-data/import", {
+          ...JSON.parse(content),
+          student_external_id: student,
+        });
         setSource("json");
-        window.localStorage.setItem("haui-compass-academic-source", "json");
+        remember("json");
         await load("json");
       } else {
         throw new Error("Choose a .csv or .json academic-data file.");

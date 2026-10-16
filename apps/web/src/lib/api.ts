@@ -376,6 +376,20 @@ export type WeekHistory = {
   }[];
 };
 export const DEMO_MODE = "fictional_in_memory_demo";
+/** Staging: this account's own simulated Canvas data and virtual clock, persisted. */
+export const SIMULATED_MODE = "simulated_canvas_workspace";
+export function hasDemoClock(context: Context | null) {
+  return context?.mode === DEMO_MODE || context?.mode === SIMULATED_MODE;
+}
+export const ACADEMIC_SOURCE_KEY = "haui-compass-academic-source";
+export const ACADEMIC_STUDENT_KEY = "haui-compass-academic-student";
+/** Imported pilot data belongs to the signed-in account on staging. */
+export function academicStudentId(context: Context | null) {
+  return context?.mode === SIMULATED_MODE ||
+    context?.mode === "imported_pilot_data"
+    ? context.student.id
+    : "pilot-student";
+}
 /** Past scheduled blocks whose task has not been started yet. */
 export function missedBlocks(plan: Plan | undefined, context: Context) {
   if (!plan) return [];

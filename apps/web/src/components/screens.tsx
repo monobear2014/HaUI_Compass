@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import {
   api,
   Candidate,
-  DEMO_MODE,
+  hasDemoClock,
   date,
   dayKey,
   label,
@@ -1007,7 +1007,7 @@ export function Reflect() {
         )}
         <Feedback error={error} success={success} />
         {success &&
-          (ctx.mode === DEMO_MODE ? (
+          (hasDemoClock(ctx) ? (
             <button
               className="primary"
               disabled={moving}

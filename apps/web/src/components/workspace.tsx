@@ -8,7 +8,36 @@ import {
   useEffect,
   useState,
 } from "react";
-import { api, Context, Plan, Recommendation, Replan, scope } from "@/lib/api";
+import {
+  ACADEMIC_SOURCE_KEY,
+  ACADEMIC_STUDENT_KEY,
+  api,
+  ApiError,
+  Context,
+  Plan,
+  Recommendation,
+  Replan,
+  scope,
+} from "@/lib/api";
+
+async function loadContext(): Promise<Context> {
+  const source = window.localStorage.getItem(ACADEMIC_SOURCE_KEY);
+  if (!source) return api<Context>("demo/context");
+  const student =
+    window.localStorage.getItem(ACADEMIC_STUDENT_KEY) || "pilot-student";
+  try {
+    return await api<Context>(
+      `academic-data/context?source=${encodeURIComponent(source)}&student_external_id=${encodeURIComponent(student)}`,
+    );
+  } catch (err) {
+    // A selection left by another account (or removed data) is not ours: start over.
+    if (!(err instanceof ApiError) || ![403, 404].includes(err.status))
+      throw err;
+    window.localStorage.removeItem(ACADEMIC_SOURCE_KEY);
+    window.localStorage.removeItem(ACADEMIC_STUDENT_KEY);
+    return api<Context>("demo/context");
+  }
+}
 
 type DemoScenario = { id: string; label: string };
 
@@ -45,14 +74,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     setLoading(true);
     setError("");
     try {
-      const source = window.localStorage.getItem(
-        "haui-compass-academic-source",
-      );
-      const ctx = await api<Context>(
-        source
-          ? `academic-data/context?source=${source}&student_external_id=pilot-student`
-          : "demo/context",
-      );
+      const ctx = await loadContext();
       const [plans, recommendation] = await Promise.all([
         api<Plan[]>("weekly-plans/history?" + scope(ctx)),
         api<Recommendation>("daily-recommendation", {
@@ -81,7 +103,8 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
       setError("");
       try {
         await api<Context>("demo/scenarios/select", { scenario_id: id });
-        window.localStorage.removeItem("haui-compass-academic-source");
+        window.localStorage.removeItem(ACADEMIC_SOURCE_KEY);
+        window.localStorage.removeItem(ACADEMIC_STUDENT_KEY);
         setContext(null);
         setHistory([]);
         setRecommendation(null);

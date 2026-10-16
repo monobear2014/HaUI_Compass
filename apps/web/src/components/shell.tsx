@@ -3,6 +3,11 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import {
+  ACADEMIC_SOURCE_KEY,
+  ACADEMIC_STUDENT_KEY,
+  SIMULATED_MODE,
+} from "@/lib/api";
 import type { StudyDocument } from "@/lib/documents";
 import type { TranslationKey } from "@/lib/i18n";
 import { Icon } from "./icons";
@@ -88,6 +93,9 @@ export function Shell({ children }: { children: React.ReactNode }) {
     try {
       const response = await fetch("/api/auth/logout", { method: "POST" });
       if (!response.ok) throw new Error("logout_failed");
+      // The academic-data selection belongs to this account, not to the browser.
+      window.localStorage.removeItem(ACADEMIC_SOURCE_KEY);
+      window.localStorage.removeItem(ACADEMIC_STUDENT_KEY);
       window.location.replace("/login");
     } catch {
       setLoggingOut(false);
@@ -273,7 +281,11 @@ export function Shell({ children }: { children: React.ReactNode }) {
                   >
                     {t("common.resetScenario")}
                   </button>
-                  <p>{t("common.demoNotice")}</p>
+                  <p>
+                    {context?.mode === SIMULATED_MODE
+                      ? t("common.simulatedNotice")
+                      : t("common.demoNotice")}
+                  </p>
                 </details>
               )}
               <button onClick={logout} disabled={loggingOut}>

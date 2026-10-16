@@ -9,7 +9,8 @@ import {
   AssignmentRisk,
   Context,
   date,
-  DEMO_MODE,
+  hasDemoClock,
+  SIMULATED_MODE,
   GoalDraft,
   minutes,
   missedBlocks,
@@ -1302,7 +1303,7 @@ export function DemoClockBar() {
   const c = useCopy();
   const { language } = usePreferences();
   const [busy, setBusy] = useState(false);
-  if (!context || context.mode !== DEMO_MODE) return null;
+  if (!context || !hasDemoClock(context)) return null;
   async function go(to: "next_day" | "next_week") {
     setBusy(true);
     await advanceClock(to);
@@ -1311,6 +1312,11 @@ export function DemoClockBar() {
   return (
     <div className="demo-clock" data-testid="demo-clock">
       <Icon name="clock" size={16} />
+      {context.mode === SIMULATED_MODE && (
+        <span className="badge">
+          {c("Dữ liệu Canvas giả lập", "Simulated Canvas data")}
+        </span>
+      )}
       <span>
         {c("Thời gian demo", "Demo time")}:{" "}
         <strong>
