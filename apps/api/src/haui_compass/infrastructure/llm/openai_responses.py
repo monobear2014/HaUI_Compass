@@ -16,6 +16,7 @@ from haui_compass.application.ports.knowledge import (
     ProviderGroundedAnswer,
 )
 from haui_compass.application.ports.llm import InvalidLLMOutputError
+from haui_compass.application.ports.reflection_coach import CoachText, ReflectionCoachInput
 from haui_compass.application.ports.task_decomposition import (
     ProviderTaskCandidate,
     TaskDecompositionInput,
@@ -211,6 +212,44 @@ class OpenAIResponsesAdapter:
             abstained=abstained,
         )
 
+    async def coach(self, facts: ReflectionCoachInput) -> CoachText:
+        result = await self._structured_response(
+            name="weekly_reflection_coach",
+            schema=_COACH_SCHEMA,
+            instructions=(
+                "You support a university student's weekly reflection. Write in clear, warm "
+                "Vietnamese. 'summary': two or three sentences (maximum 80 words) that restate "
+                "only the supplied facts, naming one strength and one area to improve. "
+                "'questions': one to three short open reflective questions grounded in the "
+                "facts. Do not judge, diagnose or invent facts, numbers, deadlines or tasks. "
+                "Do not repeat input field names, codes, JSON or identifiers."
+            ),
+            input_text=json.dumps(
+                {
+                    "goal": facts.goal_text,
+                    "planned_minutes": facts.planned_minutes,
+                    "actual_minutes": facts.actual_minutes,
+                    "completed_tasks": list(facts.completed_tasks),
+                    "open_tasks": list(facts.open_tasks),
+                    "scheduled_but_not_started": list(facts.missed_tasks),
+                    "deadlines_missed": list(facts.deadlines_missed),
+                    "deadlines_upcoming": list(facts.deadlines_upcoming),
+                    "strength_codes": list(facts.strengths),
+                    "improvement_codes": list(facts.weaknesses),
+                },
+                ensure_ascii=False,
+            ),
+        )
+        summary = result.get("summary")
+        questions = result.get("questions")
+        if (
+            not isinstance(summary, str)
+            or not isinstance(questions, list)
+            or not all(isinstance(q, str) for q in questions)
+        ):
+            raise InvalidLLMOutputError("structured reflection coaching is invalid")
+        return CoachText(summary=summary, questions=tuple(questions))
+
     async def _structured_response(
         self,
         *,
@@ -322,6 +361,21 @@ _EXPLANATION_SCHEMA: dict[str, object] = {
     "additionalProperties": False,
     "required": ["text"],
     "properties": {"text": {"type": "string", "minLength": 1, "maxLength": 2000}},
+}
+
+_COACH_SCHEMA: dict[str, object] = {
+    "type": "object",
+    "additionalProperties": False,
+    "required": ["summary", "questions"],
+    "properties": {
+        "summary": {"type": "string", "minLength": 1, "maxLength": 1200},
+        "questions": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 3,
+            "items": {"type": "string", "minLength": 1, "maxLength": 300},
+        },
+    },
 }
 
 _GROUNDED_ANSWER_SCHEMA: dict[str, object] = {
