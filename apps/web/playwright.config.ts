@@ -10,7 +10,21 @@ export default defineConfig({
   fullyParallel: false,
   workers: 1,
   timeout: 45000,
-  use: { baseURL: webUrl, trace: "retain-on-failure" },
+  use: {
+    baseURL: webUrl,
+    trace: "retain-on-failure",
+    // The product defaults to Vietnamese; legacy specs assert English copy, so
+    // they start in English unless a spec switches language itself.
+    storageState: {
+      cookies: [],
+      origins: [
+        {
+          origin: webUrl,
+          localStorage: [{ name: "haui-compass-language", value: "en" }],
+        },
+      ],
+    },
+  },
   projects: [
     { name: "desktop", use: { viewport: { width: 1280, height: 900 } } },
     { name: "mobile", use: { viewport: { width: 390, height: 844 } } },

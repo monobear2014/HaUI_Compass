@@ -527,7 +527,7 @@ const vi: Translation = {
   nav: {
     today: "Hôm nay",
     plan: "Kế hoạch tuần",
-    reflect: "Sau buổi học",
+    reflect: "Phản tư tuần",
     history: "Lịch sử kế hoạch",
     academic: "Môn học & bài tập",
     knowledge: "Hỏi tài liệu",
@@ -679,9 +679,10 @@ const vi: Translation = {
     unplanned: "chưa xếp",
   },
   reflection: {
-    eyebrow: "SAU BUỔI HỌC",
-    title: "Buổi học vừa rồi thế nào?",
-    description: "Nhìn lại việc vừa học, rồi chọn điều muốn ghi nhớ.",
+    eyebrow: "CUỐI TUẦN",
+    title: "Nhìn lại tuần học",
+    description:
+      "Xem tổng kết, trả lời vài câu hỏi ngắn, rồi chọn điều muốn mang sang tuần sau.",
     yourReflection: "Phản hồi của bạn",
     stepOne: "BƯỚC 1 / 2",
     stepTwo: "BƯỚC 2 / 2",

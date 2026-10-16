@@ -17,7 +17,7 @@ function read(key: TranslationKey, language: Language) {
 const PreferencesContext = createContext<Preferences | null>(null);
 
 export function PreferencesProvider({ children }: { children: React.ReactNode }) {
-  const [language, setLanguage] = useState<Language>("en");
+  const [language, setLanguage] = useState<Language>("vi");
   const [theme, setTheme] = useState<Theme>("light");
   const [ready, setReady] = useState(false);
   useEffect(() => {
