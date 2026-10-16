@@ -134,6 +134,9 @@ def test_migrations_match_models_and_downgrade_cleanly() -> None:
     url = _url()
     engine = create_engine(url, future=True)
     try:
+        # From an empty database: every revision must create only its own tables.
+        command.downgrade(Config("alembic.ini"), "base")
+        command.upgrade(Config("alembic.ini"), "head")
         with engine.connect() as connection:
             diff = compare_metadata(MigrationContext.configure(connection), Base.metadata)
         assert diff == []
