@@ -119,6 +119,8 @@ Required for staging:
 - `HAUI_COMPASS_LLM_BASE_URL` when using a compatible non-default endpoint.
 - `HAUI_COMPASS_LLM_TIMEOUT_SECONDS` — explicit staging timeout, bounded below the Function
   duration budget.
+- `HAUI_COMPASS_SIMULATED_WORKSPACES=1` — Preview/staging demo only: per-account simulated
+  Canvas workspaces for the weekly cycle ([weekly-cycle-staging.md](weekly-cycle-staging.md)).
 
 Do not set local-only `COMPASS_TEST_STORAGE`, SQLite paths, local evaluation trace paths, or demo
 authentication settings in staging. The web and API database selectors fail closed when their
@@ -132,8 +134,10 @@ The web and API schemas are separate and have separate migration owners:
 - Web PostgreSQL: schema `web`, revisions `001_initial.sql`,
   `002_document_upload_lifecycle.sql`, and `003_document_storage_cleanup.sql`.
 - FastAPI PostgreSQL: Alembic revisions currently present under
-  `apps/api/alembic/versions/` are `0001_initial_persistence.py` and
-  `0002_imported_academic_data.py`.
+  `apps/api/alembic/versions/` are `0001_initial_persistence.py`,
+  `0002_imported_academic_data.py`, `0003_weekly_goals.py` and
+  `0004_simulated_workspaces.py`. `0003`/`0004` are additive and must be applied before the
+  weekly-cycle code is deployed; see [weekly-cycle-staging.md](weekly-cycle-staging.md) §4.
 
 Apply migrations from a controlled release environment with the staging URLs supplied through a
 secret manager or shell environment that is not committed:

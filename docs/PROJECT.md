@@ -124,8 +124,14 @@ template. Confirmed reflection drafts next week's goal through transparent adjus
 planner itself is unchanged. Weekly goals persist in memory or PostgreSQL (Alembic `0003`, not yet
 applied to any cloud database). The opt-in demo starts on an unplanned Canvas-like two-week fixture
 with demo-only time controls. See the [weekly cycle demo](demo/weekly-cycle-demo.md).
-**PLANNED:** per-account learning-data isolation, the learning loop on the staging API, calibrated
-estimates and planner use of student priorities.
+**Per-account simulated workspaces are IMPLEMENTED, staging-demo only and not yet deployed:** with
+`HAUI_COMPASS_SIMULATED_WORKSPACES=1` the normal API gives every signed-in account its own labelled
+fictional Canvas-like fixture, virtual clock and persisted weekly cycle. The web backend forwards the
+account with the service key; the API rejects student references the account does not own
+(Alembic `0004`, not yet applied to any cloud database). See
+[weekly cycle on staging](deployment/weekly-cycle-staging.md) and ADR-0008.
+**PLANNED:** production identity for real student data, retention of retired demo generations,
+calibrated estimates and planner use of student priorities.
 
 **PostgreSQL Persistence v0 is IMPLEMENTED:** synchronous SQLAlchemy 2.x,
 psycopg, Alembic, typed relational models/adapters, and a small transaction boundary are present.

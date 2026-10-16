@@ -36,4 +36,6 @@ Open http://127.0.0.1:3000/login → **Điền tài khoản demo** (`demo` / `ha
 
 Planner, replanner, risk and next-action decisions are deterministic; the LLM only suggests task
 breakdowns and phrases explanations/reflection prompts, with offline fallbacks. Demo time controls
-exist only in the opt-in demo API. All demo accounts share one fictional workspace.
+exist only in the opt-in demo API. All demo accounts share one fictional workspace here; on staging,
+each account gets its own simulated workspace and clock instead
+([weekly cycle on staging](../deployment/weekly-cycle-staging.md)).
