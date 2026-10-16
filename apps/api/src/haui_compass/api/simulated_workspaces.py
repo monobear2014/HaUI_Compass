@@ -12,6 +12,7 @@ The existing learning-loop routes are reused unchanged. The ``demo/*`` routes ke
 contract so the same frontend works, but every read and write is per account and persisted.
 """
 
+import email.message
 import json
 import os
 import secrets
@@ -20,6 +21,7 @@ from typing import Annotated, Any
 from fastapi import Depends, FastAPI, Header, Request
 from fastapi.responses import JSONResponse
 from starlette.concurrency import run_in_threadpool
+from starlette.datastructures import QueryParams
 
 from haui_compass.api.demo_context import (
     SIMULATED_WORKSPACE_MODE,
@@ -57,7 +59,6 @@ from haui_compass.infrastructure.persistence.memory.simulated_workspaces import 
 
 PUBLIC_PATHS = frozenset({"/api/v1/health"})
 INTERNAL_PREFIX = "/api/v1/internal/"
-BODY_METHODS = frozenset({"POST", "PUT", "PATCH"})
 
 
 class WorkspaceAccessError(Exception):
@@ -83,26 +84,68 @@ def _check_student(
         raise _forbidden_student()
 
 
-def _check_body(owner: str, providers: frozenset[str], body: bytes) -> None:
-    try:
-        payload: Any = json.loads(body) if body else None
-    except ValueError:
-        return  # request validation rejects malformed JSON with its usual error
-    if not isinstance(payload, dict):
-        return
-    student = payload.get("student")
-    if student is not None:
-        if not isinstance(student, dict):
-            raise _forbidden_student()
-        _check_student(
-            owner, providers, provider=student.get("provider"), identifier=student.get("id")
-        )
-    _check_student(
-        owner,
-        providers,
-        provider=payload.get("source"),
-        identifier=payload.get("student_external_id"),
+def _check_query(owner: str, providers: frozenset[str], query: QueryParams) -> None:
+    # Every value counts: a repeated parameter must not hide another account's student.
+    for identifier in (*query.getlist("student_id"), *query.getlist("student_external_id")):
+        _check_student(owner, providers, provider=None, identifier=identifier)
+    for provider in (*query.getlist("student_provider"), *query.getlist("source")):
+        _check_student(owner, providers, provider=provider, identifier=None)
+
+
+def _is_json_media_type(content_type: str) -> bool:
+    """Exactly the media types FastAPI decodes as a JSON body (case-insensitive, any params)."""
+    message = email.message.Message()
+    message["content-type"] = content_type
+    subtype = message.get_content_subtype()
+    return message.get_content_maintype() == "application" and (
+        subtype == "json" or subtype.endswith("+json")
     )
+
+
+def _json_body(request_body: bytes, content_type: str | None) -> Any:
+    """Decode a non-empty body as FastAPI would, or refuse it before any handler runs."""
+    if not content_type or not _is_json_media_type(content_type):
+        raise WorkspaceAccessError(415, "unsupported_media_type", "Request body must be JSON.")
+    try:
+        return json.loads(request_body)
+    except ValueError as error:
+        raise WorkspaceAccessError(
+            400, "invalid_json", "Request body is not valid JSON."
+        ) from error
+
+
+def _check_body(owner: str, providers: frozenset[str], payload: Any) -> None:
+    """Every student reference, at any depth, must be the signed-in account's own."""
+    pending = [payload]
+    while pending:
+        node = pending.pop()
+        if isinstance(node, list):
+            pending.extend(node)
+            continue
+        if not isinstance(node, dict):
+            continue
+        if "student" in node:
+            student = node["student"]
+            if not isinstance(student, dict):
+                raise _forbidden_student()
+            _check_student(
+                owner, providers, provider=student.get("provider"), identifier=student.get("id")
+            )
+        if "student_id" in node or "student_provider" in node:
+            _check_student(
+                owner,
+                providers,
+                provider=node.get("student_provider"),
+                identifier=node.get("student_id"),
+            )
+        if "student_external_id" in node:
+            _check_student(
+                owner,
+                providers,
+                provider=node.get("source"),
+                identifier=node["student_external_id"],
+            )
+        pending.extend(node.values())
 
 
 def create_simulated_workspace_app(
@@ -128,21 +171,12 @@ def create_simulated_workspace_app(
         providers = imported_sources | (
             frozenset({workspace.student.provider}) if workspace is not None else frozenset()
         )
-        query = request.query_params
-        _check_student(
-            user,
-            providers,
-            provider=query.get("student_provider"),
-            identifier=query.get("student_id"),
-        )
-        _check_student(
-            user,
-            providers,
-            provider=query.get("source"),
-            identifier=query.get("student_external_id"),
-        )
-        if request.method in BODY_METHODS and "json" in request.headers.get("content-type", ""):
-            _check_body(user, providers, await request.body())
+        _check_query(user, providers, request.query_params)
+        # Any non-empty body, whatever the method, is checked on the very bytes and media type
+        # the handler will decode; anything the handler would not decode as JSON is refused.
+        body = await request.body()
+        if body:
+            _check_body(user, providers, _json_body(body, request.headers.get("content-type")))
         request.state.owner = user
         # Visible to this request's handler (and its worker thread) only.
         ACTIVE_WORKSPACE.set(workspace)
