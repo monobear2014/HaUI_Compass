@@ -295,3 +295,31 @@ class WeeklyGoalRow(Base):
     # [[starts_at_iso, ends_at_iso], ...] in UTC; small, always read with the goal.
     study_windows: Mapped[list[list[str]]] = mapped_column(JSON, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class SimulatedWorkspaceRow(Base):
+    """Demo/staging only: an account's fictional fixture anchor and virtual clock."""
+
+    __tablename__ = "simulated_workspaces"
+    __table_args__ = (
+        CheckConstraint("generation >= 1", name="ck_simulated_workspace_generation"),
+        CheckConstraint("virtual_now >= anchor", name="ck_simulated_workspace_clock"),
+    )
+    owner_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    generation: Mapped[int] = mapped_column(Integer, nullable=False)
+    anchor: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    virtual_now: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class TaskDecompositionSessionRow(Base):
+    """Candidate sessions survive between serverless instances; they are not task facts."""
+
+    __tablename__ = "task_decomposition_sessions"
+    __table_args__ = (Index("ix_task_decomposition_sessions_student", "student_id"),)
+    session_id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True)
+    student_id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), nullable=False)
+    session: Mapped[dict[str, object]] = mapped_column(JSON, nullable=False)
+    confirmation: Mapped[dict[str, object] | None] = mapped_column(JSON, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)

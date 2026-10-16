@@ -42,9 +42,6 @@ from haui_compass.infrastructure.decomposition.template import (
 from haui_compass.infrastructure.explanation.template import TemplateExplanationProvider
 from haui_compass.infrastructure.llm.openai_responses import OpenAIResponsesAdapter
 from haui_compass.infrastructure.lms.mock import MockLMSProvider
-from haui_compass.infrastructure.persistence.memory.task_decompositions import (
-    InMemoryTaskDecompositionSessionStore,
-)
 from haui_compass.infrastructure.persistence.postgres.academic_data import (
     PostgresImportedAcademicDataProvider,
 )
@@ -58,6 +55,9 @@ from haui_compass.infrastructure.persistence.postgres.reflections import (
 from haui_compass.infrastructure.persistence.postgres.session import (
     PostgresPersistenceTransactionManager,
     PostgresSessionFactory,
+)
+from haui_compass.infrastructure.persistence.postgres.task_decompositions import (
+    PostgresTaskDecompositionSessionStore,
 )
 from haui_compass.infrastructure.persistence.postgres.tasks import PostgresTaskRepository
 from haui_compass.infrastructure.persistence.postgres.weekly_goals import (
@@ -108,7 +108,8 @@ def build_postgres_container(
         submit_reflection=SubmitReflection(clock=resolved_clock),
         transaction_manager=transaction_manager,
     )
-    decomposition_sessions = InMemoryTaskDecompositionSessionStore()
+    # Durable: generate and confirm may reach different serverless instances.
+    decomposition_sessions = PostgresTaskDecompositionSessionStore(provider, transaction_manager)
     create_task = CreateStudyTask(
         lms=resolved_lms,
         tasks=tasks,

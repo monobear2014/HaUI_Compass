@@ -95,7 +95,7 @@ def test_migrations_apply_both_revisions_and_expose_import_constraints(database_
         } == {"academic_sources", "imported_courses"}
         with engine.connect() as connection:
             assert connection.scalar(text("SELECT version_num FROM alembic_version")) == (
-                "0003_weekly_goals"
+                "0004_simulated_workspaces"
             )
     finally:
         engine.dispose()
