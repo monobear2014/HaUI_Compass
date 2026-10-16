@@ -26,11 +26,13 @@ from haui_compass.application.use_cases.query_knowledge import QueryKnowledge
 from haui_compass.application.use_cases.record_persisted_task_execution import (
     RecordPersistedTaskExecution,
 )
+from haui_compass.application.use_cases.reflection_coach import CoachWeeklyReflection
 from haui_compass.application.use_cases.submit_reflection import SubmitReflection
 from haui_compass.application.use_cases.task_decomposition import (
     ConfirmTaskDecomposition,
     GenerateTaskDecomposition,
 )
+from haui_compass.application.use_cases.weekly_cycle import WeeklyCycle
 from haui_compass.infrastructure.clock import SystemClock
 from haui_compass.infrastructure.config.database import DatabaseSettings
 from haui_compass.infrastructure.config.llm import LLMSettings
@@ -58,6 +60,10 @@ from haui_compass.infrastructure.persistence.postgres.session import (
     PostgresSessionFactory,
 )
 from haui_compass.infrastructure.persistence.postgres.tasks import PostgresTaskRepository
+from haui_compass.infrastructure.persistence.postgres.weekly_goals import (
+    PostgresWeeklyGoalRepository,
+)
+from haui_compass.infrastructure.reflection_coach.template import TemplateReflectionCoachProvider
 from haui_compass.infrastructure.retrieval.ingestion import ingest_manifest
 from haui_compass.infrastructure.retrieval.lexical import LocalLexicalKnowledgeRetriever
 from haui_compass.infrastructure.retrieval.pdf import PypdfTextExtractor
@@ -94,6 +100,7 @@ def build_postgres_container(
     executions = PostgresTaskExecutionRepository(provider)
     plans = PostgresStudyPlanRepository(provider)
     reflections = PostgresConfirmedReflectionRepository(provider)
+    goals = PostgresWeeklyGoalRepository(provider)
     generator = GenerateDailyRecommendation(lms=resolved_lms, clock=resolved_clock)
     reflection_candidates = GenerateReflectionCandidates(
         task_repository=tasks,
@@ -194,4 +201,21 @@ def build_postgres_container(
         ),
         create_study_task=create_task,
         transaction_manager=transaction_manager,
+        weekly_goal_repository=goals,
+        weekly_cycle=WeeklyCycle(
+            task_repository=tasks,
+            execution_repository=executions,
+            reflection_repository=reflections,
+            plan_repository=plans,
+            goal_repository=goals,
+            lms=resolved_lms,
+            clock=resolved_clock,
+            transaction_manager=transaction_manager,
+        ),
+        coach_weekly_reflection=CoachWeeklyReflection(
+            template=TemplateReflectionCoachProvider(),
+            provider=llm_adapter,
+            timeout_seconds=llm_timeout,
+            unavailable_reason=unavailable_reason,
+        ),
     )

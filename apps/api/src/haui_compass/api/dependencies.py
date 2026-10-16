@@ -23,6 +23,7 @@ from haui_compass.application.ports.task_decomposition import (
 )
 from haui_compass.application.ports.tasks import TaskRepository
 from haui_compass.application.ports.transactions import PersistenceTransactionManager
+from haui_compass.application.ports.weekly_goals import WeeklyGoalRepository
 from haui_compass.application.use_cases.confirm_reflection_signals import ConfirmReflectionSignals
 from haui_compass.application.use_cases.create_study_task import CreateStudyTask
 from haui_compass.application.use_cases.explain_recommendation import ExplainRecommendation
@@ -41,11 +42,13 @@ from haui_compass.application.use_cases.query_knowledge import QueryKnowledge
 from haui_compass.application.use_cases.record_persisted_task_execution import (
     RecordPersistedTaskExecution,
 )
+from haui_compass.application.use_cases.reflection_coach import CoachWeeklyReflection
 from haui_compass.application.use_cases.submit_reflection import SubmitReflection
 from haui_compass.application.use_cases.task_decomposition import (
     ConfirmTaskDecomposition,
     GenerateTaskDecomposition,
 )
+from haui_compass.application.use_cases.weekly_cycle import WeeklyCycle
 from haui_compass.infrastructure.clock import SystemClock
 from haui_compass.infrastructure.config.llm import LLMSettings
 from haui_compass.infrastructure.decomposition.template import (
@@ -71,6 +74,10 @@ from haui_compass.infrastructure.persistence.memory.tasks import InMemoryTaskRep
 from haui_compass.infrastructure.persistence.memory.transactions import (
     InMemoryPersistenceTransactionManager,
 )
+from haui_compass.infrastructure.persistence.memory.weekly_goals import (
+    InMemoryWeeklyGoalRepository,
+)
+from haui_compass.infrastructure.reflection_coach.template import TemplateReflectionCoachProvider
 from haui_compass.infrastructure.retrieval.ingestion import ingest_manifest
 from haui_compass.infrastructure.retrieval.lexical import LocalLexicalKnowledgeRetriever
 from haui_compass.infrastructure.retrieval.pdf import PypdfTextExtractor
@@ -101,6 +108,9 @@ class AppContainer:
     replan_persisted_study_plan: ReplanPersistedStudyPlan
     create_study_task: CreateStudyTask
     transaction_manager: PersistenceTransactionManager
+    weekly_goal_repository: WeeklyGoalRepository
+    weekly_cycle: WeeklyCycle
+    coach_weekly_reflection: CoachWeeklyReflection
 
 
 def build_container(
@@ -115,6 +125,7 @@ def build_container(
     plan_repository: StudyPlanRepository | None = None,
     reflection_repository: ConfirmedReflectionRepository | None = None,
     task_decomposition_sessions: TaskDecompositionSessionStore | None = None,
+    weekly_goal_repository: WeeklyGoalRepository | None = None,
     llm_settings: LLMSettings | None = None,
     llm_transport: ResponsesTransport | None = None,
     grounded_answer_provider: GroundedAnswerProvider | None = None,
@@ -131,6 +142,7 @@ def build_container(
     resolved_plans = plan_repository or InMemoryStudyPlanRepository()
     resolved_reflections = reflection_repository or InMemoryConfirmedReflectionRepository()
     resolved_decompositions = task_decomposition_sessions or InMemoryTaskDecompositionSessionStore()
+    resolved_goals = weekly_goal_repository or InMemoryWeeklyGoalRepository()
     llm_adapter = (
         OpenAIResponsesAdapter(llm_settings, transport=llm_transport)
         if llm_settings is not None and llm_settings.unavailable_reason is None
@@ -147,6 +159,10 @@ def build_container(
     llm_timeout = llm_settings.timeout_seconds if llm_settings is not None else 2.0
     transaction_manager = InMemoryPersistenceTransactionManager(
         resolved_tasks, resolved_executions, imported_academic_data, resolved_decompositions
+    )
+    # The weekly cycle writes plans and goals together; roll both back on failure.
+    weekly_transaction_manager = InMemoryPersistenceTransactionManager(
+        resolved_plans, resolved_goals
     )
     generator = GenerateDailyRecommendation(lms=resolved_lms, clock=resolved_clock)
     reflection_candidates = GenerateReflectionCandidates(
@@ -238,6 +254,23 @@ def build_container(
         ),
         create_study_task=create_task,
         transaction_manager=transaction_manager,
+        weekly_goal_repository=resolved_goals,
+        weekly_cycle=WeeklyCycle(
+            task_repository=resolved_tasks,
+            execution_repository=resolved_executions,
+            reflection_repository=resolved_reflections,
+            plan_repository=resolved_plans,
+            goal_repository=resolved_goals,
+            lms=resolved_lms,
+            clock=resolved_clock,
+            transaction_manager=weekly_transaction_manager,
+        ),
+        coach_weekly_reflection=CoachWeeklyReflection(
+            template=TemplateReflectionCoachProvider(),
+            provider=llm_adapter,
+            timeout_seconds=llm_timeout,
+            unavailable_reason=unavailable_reason,
+        ),
     )
 
 
