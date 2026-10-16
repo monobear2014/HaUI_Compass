@@ -9,7 +9,8 @@ async function forward(
   request: NextRequest,
   context: RouteContext<"/compass-api/[...path]">,
 ) {
-  if (!(await getSessionUser(request.cookies.get(SESSION_COOKIE)?.value)))
+  const user = await getSessionUser(request.cookies.get(SESSION_COOKIE)?.value);
+  if (!user)
     return Response.json(
       { error: { code: "unauthorized", message: "Please sign in again." } },
       { status: 401, headers: { "Cache-Control": "no-store" } },
@@ -31,6 +32,10 @@ async function forward(
     )
   )
     return Response.json({ error: { code: "invalid_path" } }, { status: 400 });
+  // Server-to-server routes are never reachable from the browser, and this proxy
+  // attaches the service key, so it must not forward to them at all.
+  if (path[0] === "internal")
+    return Response.json({ error: { code: "forbidden" } }, { status: 403 });
   const target = new URL(
     `/api/v1/${path.map(encodeURIComponent).join("/")}`,
     resolveCompassApiUrl(),
@@ -45,11 +50,16 @@ async function forward(
         { error: { code: "payload_too_large" } },
         { status: 413 },
       );
+    // The API trusts the account only together with the shared service key, so a
+    // browser can never choose whose learning data it reads or writes.
+    const serviceKey = process.env.COMPASS_SERVICE_KEY;
     const response = await fetch(target, {
       method: request.method,
       headers: {
         "Content-Type":
           request.headers.get("content-type") || "application/json",
+        "X-Compass-User": user.id,
+        ...(serviceKey ? { "X-Compass-Service-Key": serviceKey } : {}),
       },
       body,
       cache: "no-store",
