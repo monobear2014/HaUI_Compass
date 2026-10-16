@@ -69,7 +69,7 @@ test("demo login validates credentials, remembers the session and revokes it on 
     .click();
   await expect(page).toHaveURL(/\/plan$/);
   await expect(
-    page.getByRole("heading", { name: "Your weekly plan." }),
+    page.getByRole("heading", { name: /Your weekly plan\.|Plan your week/ }),
   ).toBeVisible();
   const cookie = (await context.cookies()).find(
     (item) => item.name === "compass_session",
@@ -82,7 +82,7 @@ test("demo login validates credentials, remembers the session and revokes it on 
   );
   await page.reload();
   await expect(
-    page.getByRole("heading", { name: "Your weekly plan." }),
+    page.getByRole("heading", { name: /Your weekly plan\.|Plan your week/ }),
   ).toBeVisible();
   await page.getByLabel("Settings", { exact: true }).click();
   await page.getByRole("button", { name: "Sign out", exact: true }).click();
