@@ -220,3 +220,19 @@ def test_entrypoint_loads_by_file_path_as_on_vercel() -> None:
     )
     assert result.returncode == 0, result.stderr
     assert result.stdout.strip() == "FastAPI"
+
+
+def test_lecturer_cannot_enter_student_workspace(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("COMPASS_SERVICE_KEY", KEY)
+    monkeypatch.setenv("COMPASS_LECTURER_GRANTS", '{"teacher":["canvas-demo-ai"]}')
+    app = make_app()
+    teacher = as_user(app, "teacher")
+    assert teacher.get("/api/v1/lecturer/classes").status_code == 200
+    assert teacher.get("/api/v1/demo/context").status_code == 403
+    assert (
+        teacher.post("/api/v1/demo/scenarios/select", json={"scenario_id": "week"}).status_code
+        == 403
+    )
+    student = as_user(app, "student-a")
+    assert student.get("/api/v1/lecturer/classes").status_code == 403
+    assert student.get("/api/v1/demo/context").status_code == 200

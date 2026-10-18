@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import { isLecturer } from "@/lib/lecturer-access";
 import { getSessionUser, sameOrigin, SESSION_COOKIE } from "@/lib/demo-auth";
 import {
   isJsonMediaType,
@@ -35,6 +36,11 @@ async function forward(
     )
   )
     return Response.json({ error: { code: "invalid_path" } }, { status: 400 });
+  if (isLecturer(user.id) && path[0] !== "lecturer")
+    return Response.json(
+      { error: { code: "forbidden_role" } },
+      { status: 403 },
+    );
   // Server-to-server routes are never reachable from the browser, and this proxy
   // attaches the service key, so it must not forward to them at all.
   if (path[0] === "internal")

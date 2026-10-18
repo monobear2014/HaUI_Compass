@@ -87,7 +87,9 @@ export function CompassAuth({
       }
       // A new document also discards any stale, pre-authenticated router cache.
       window.location.assign(
-        `/onboarding?next=${encodeURIComponent(nextPath)}`,
+        result.role === "lecturer" || nextPath === "/lecturer"
+          ? "/lecturer"
+          : `/onboarding?next=${encodeURIComponent(nextPath)}`,
       );
     } catch {
       setError("unavailable");

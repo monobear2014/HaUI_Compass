@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { isLecturer } from "@/lib/lecturer-access";
 import {
   AuthError,
   authenticate,
@@ -84,7 +85,7 @@ export async function POST(
     const token = await createSession(user);
     await revokeSession(previousToken);
     const response = NextResponse.json(
-      { user },
+      { user, role: isLecturer(user.id) ? "lecturer" : "student" },
       { status: action === "register" ? 201 : 200, headers },
     );
     response.cookies.set(SESSION_COOKIE, token, options);

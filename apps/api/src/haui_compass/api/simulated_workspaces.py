@@ -167,6 +167,10 @@ def create_simulated_workspace_app(
             raise WorkspaceAccessError(403, "forbidden", "Request rejected.")
         if not user or not OWNER_PATTERN.fullmatch(user):
             raise WorkspaceAccessError(401, "unauthorized", "Please sign in again.")
+        from haui_compass.api.lecturer import lecturer_classes
+
+        if lecturer_classes(user) is not None and not path.startswith("/api/v1/lecturer/"):
+            raise WorkspaceAccessError(403, "forbidden_role", "Student role required.")
         workspace = await run_in_threadpool(workspaces.get, user)
         providers = imported_sources | (
             frozenset({workspace.student.provider}) if workspace is not None else frozenset()

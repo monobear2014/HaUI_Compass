@@ -13,6 +13,7 @@ from fastapi import FastAPI
 from haui_compass.api.compass_chat import router as compass_router
 from haui_compass.api.dependencies import AppContainer, build_container
 from haui_compass.api.errors import register_error_handlers
+from haui_compass.api.lecturer import router as lecturer_router
 from haui_compass.api.v1.routes import container_from_app, router
 from haui_compass.api.v1.weekly import router as weekly_router
 
@@ -29,6 +30,7 @@ def create_app(
         return cast(AppContainer, app.state.container)
 
     app.dependency_overrides[container_from_app] = get_container
+    app.include_router(lecturer_router, prefix="/api/v1")
     app.include_router(router, prefix="/api/v1")
     app.include_router(weekly_router, prefix="/api/v1")
     app.include_router(compass_router, prefix="/api/v1")
