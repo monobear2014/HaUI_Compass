@@ -9,6 +9,7 @@ import httpx
 import pytest
 
 from haui_compass.api.dependencies import AppContainer, build_container
+from haui_compass.api.postgres_dependencies import build_postgres_container
 from haui_compass.application.lms_mapping import student_id_for
 from haui_compass.application.ports.explanation import RecommendationExplanationInput
 from haui_compass.application.ports.knowledge import CitationEvidence, GroundedAnswerInput
@@ -23,6 +24,7 @@ from haui_compass.application.use_cases.get_daily_recommendation import (
     GetDailyRecommendationRequest,
 )
 from haui_compass.application.use_cases.task_decomposition import GenerateTaskDecompositionRequest
+from haui_compass.infrastructure.config.database import DatabaseSettings
 from haui_compass.infrastructure.config.llm import LLMSettings
 from haui_compass.infrastructure.demo.scenarios import (
     NOW,
@@ -420,3 +422,50 @@ def test_malformed_grounded_answer_is_rejected(payload: object) -> None:
     adapter = OpenAIResponsesAdapter(settings(), transport=FakeTransport(response(payload)))
     with pytest.raises(ValueError):
         asyncio.run(adapter.answer(GroundedAnswerInput(question="question", evidence=())))
+
+
+@pytest.mark.parametrize("persistence", ["memory", "postgres"])
+def test_slow_explanation_falls_back_before_the_browser_aborts_workspace_loading(
+    persistence: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Reproduce Preview: an enabled provider with a 30s allowance, while the web
+    # client aborts after 15s. No real provider or PostgreSQL connection is used.
+    cancelled = False
+
+    async def hanging_explanation(
+        self: OpenAIResponsesAdapter, facts: RecommendationExplanationInput
+    ) -> None:
+        nonlocal cancelled
+        try:
+            await asyncio.sleep(60)
+        finally:
+            cancelled = True
+
+    monkeypatch.setattr(OpenAIResponsesAdapter, "explain", hanging_explanation)
+    scenario = scenario_data(ScenarioId.CRUNCH, NOW)
+    memory = build_container(
+        lms=MockLMSProvider({scenario.student: scenario.records}),
+        clock=DemoClock(),
+        llm_settings=settings(timeout_seconds=30),
+    )
+    decision = recommendation_decision(memory, scenario)
+    container = (
+        memory
+        if persistence == "memory"
+        else build_postgres_container(
+            settings=DatabaseSettings("postgresql+psycopg://unused:unused@localhost/unused"),
+            llm_settings=settings(timeout_seconds=30),
+        )
+    )
+
+    async def load_explanation() -> None:
+        # 12s includes margin above the 8s fallback but stays below the browser's
+        # 15s abort. The old composition times out here instead of returning prose.
+        output = await asyncio.wait_for(container.explain_recommendation.execute(decision), 12)
+        assert output is not None
+        assert output.source == "template"
+        assert output.fallback_reason == "timeout"
+        assert output.text
+
+    asyncio.run(load_explanation())
+    assert cancelled

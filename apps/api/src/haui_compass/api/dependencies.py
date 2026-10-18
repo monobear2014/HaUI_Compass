@@ -157,6 +157,7 @@ def build_container(
         else "not_configured"
     )
     llm_timeout = llm_settings.timeout_seconds if llm_settings is not None else 2.0
+    core_flow_timeout = llm_settings.core_flow_timeout_seconds if llm_settings is not None else 2.0
     transaction_manager = InMemoryPersistenceTransactionManager(
         resolved_tasks, resolved_executions, imported_academic_data, resolved_decompositions
     )
@@ -196,7 +197,7 @@ def build_container(
         explain_recommendation=ExplainRecommendation(
             template=TemplateExplanationProvider(),
             provider=resolved_explanation_provider,
-            timeout_seconds=llm_timeout,
+            timeout_seconds=core_flow_timeout,
             unavailable_reason=unavailable_reason,
         ),
         generate_task_decomposition=GenerateTaskDecomposition(
@@ -207,7 +208,7 @@ def build_container(
             timeout_seconds=(
                 task_decomposition_timeout_seconds
                 if task_decomposition_provider is not None
-                else llm_timeout
+                else core_flow_timeout
             ),
             unavailable_reason=unavailable_reason,
         ),
@@ -268,7 +269,7 @@ def build_container(
         coach_weekly_reflection=CoachWeeklyReflection(
             template=TemplateReflectionCoachProvider(),
             provider=llm_adapter,
-            timeout_seconds=llm_timeout,
+            timeout_seconds=core_flow_timeout,
             unavailable_reason=unavailable_reason,
         ),
     )

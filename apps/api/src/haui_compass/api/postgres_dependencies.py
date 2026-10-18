@@ -127,6 +127,7 @@ def build_postgres_container(
         else "not_configured"
     )
     llm_timeout = llm_settings.timeout_seconds if llm_settings is not None else 2.0
+    core_flow_timeout = llm_settings.core_flow_timeout_seconds if llm_settings is not None else 2.0
     return AppContainer(
         pdf_text_extractor=PypdfTextExtractor(),
         compass_answer=GroundedAnswerService(
@@ -145,7 +146,7 @@ def build_postgres_container(
         explain_recommendation=ExplainRecommendation(
             template=TemplateExplanationProvider(),
             provider=llm_adapter,
-            timeout_seconds=llm_timeout,
+            timeout_seconds=core_flow_timeout,
             unavailable_reason=unavailable_reason,
         ),
         generate_task_decomposition=GenerateTaskDecomposition(
@@ -153,7 +154,7 @@ def build_postgres_container(
             sessions=decomposition_sessions,
             fallback=DeterministicTaskDecompositionProvider(),
             provider=llm_adapter,
-            timeout_seconds=llm_timeout,
+            timeout_seconds=core_flow_timeout,
             unavailable_reason=unavailable_reason,
         ),
         confirm_task_decomposition=ConfirmTaskDecomposition(
@@ -216,7 +217,7 @@ def build_postgres_container(
         coach_weekly_reflection=CoachWeeklyReflection(
             template=TemplateReflectionCoachProvider(),
             provider=llm_adapter,
-            timeout_seconds=llm_timeout,
+            timeout_seconds=core_flow_timeout,
             unavailable_reason=unavailable_reason,
         ),
     )
