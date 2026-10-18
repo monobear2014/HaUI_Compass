@@ -30,6 +30,7 @@ import { usePreferences } from "./preferences";
 import { TaskDecomposition } from "./task-decomposition";
 import { Attention, Badge, PlanDays } from "./ui";
 import { useWorkspace } from "./workspace";
+import styles from "./weekly.module.css";
 
 export function useCopy() {
   const { language } = usePreferences();
@@ -346,7 +347,7 @@ export function PlanWizard({ onApproved }: { onApproved: () => void }) {
     const taskCount = new Set(plan.blocks.map((b) => b.task_id)).size;
     return (
       <section
-        className="weekly-step"
+        className={`weekly-step ${styles.preview}`}
         aria-label={c("Kế hoạch đề xuất", "Proposed plan")}
       >
         <ol className="weekly-progress" aria-label={c("Các bước", "Steps")}>
@@ -377,24 +378,44 @@ export function PlanWizard({ onApproved }: { onApproved: () => void }) {
             {error}
           </p>
         )}
-        <div className="weekly-actions">
-          <button
-            className="secondary"
-            disabled={busy}
-            onClick={() => setProposal(null)}
-          >
-            {c("Chỉnh sửa", "Edit")}
-          </button>
-          <button
-            className="primary"
-            disabled={busy}
-            onClick={() => void approve()}
-          >
-            {busy
-              ? c("Đang lưu…", "Saving…")
-              : c("Duyệt kế hoạch", "Approve plan")}
-            <Icon name="check" size={16} />
-          </button>
+        <div
+          className={styles.approvalBar}
+          role="region"
+          aria-label={c("Duyệt kế hoạch tuần", "Approve weekly plan")}
+        >
+          <dl className={styles.summary}>
+            <div>
+              <dt>{c("Phút học", "Study minutes")}</dt>
+              <dd>{minutes(seconds(plan.blocks))}</dd>
+            </div>
+            <div>
+              <dt>{c("Phiên học", "Study sessions")}</dt>
+              <dd>{plan.blocks.length}</dd>
+            </div>
+            <div>
+              <dt>{c("Việc chưa xếp", "Unscheduled tasks")}</dt>
+              <dd>{plan.unplanned_tasks.length}</dd>
+            </div>
+          </dl>
+          <div className={styles.approvalActions}>
+            <button
+              className="secondary"
+              disabled={busy}
+              onClick={() => setProposal(null)}
+            >
+              {c("Chỉnh sửa", "Edit")}
+            </button>
+            <button
+              className="primary"
+              disabled={busy}
+              onClick={() => void approve()}
+            >
+              {busy
+                ? c("Đang lưu…", "Saving…")
+                : c("Duyệt kế hoạch", "Approve plan")}
+              <Icon name="check" size={16} />
+            </button>
+          </div>
         </div>
       </section>
     );
@@ -525,7 +546,7 @@ export function PlanWizard({ onApproved }: { onApproved: () => void }) {
           {error}
         </p>
       )}
-      <div className="weekly-actions">
+      <div className={`weekly-actions ${styles.previewAction}`}>
         <button className="primary" disabled={busy || !rows.length}>
           {busy
             ? c("Đang tính…", "Calculating…")
