@@ -23,6 +23,7 @@ from fastapi.responses import JSONResponse
 from starlette.concurrency import run_in_threadpool
 from starlette.datastructures import QueryParams
 
+from haui_compass.api.app_factory import create_app
 from haui_compass.api.demo_context import (
     SIMULATED_WORKSPACE_MODE,
     AdvanceClockDTO,
@@ -36,7 +37,6 @@ from haui_compass.api.dependencies import (
     build_container,
     database_url_configured,
 )
-from haui_compass.api.main import create_app
 from haui_compass.application.academic_import import AcademicSource
 from haui_compass.application.ports.simulated_workspaces import (
     OWNER_PATTERN,

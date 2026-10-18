@@ -1,6 +1,10 @@
 """Per-account simulated workspaces: access control, A/B isolation, reset and virtual clocks."""
 
+import os
+import subprocess
+import sys
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
@@ -192,3 +196,27 @@ def test_runtime_selection_fails_closed(monkeypatch: pytest.MonkeyPatch) -> None
     monkeypatch.delenv("VERCEL")
     app = build_simulated_workspace_app()
     assert context(as_user(app, "local-user"))["mode"] == "simulated_canvas_workspace"
+
+
+def test_entrypoint_loads_by_file_path_as_on_vercel() -> None:
+    # Vercel imports the entrypoint file under its own module name, so the package's
+    # haui_compass.api.main is imported a second time; that must not cycle back here.
+    main_py = Path(__file__).resolve().parents[3] / "src/haui_compass/api/main.py"
+    script = (
+        "import importlib.util, sys\n"
+        f"spec = importlib.util.spec_from_file_location('vc_entrypoint', {str(main_py)!r})\n"
+        "module = importlib.util.module_from_spec(spec)\n"
+        "spec.loader.exec_module(module)\n"
+        "print(type(module.app).__name__)\n"
+    )
+    env = {
+        name: value
+        for name, value in os.environ.items()
+        if name not in {"HAUI_COMPASS_DATABASE_URL", "DATABASE_URL", "VERCEL"}
+    }
+    env.update(HAUI_COMPASS_SIMULATED_WORKSPACES="1", COMPASS_SERVICE_KEY=KEY)
+    result = subprocess.run(
+        [sys.executable, "-c", script], env=env, capture_output=True, text=True, check=False
+    )
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.strip() == "FastAPI"
