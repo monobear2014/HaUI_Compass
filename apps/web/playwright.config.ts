@@ -8,7 +8,7 @@ const webUrl = `http://127.0.0.1:${webPort}`;
 export default defineConfig({
   testDir: "./tests",
   // Needs the PostgreSQL production-build stack; see playwright.staging.config.ts.
-  testIgnore: /(staging-weekly-cycle|lecturer)\.spec\.ts/,
+  testIgnore: /(staging-weekly-cycle|preview-lecturer|lecturer)\.spec\.ts/,
   fullyParallel: false,
   workers: 1,
   timeout: 45000,

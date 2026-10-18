@@ -19,13 +19,13 @@ async function signIn(
     headers: { Origin: origin },
     data: { ...account, name: "Sinh viên thử nghiệm" },
   });
-  expect(response.ok(), await response.text()).toBeTruthy();
+  expect(response.status()).toBe(action === "register" ? 201 : 200);
 }
 
 function account(prefix: string): Credentials {
   return {
     username: `${prefix}_${crypto.randomUUID().slice(0, 10)}`,
-    password: "staging-e2e-pass",
+    password: crypto.randomUUID(),
   };
 }
 

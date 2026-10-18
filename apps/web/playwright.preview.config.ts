@@ -16,7 +16,10 @@ export default defineConfig({
   expect: { timeout: 20000 },
   use: {
     baseURL: new URL(previewUrl).origin,
-    trace: "retain-on-failure",
+    // Preview credentials and signed authority must never enter trace artifacts.
+    trace: "off",
+    screenshot: "off",
+    video: "off",
     extraHTTPHeaders: bypass
       ? {
           "x-vercel-protection-bypass": bypass,
