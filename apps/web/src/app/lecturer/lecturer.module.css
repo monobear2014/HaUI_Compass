@@ -1,0 +1,230 @@
+.page {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 28px 32px 48px;
+  color: var(--text);
+}
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--border);
+}
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  font-size: 19px;
+  font-weight: 650;
+}
+.role,
+.source,
+.unit {
+  font-size: 13px;
+  color: var(--secondary);
+}
+.heading {
+  margin: 32px 0 24px;
+}
+.eyebrow {
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 1.5px;
+  color: var(--accent);
+}
+.heading h1 {
+  font-size: clamp(28px, 4vw, 40px);
+  line-height: 1.25;
+}
+.heading > p:last-child {
+  color: var(--secondary);
+  margin-bottom: 0;
+}
+.context {
+  padding: 20px 24px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--surface);
+}
+.simulated {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--accent);
+  font-weight: 650;
+  margin-bottom: 12px;
+}
+.context p {
+  margin: 0 0 6px;
+  overflow-wrap: anywhere;
+}
+.context p:last-child {
+  margin-bottom: 0;
+}
+.context time {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.formula {
+  margin: 12px 0 28px;
+}
+.formula summary {
+  width: fit-content;
+  padding: 12px 0;
+  min-height: 44px;
+  cursor: pointer;
+  color: var(--accent);
+  font-weight: 600;
+}
+.formula p {
+  max-width: 80ch;
+  margin: 8px 0 12px;
+}
+.classes {
+  display: grid;
+  gap: 24px;
+}
+.card {
+  min-width: 0;
+  padding: 28px;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background: var(--surface);
+}
+.cardHeading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+}
+.cardHeading h2 {
+  font-size: 21px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+.enrollment {
+  font-size: 13px;
+  color: var(--secondary);
+}
+.kpi {
+  padding: 24px;
+  border-radius: 14px;
+  background: var(--accent-soft);
+}
+.kpiLabel {
+  margin: 0 0 8px;
+  font-size: 14px;
+  font-weight: 600;
+}
+.rate {
+  display: block;
+  font-size: clamp(40px, 5vw, 52px);
+  letter-spacing: -1.5px;
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+}
+.unavailable {
+  display: block;
+  font-size: 22px;
+  line-height: 1.4;
+}
+.fraction {
+  margin: 12px 0 0;
+  font-size: 14px;
+}
+.progress {
+  display: block;
+  width: 100%;
+  height: 10px;
+  margin-top: 20px;
+  border: 0;
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--border);
+  accent-color: var(--accent);
+}
+.progress::-webkit-progress-bar {
+  background: var(--border);
+}
+.progress::-webkit-progress-value {
+  background: var(--accent);
+}
+.progress::-moz-progress-bar {
+  background: var(--accent);
+}
+.counts {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 16px;
+  margin: 24px 0 16px;
+}
+.counts > div {
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+.counts dt {
+  min-height: 42px;
+  font-size: 13px;
+  color: var(--secondary);
+}
+.counts dd {
+  margin: 8px 0 0;
+  font-size: 28px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.unit {
+  margin: 0;
+}
+.suppressed {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 20px;
+  background: var(--background);
+  border-radius: 12px;
+}
+.suppressed svg {
+  flex-shrink: 0;
+  margin-top: 3px;
+}
+.suppressed p {
+  margin: 6px 0 0;
+  color: var(--secondary);
+}
+.state {
+  padding: 24px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--surface);
+}
+@media (max-width: 700px) {
+  .page {
+    padding: 16px 16px 32px;
+  }
+  .header {
+    padding-bottom: 16px;
+  }
+  .heading {
+    margin-top: 24px;
+  }
+  .context,
+  .card {
+    padding: 20px;
+  }
+  .kpi {
+    padding: 20px;
+  }
+  .counts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .counts dt {
+    min-height: auto;
+  }
+}
