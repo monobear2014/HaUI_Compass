@@ -9,6 +9,10 @@ on desktop and mobile; its API database reports Alembic revision `0004_simulated
 This does not claim a Production deployment or acceptance of every documented storage workflow.
 See [weekly-cycle-staging.md](weekly-cycle-staging.md) for the scoped acceptance evidence.
 
+The later two-role release is tracked in
+[Lecturer + Student Preview acceptance](lecturer-preview-acceptance.md). The
+student-only deployment above is retained as historical evidence.
+
 ## 1. Actual architecture
 
 ```text

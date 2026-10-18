@@ -10,9 +10,9 @@ test("Preview lecturer dashboard and server authorization", async ({
   if (!username || !password) throw new Error("Lecturer credentials required");
   await test.step("lecturer normal login", async () => {
     await page.goto("/login");
-    await page.getByLabel("Username", { exact: true }).fill(username);
-    await page.getByLabel("Password", { exact: true }).fill(password);
-    await page.getByRole("button", { name: "Sign in", exact: true }).click();
+    await page.getByLabel(/^(Username|Tên đăng nhập)$/).fill(username);
+    await page.getByLabel(/^(Password|Mật khẩu)$/).fill(password);
+    await page.getByRole("button", { name: /^(Sign in|Đăng nhập)$/ }).click();
     await expect(page).toHaveURL(/\/lecturer$/);
   });
   await test.step("KPI suppression timestamp and responsive presentation", async () => {

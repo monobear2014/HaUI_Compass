@@ -148,3 +148,7 @@ when credentials/configuration were absent; live success remains unverified.
 Local preflight PASS. Live Preview acceptance remains pending explicit push/deploy
 approval, account/grant provisioning and the user-run acceptance procedure. No
 remote Neon operation or Preview login was performed during this integration.
+
+Cloud release execution and acceptance are tracked in
+[lecturer-preview-acceptance.md](../deployment/lecturer-preview-acceptance.md);
+this extends the local preflight record above.

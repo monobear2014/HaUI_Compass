@@ -2,6 +2,11 @@
 
 Author: Nguyen hoai nam
 
+Execution status: the operator subsequently authorized staging push and Preview
+deployment. See [cloud acceptance](lecturer-preview-acceptance.md) for the release
+configuration and scoped results; the approval instructions below describe the
+original preparation gate.
+
 ## Scope and Git inventory
 
 Baseline branch: `feat/vercel-staging-deployment`, HEAD `66cf006`.
