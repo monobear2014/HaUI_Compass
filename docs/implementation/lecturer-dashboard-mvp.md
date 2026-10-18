@@ -110,6 +110,7 @@ merge or production change is authorized without release approval.
 | Separate local PostgreSQL suite | All 20 passed against the dedicated local test database |
 | Lecturer Playwright | 20 passed (desktop/mobile login, authorization and KPI presentation cases) |
 | Student regression Playwright | 32 passed (auth, documents, Compass Chat, weekly cycle) |
+| Weekly approval presentation | 2 passed (desktop and mobile) |
 | Web config/security tests | 30 passed |
 | TypeScript, ESLint, production build | Passed |
 | Ruff for changed Python files; mypy for new Python modules/tests | Passed |
@@ -124,3 +125,26 @@ not staging private Blob retrieval. This is not a fresh Vercel Preview certifica
 See `docs/deployment/lecturer-release-preflight.md` for the complete pending-file
 inventory, Preview grants/account provisioning, migration compatibility and safe
 user-run A/B/Lecturer acceptance procedure.
+
+### Fresh integration verification (2026-10-18)
+
+Integration commit: `e8c8934`, descended from both UI commits. A `git archive HEAD`
+snapshot was extracted to `/tmp/haui-lecturer-clean-e8c8934` without local env,
+untracked source, existing node_modules or virtualenv. `npm ci --offline` installed
+388 packages from the committed package lock; `uv sync --frozen --offline --extra dev`
+created a new virtualenv from uv.lock. Production build and 14 lecturer/workspace
+API tests passed in this clean snapshot. No dependency or lockfile edits were needed.
+Npm warned about the existing ESLint version and a blocked optional resolver
+postinstall; these did not prevent the clean build.
+
+Fresh full-workspace results: 1,645 backend passed (20 database cases skipped there),
+all 20 local PostgreSQL cases passed separately, 20 lecturer browser cases passed,
+32 Student Core Flow cases plus weekly presentation desktop passed (33 total), and
+weekly presentation mobile passed separately. TypeScript, ESLint, 30 config/security
+checks, changed-Python Ruff and whitespace checks passed. The Preview smoke script
+passed syntax/lint validation and failed closed with only a fixed BLOCKED record
+when credentials/configuration were absent; live success remains unverified.
+
+Local preflight PASS. Live Preview acceptance remains pending explicit push/deploy
+approval, account/grant provisioning and the user-run acceptance procedure. No
+remote Neon operation or Preview login was performed during this integration.
