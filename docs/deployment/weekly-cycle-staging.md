@@ -1,10 +1,13 @@
 # Weekly cycle on staging — per-account simulated workspaces
 
-Status: **READY FOR PREVIEW — APPROVAL REQUIRED** as of 2026-10-16.
+Status: **CORE FLOW PREVIEW VERIFIED** as of 2026-10-18.
 
-The code, migration and local staging-equivalent verification are complete on
-`feat/vercel-staging-deployment`. Nothing in this document has been applied to Neon or deployed
-to Vercel. Decision record: [ADR-0008](../decisions/0008-per-account-simulated-workspaces.md).
+The weekly-cycle composition is deployed to the Vercel Preview for
+`feat/vercel-staging-deployment` at commit `3377bbd07e1dc8f2f77f6db17585155adb2be488`:
+<https://haui-compass-a5j8wfybi-nam-4b71.vercel.app/>. The API Neon database reports
+`0004_simulated_workspaces`. This status applies to the simulated student Core Flow only;
+it does not claim Production deployment or acceptance of unrelated document-storage work.
+Decision record: [ADR-0008](../decisions/0008-per-account-simulated-workspaces.md).
 
 ## 1. Why staging had no context, assignments or deadlines
 
@@ -21,7 +24,7 @@ The web workspace loads its context only from `demo/context`, so on staging ever
 before any plan, assignment or deadline could be shown. Deploying `demo:app` instead would have
 given all accounts one shared, in-memory student, clock and reset.
 
-## 2. What is implemented (IMPLEMENTED, not yet deployed)
+## 2. What is implemented and deployed for Preview
 
 - `HAUI_COMPASS_SIMULATED_WORKSPACES=1` composes `main:app` with per-account workspaces. Off by
   default; normal startup and the local demo are unchanged.
@@ -182,21 +185,26 @@ cd ../api && HAUI_COMPASS_DATABASE_URL=${E2E_URL/postgresql/postgresql+psycopg} 
 cd ../web && STAGING_E2E_DATABASE_URL=$E2E_URL npx playwright test -c playwright.staging.config.ts
 ```
 
-## 6. Steps that need approval before Preview
+## 6. Preview acceptance evidence — 2026-10-18
 
-Each step is a separate approval. Stop at the first failure.
+The deployed Preview ran `playwright.preview.config.ts` against the immutable URL above:
+**2/2 passed**, desktop in 3.7 minutes and mobile in 3.6 minutes (7.3 minutes total).
 
-1. **Push** `feat/vercel-staging-deployment` to `origin` (no force push).
-2. **Read-only check** of the Neon API database: `alembic current` with the staging
-   `HAUI_COMPASS_DATABASE_URL`. Expected `0002_imported_academic_data` (or `0003_weekly_goals`).
-   Also confirm the target is the dedicated staging database, not production.
-3. **Migrate** that database once: `alembic upgrade head` from a controlled shell. Optionally
-   take a Neon branch/snapshot first. Re-run `alembic current` → `0004_simulated_workspaces`.
-4. **Set Preview-only variables** on the FastAPI service: `HAUI_COMPASS_SIMULATED_WORKSPACES=1`;
-   confirm `COMPASS_SERVICE_KEY` is set (same value) on both services for Preview.
-5. **Deploy Preview** (not Production) and smoke-test with two new synthetic accounts:
-   `/api/v1/health`; account A sees "Dữ liệu Canvas giả lập" and five assignments; A approves a
-   plan; account B sees no plan; a request naming A from B returns `403`.
+- Student A completed Plan → Do → Adapt → Reflect → next-week approval. The spec exercises
+  breakdown confirmation, an 80-minute completed execution, replanning revision 2, reflection
+  signals, difficult-topic carry-over, and next-week approval.
+- A logout/login then showed the saved plan, reflection and virtual clock, proving persistence
+  across the browser session.
+- Student B began with an independent fixture and clock; cross-account history and forged body
+  requests returned `403`, a borrowed task under B returned `404`, and B's reset moved only B to
+  generation 2 while A's history remained available.
+- A read-only Neon check reported Alembic revision `0004_simulated_workspaces`. The four newest
+  workspaces (desktop and mobile A/B runs) were created within ten minutes. Their aggregate
+  persisted-state fingerprints were two A workspaces with three plans, maximum revision 2, one
+  completed execution, one reflection and two weekly goals, and two reset-B workspaces at
+  generation 2 with no A learning records. These results confirm the Preview API used the
+  migrated staging database and retained account-scoped state.
 
-Before step 4, also close the open item from the staging hardening report: rotation of the API
-key that was exposed in IDE/chat context is still unconfirmed.
+No Production deployment, migration downgrade, cloud-data reset, or document-access verification
+was performed. The staging hardening report's separate API-key rotation/retention finding remains
+open and is outside this Core Flow acceptance.

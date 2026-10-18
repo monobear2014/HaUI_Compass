@@ -1,11 +1,13 @@
 # HaUI Compass — Vercel staging runbook
 
-Status: `DEPLOYMENT READY — EXTERNAL ACTION REQUIRED` as of 2026-10-12.
+Status: `PREVIEW DEPLOYED — CORE FLOW VERIFIED` as of 2026-10-18.
 
-Repository-side Services configuration, runtime contracts, fail-closed checks, and local
-verification are complete. This document does not claim that a Vercel project, managed
-PostgreSQL database, private Blob store, OpenAI credential, or HTTPS deployment exists. The
-remaining cloud steps require an authorized account and dedicated staging resources.
+The Vercel Services Preview for `feat/vercel-staging-deployment` is deployed at
+<https://haui-compass-a5j8wfybi-nam-4b71.vercel.app/> from
+`3377bbd07e1dc8f2f77f6db17585155adb2be488`. The simulated weekly Core Flow has passed cloud E2E
+on desktop and mobile; its API database reports Alembic revision `0004_simulated_workspaces`.
+This does not claim a Production deployment or acceptance of every documented storage workflow.
+See [weekly-cycle-staging.md](weekly-cycle-staging.md) for the scoped acceptance evidence.
 
 ## 1. Actual architecture
 
