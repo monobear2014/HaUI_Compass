@@ -41,9 +41,7 @@ export function CompassOnboarding({ nextPath }: { nextPath: string }) {
   const vi = language === "vi";
   const roles = [
     { id: "student", label: vi ? "Sinh viên" : "Student" },
-    { id: "teacher", label: vi ? "Giáo viên" : "Teacher" },
-    { id: "professor", label: vi ? "Giảng viên" : "Professor" },
-    { id: "parent", label: vi ? "Phụ huynh" : "Parent" },
+    { id: "professor", label: vi ? "Giảng viên" : "Lecturer" },
   ] as const;
   return (
     <main className={styles.page} data-theme={theme}>
@@ -69,7 +67,7 @@ export function CompassOnboarding({ nextPath }: { nextPath: string }) {
                 <span className={styles.label}>{role.label}</span>
                 {role.id !== "student" && (
                   <span className={styles.soon}>
-                    {vi ? "Sắp có" : "Coming soon"}
+                    {vi ? "Tài khoản được cấp quyền" : "Authorized accounts"}
                   </span>
                 )}
               </>
@@ -78,7 +76,7 @@ export function CompassOnboarding({ nextPath }: { nextPath: string }) {
               <Link
                 key={role.id}
                 className={styles.card}
-                href={`/onboarding/upload?next=${encodeURIComponent(nextPath)}`}
+                href={nextPath}
                 aria-label={
                   vi
                     ? "Sinh viên — vào không gian học tập"
@@ -88,14 +86,13 @@ export function CompassOnboarding({ nextPath }: { nextPath: string }) {
                 {content}
               </Link>
             ) : (
-              <button
+              <Link
                 key={role.id}
                 className={styles.card}
-                type="button"
-                disabled
+                href="/login?next=%2Flecturer"
               >
                 {content}
-              </button>
+              </Link>
             );
           })}
         </div>

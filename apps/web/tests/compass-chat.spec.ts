@@ -61,16 +61,24 @@ async function send(
     data: { message, active_document_id: documentId, request_id: requestId },
   });
 }
-async function panel(page: import("@playwright/test").Page, mobile: boolean) {
-  if (mobile) {
-    await page.getByRole("button", { name: "✦ Hỏi trợ lý" }).click();
-    return page
-      .locator("dialog")
-      .getByRole("region", { name: "Trợ lý Compass", exact: true });
-  }
+async function panel(page: import("@playwright/test").Page) {
+  await expect(
+    page.getByRole("button", {
+      name: /^(Open chatbot|Mở chatbot|Close chatbot|Đóng chatbot)$/,
+    }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", {
+      name: /^(Open chatbot|Mở chatbot|Close chatbot|Đóng chatbot)$/,
+    }),
+  ).toBeEnabled();
+  const launcher = page.getByRole("button", {
+    name: /^(Open chatbot|Mở chatbot)$/,
+  });
+  if (await launcher.isVisible()) await launcher.click();
   return page
-    .getByRole("region", { name: "Trợ lý Compass", exact: true })
-    .filter({ visible: true });
+    .getByRole("complementary", { name: /^(Compass chatbot|Chatbot Compass)$/ })
+    .getByRole("region", { name: "Trợ lý Compass", exact: true });
 }
 
 test("chunking preserves order, heading and exact offsets; migration backfills once", () => {
@@ -351,7 +359,7 @@ test("panel quick action, submit, source navigation and selected session survive
   const mobile = info.project.name === "mobile";
   const doc = await upload(context, baseURL!);
   await page.goto(`/study-set/${doc.id}`);
-  let assistant = await panel(page, mobile);
+  let assistant = await panel(page);
   await expect(assistant).toContainText("Đang hỏi: lecture.md");
   await assistant
     .getByRole("button", { name: "✨ Tóm tắt tài liệu này" })
@@ -376,7 +384,7 @@ test("panel quick action, submit, source navigation and selected session survive
   await expect(
     page.getByRole("region", { name: "Đoạn nguồn được trích dẫn" }),
   ).toContainText("Softmax converts logits");
-  if (mobile) assistant = await panel(page, mobile);
+  if (mobile) assistant = await panel(page);
   const firstId = await assistant
     .getByRole("combobox", { name: "Lịch sử trò chuyện" })
     .inputValue();
@@ -391,7 +399,7 @@ test("panel quick action, submit, source navigation and selected session survive
     .selectOption(firstId);
   await expect(assistant.locator("article")).toHaveCount(4);
   await page.reload();
-  assistant = await panel(page, mobile);
+  assistant = await panel(page);
   await expect(assistant.locator("article")).toHaveCount(4);
   await expect(assistant.getByRole("combobox")).toHaveValue(firstId);
   expect(
@@ -405,10 +413,10 @@ test("network retry after completed response does not duplicate messages", async
   page,
   context,
   baseURL,
-}, info) => {
+}) => {
   const doc = await upload(context, baseURL!);
   await page.goto(`/study-set/${doc.id}`);
-  const assistant = await panel(page, info.project.name === "mobile");
+  const assistant = await panel(page);
   let first = true;
   await page.route("**/api/chat/sessions/*/messages", async (route) => {
     if (route.request().method() === "POST" && first) {
@@ -432,7 +440,7 @@ test("concurrent sends are serialized; default active document, refusal UI and s
   context,
   request,
   baseURL,
-}, info) => {
+}) => {
   const doc = await upload(context, baseURL!);
   const chat = await session(context, baseURL!, doc.id);
   const results = await Promise.all([
@@ -476,7 +484,7 @@ test("concurrent sends are serialized; default active document, refusal UI and s
   );
   expect(oversized.status()).toBe(413);
   await page.goto(`/study-set/${doc.id}`);
-  const assistant = await panel(page, info.project.name === "mobile");
+  const assistant = await panel(page);
   await assistant
     .getByRole("textbox", { name: "Hỏi về tài liệu", exact: true })
     .fill("Unicornunique là gì?");
@@ -698,7 +706,7 @@ test("rapid citation clicks keep the latest source on a long document", async ({
 }, info) => {
   const doc = await upload(context, baseURL!, "long.md", longSource);
   await page.goto(`/study-set/${doc.id}`);
-  let assistant = await panel(page, info.project.name === "mobile");
+  let assistant = await panel(page);
   await assistant
     .getByRole("button", { name: "✨ Tóm tắt tài liệu này" })
     .click();
@@ -714,7 +722,7 @@ test("rapid citation clicks keep the latest source on a long document", async ({
     await route.fulfill({ response });
   });
   await buttons.first().click();
-  if (info.project.name === "mobile") assistant = await panel(page, true);
+  if (info.project.name === "mobile") assistant = await panel(page);
   await assistant.locator("article").last().getByRole("button").last().click();
   const card = page.getByRole("region", { name: "Đoạn nguồn được trích dẫn" });
   await expect(card).toContainText("Gradient descent");
@@ -824,11 +832,11 @@ test("refresh during generation restores the same request and retry does not cal
   page,
   context,
   baseURL,
-}, info) => {
+}) => {
   const doc = await upload(context, baseURL!, "refresh.md", `${source}\nlease`);
   const chat = await session(context, baseURL!, doc.id);
   await page.goto(`/study-set/${doc.id}?chat=${chat.id}`);
-  let assistant = await panel(page, info.project.name === "mobile");
+  let assistant = await panel(page);
   const generation = send(
     context,
     baseURL!,
@@ -849,7 +857,7 @@ test("refresh during generation restores the same request and retry does not cal
       )
       .toBe("pending");
     await page.reload();
-    assistant = await panel(page, info.project.name === "mobile");
+    assistant = await panel(page);
     expect((await generation).status()).toBe(201);
     if (
       await assistant.getByRole("button", { name: "Thử lại câu hỏi" }).count()
@@ -914,7 +922,7 @@ test("panel handles double send, long filename, loading and study-set switching 
     "# Logistic Regression\nLogistic regression uses sigmoid.",
   );
   await page.goto(`/study-set/${doc.id}`);
-  let assistant = await panel(page, info.project.name === "mobile");
+  let assistant = await panel(page);
   await assistant
     .getByRole("textbox", { name: "Hỏi về tài liệu", exact: true })
     .fill("Softmax lease là gì?");
@@ -930,7 +938,7 @@ test("panel handles double send, long filename, loading and study-set switching 
     assistant.locator("article").last().getByRole("button"),
   ).toBeVisible();
   await page.reload();
-  assistant = await panel(page, info.project.name === "mobile");
+  assistant = await panel(page);
   await assistant
     .getByRole("textbox", { name: "Hỏi về tài liệu", exact: true })
     .fill("Tại sao nó dùng exponential?");
@@ -940,7 +948,7 @@ test("panel handles double send, long filename, loading and study-set switching 
     "Hỏi tiếp về softmax",
   );
   await page.goto(`/study-set/${other.id}`);
-  assistant = await panel(page, info.project.name === "mobile");
+  assistant = await panel(page);
   await expect(assistant.locator("article")).toHaveCount(0);
   await expect(assistant).toContainText("Đang hỏi: second.md");
   await assistant
@@ -1034,10 +1042,10 @@ test("a completed turn stays successful when session-list refresh is unavailable
   page,
   context,
   baseURL,
-}, info) => {
+}) => {
   const doc = await upload(context, baseURL!);
   await page.goto(`/study-set/${doc.id}`);
-  const assistant = await panel(page, info.project.name === "mobile");
+  const assistant = await panel(page);
   let reloads = 0;
   await page.route("**/api/study-sets/*/chat/sessions", async (route) => {
     if (route.request().method() === "GET") {

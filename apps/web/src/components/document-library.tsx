@@ -36,15 +36,10 @@ export function DocumentLibrary() {
       <div className={styles.header}>
         <div>
           <h2>{vi ? "Tài liệu của bạn" : "Your documents"}</h2>
-          <p>
-            {vi
-              ? "Mở lại để đọc. Hỏi đáp bên dưới dùng bộ nguồn có sẵn, không dùng các tệp này."
-              : "Reopen your files to read. Q&A below uses its existing corpus, not these uploads."}
-          </p>
         </div>
         <Link
           className="button secondary"
-          href="/onboarding/upload?next=%2Fknowledge"
+          href="/documents/upload?next=%2Fknowledge"
         >
           {vi ? "Thêm tài liệu" : "Add documents"}
         </Link>

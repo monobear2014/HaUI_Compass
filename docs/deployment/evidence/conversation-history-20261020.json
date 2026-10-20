@@ -1,0 +1,29 @@
+{
+  "result": "PASS",
+  "url": "https://haui-compass-71mpvd03e-nam-4b71.vercel.app",
+  "checks": [
+    {
+      "check": "online-create-and-save-first-conversation",
+      "result": "PASS"
+    },
+    {
+      "check": "online-second-conversation-is-separate",
+      "result": "PASS"
+    },
+    {
+      "check": "online-history-switch-and-reload",
+      "result": "PASS"
+    },
+    {
+      "check": "online-fresh-login-and-owner-isolation",
+      "result": "PASS"
+    }
+  ],
+  "date": "2026-10-20",
+  "api_schema_revision": "0009_companion_conversations",
+  "browser_tests_passed": 20,
+  "aliases": [
+    "https://haui-compass.vercel.app",
+    "https://haui-compass-preview-nam-4b71.vercel.app"
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "result": "PASS",
+  "deployment": "haui-compass-9hfqdyhy4-nam-4b71.vercel.app",
+  "checks": [
+    {
+      "check": "ticket-dialog-closes-on-outside-click",
+      "result": "PASS"
+    },
+    {
+      "check": "ticket-details-closes-on-outside-click",
+      "result": "PASS"
+    },
+    {
+      "check": "account-panel-fits-expanded-and-collapsed-sidebar",
+      "result": "PASS"
+    },
+    {
+      "check": "account-panel-closes-on-outside-click",
+      "result": "PASS"
+    },
+    {
+      "check": "account-panel-closes-on-outside-click",
+      "result": "PASS"
+    }
+  ],
+  "evidence_source": "Synthetic account; no private documents used. Dialog dismissal and menu bounds checked on desktop and mobile; screenshots saved under /tmp."
+}

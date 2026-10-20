@@ -3,7 +3,7 @@
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from enum import StrEnum
-from uuid import UUID
+from uuid import UUID, uuid5
 
 from haui_compass.application.lms_mapping import assignment_id_for
 from haui_compass.application.ports.lms import (
@@ -19,12 +19,14 @@ from haui_compass.infrastructure.lms.mock_data import MockStudentRecords
 
 
 class ScenarioId(StrEnum):
+    WEEK = "week"
     NORMAL = "normal"
     CRUNCH = "crunch"
     DISRUPTED = "disrupted"
 
 
 LABELS = {
+    ScenarioId.WEEK: "Tuần học mẫu",
     ScenarioId.NORMAL: "Normal Week",
     ScenarioId.CRUNCH: "Deadline Crunch",
     ScenarioId.DISRUPTED: "Disrupted Week",
@@ -40,6 +42,30 @@ class DemoClock:
         return self.instant
 
 
+HANOI_OFFSET = timedelta(hours=7)
+DEMO_DAY_START_HOUR = 9
+
+
+class SteppingDemoClock:
+    """Demo-only clock that stands still until the presenter explicitly moves it forward."""
+
+    def __init__(self, instant: datetime = NOW) -> None:
+        self.instant = instant
+
+    def now(self) -> datetime:
+        return self.instant
+
+    def advance_to_next_day(self) -> None:
+        local = self.instant + HANOI_OFFSET
+        start = local.replace(hour=DEMO_DAY_START_HOUR, minute=0, second=0, microsecond=0)
+        self.instant = start + timedelta(days=1) - HANOI_OFFSET
+
+    def advance_to_next_week(self) -> None:
+        local = self.instant + HANOI_OFFSET
+        start = local.replace(hour=DEMO_DAY_START_HOUR, minute=0, second=0, microsecond=0)
+        self.instant = start + timedelta(days=7 - local.weekday()) - HANOI_OFFSET
+
+
 @dataclass(frozen=True)
 class Scenario:
     id: ScenarioId
@@ -50,7 +76,167 @@ class Scenario:
     windows: tuple[StudyWindow, ...]
 
 
+def _hanoi(anchor: datetime, days: int, hour: int, minute: int = 0) -> datetime:
+    """``anchor`` is a Monday 09:00 in Hanoi; return another wall-clock time in that week."""
+    return anchor + timedelta(days=days, hours=hour - DEMO_DAY_START_HOUR, minutes=minute)
+
+
+# Namespace for per-student fixture task ids; changing it changes every seeded task id.
+_TASK_NAMESPACE = UUID("2b0f3f5e-7c1d-4a8e-9d36-5c4e1f0a7b92")
+SHOWCASE_WEEK_STUDENT = ExternalRef("mock-canvas", "showcase-week")
+
+
+def week_scenario(anchor: datetime, student: ExternalRef = SHOWCASE_WEEK_STUDENT) -> Scenario:
+    """Two-week Canvas-like fixture that starts with no plan, so the student plans the week.
+
+    The single-presenter showcase keeps its historical identifiers. Any other ``student`` gets
+    its own course/assignment refs and task ids, so many students can hold the same fixture in
+    one database without sharing a row.
+    """
+    showcase = student == SHOWCASE_WEEK_STUDENT
+    prefix = "week" if showcase else f"{student.id}/week"
+
+    def ref(key: str) -> ExternalRef:
+        return ExternalRef(student.provider, f"{prefix}-{key}")
+
+    def task_id(position: int) -> TaskId:
+        if showcase:
+            return TaskId(UUID(int=301 + position))
+        return TaskId(uuid5(_TASK_NAMESPACE, f"{student.provider}|{student.id}|{position}"))
+
+    courses = tuple(
+        LMSCourseRecord(ref=ref(key), name=name, code=code)
+        for key, name, code in (
+            ("db", "Cơ sở dữ liệu", "IT6035"),
+            ("ml", "Học máy", "IT6047"),
+            ("cm", "Kỹ năng giao tiếp", "BS6018"),
+        )
+    )
+    # (key, course, title, deadline (day offset, hour), effort minutes, tasks)
+    definitions: tuple[tuple[str, str, str, int, int, int, tuple[tuple[str, int], ...]], ...] = (
+        (
+            "schema",
+            "db",
+            "Bài tập 1: Thiết kế lược đồ quan hệ",
+            2,
+            17,
+            120,
+            (("Vẽ sơ đồ thực thể - liên kết", 60), ("Chuẩn hoá lược đồ về 3NF", 60)),
+        ),
+        (
+            "regression",
+            "ml",
+            "Lab 2: Hồi quy tuyến tính",
+            3,
+            17,
+            90,
+            (("Cài đặt mô hình hồi quy cơ sở", 90),),
+        ),
+        (
+            "outline",
+            "cm",
+            "Dàn ý bài thuyết trình nhóm",
+            4,
+            17,
+            45,
+            (("Viết dàn ý thuyết trình", 45),),
+        ),
+        (
+            "evaluation",
+            "ml",
+            "Báo cáo đánh giá mô hình",
+            8,
+            17,
+            120,
+            (("So sánh các chỉ số đánh giá", 120),),
+        ),
+        # Large deliverable without tasks: the student breaks it down with AI support.
+        ("project", "db", "Đồ án nhỏ: Hệ quản lý thư viện", 11, 17, 180, ()),
+    )
+    assignments = tuple(
+        LMSAssignmentRecord(
+            ref=ref(f"assignment-{key}"),
+            course_ref=ref(course),
+            title=title,
+            deadline=_hanoi(anchor, day, hour),
+            estimated_effort=timedelta(minutes=effort),
+            instructions={
+                "schema": (
+                    "Syllabus CSDL, tuần 3: mô hình hoá thực thể-liên kết, chuyển sang lược "
+                    "đồ quan hệ, giải thích chuẩn hoá đến 3NF. Nộp bản thiết kế và tự giải "
+                    "thích lựa chọn."
+                ),
+                "regression": (
+                    "Syllabus Học máy, tuần 4: tự xây dựng baseline hồi quy, tách tập huấn "
+                    "luyện/kiểm tra và giải thích MAE/RMSE. Nộp notebook và nhận xét."
+                ),
+                "outline": (
+                    "Syllabus Kỹ năng giao tiếp: xác định thông điệp chính, chia vai và "
+                    "chuẩn bị dàn ý thuyết trình nhóm. Tự xây dựng ví dụ minh hoạ."
+                ),
+                "evaluation": (
+                    "Syllabus Học máy: so sánh mô hình bằng chỉ số trên tập kiểm tra, ghi "
+                    "rõ giới hạn và rủi ro rò rỉ dữ liệu. Nộp báo cáo ngắn."
+                ),
+                "project": (
+                    "Syllabus CSDL, đồ án: tự phân tích yêu cầu hệ quản lý thư viện; thiết "
+                    "kế ERD và chuẩn hoá; tự viết chức năng mượn/trả; kiểm thử ràng buộc; "
+                    "chuẩn bị báo cáo giải thích. Rubric mô phỏng: thiết kế 30%, triển khai "
+                    "30%, kiểm thử 20%, tự đánh giá 20%."
+                ),
+            }[key],
+            source_label=(
+                "Syllabus/assignment giả lập · HaUI Compass · không phải quy định của HaUI"
+            ),
+        )
+        for key, course, title, day, hour, effort, _ in definitions
+    )
+    tasks: list[Task] = []
+    for index, (*_, items) in enumerate(definitions):
+        for title, minutes in items:
+            tasks.append(
+                Task(
+                    id=task_id(len(tasks)),
+                    assignment_id=assignment_id_for(assignments[index].ref),
+                    title=title,
+                    estimated_duration=timedelta(minutes=minutes),
+                )
+            )
+    windows = tuple(
+        StudyWindow(
+            starts_at=_hanoi(anchor, day, hour, minute),
+            ends_at=_hanoi(anchor, day, hour, minute) + timedelta(minutes=length),
+        )
+        for day, hour, minute, length in (
+            (0, 19, 0, 90),
+            (1, 19, 0, 90),
+            (2, 14, 0, 90),
+            (3, 19, 0, 60),
+            (5, 9, 0, 120),
+        )
+    )
+    return Scenario(
+        id=ScenarioId.WEEK,
+        student=student,
+        records=(
+            courses,
+            assignments,
+            tuple(
+                LMSSubmissionRecord(assignment_ref=a.ref, status=SubmissionStatus.NOT_SUBMITTED)
+                for a in assignments
+            ),
+        ),
+        tasks=tuple(tasks),
+        period=PlanPeriod(
+            start=anchor.replace(hour=0), end=anchor.replace(hour=0) + timedelta(days=7)
+        ),
+        windows=windows,
+    )
+
+
 def scenario_data(identifier: ScenarioId, anchor: datetime) -> Scenario:
+    if identifier is ScenarioId.WEEK:
+        return week_scenario(anchor)
     student = ExternalRef("mock-lms", f"showcase-{identifier.value}")
 
     def ref(key: str) -> ExternalRef:

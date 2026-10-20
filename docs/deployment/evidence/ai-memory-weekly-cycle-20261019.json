@@ -1,0 +1,30 @@
+{
+  "result": "PASS",
+  "url": "https://haui-compass-6ek13xkav-nam-4b71.vercel.app",
+  "checks": [
+    {
+      "check": "fresh-account-preferences-isolated",
+      "result": "PASS"
+    },
+    {
+      "check": "student-full-week-plan-do-adapt-reflect-next-week",
+      "result": "PASS"
+    },
+    {
+      "check": "confirmed-memory-reusable-next-week",
+      "result": "PASS"
+    },
+    {
+      "check": "sign-in-again-preserves-history-and-preferences",
+      "result": "PASS"
+    },
+    {
+      "check": "profile-edit-and-delete-preserve-existing-plan",
+      "result": "PASS"
+    },
+    {
+      "check": "lecturer-aggregate-remains-private",
+      "result": "PASS"
+    }
+  ]
+}

@@ -32,3 +32,13 @@ def test_enabled_configuration_reads_model_base_url_and_timeout(
     assert configured.model == "configured-model"
     assert configured.base_url == "https://gateway.invalid/v1"
     assert configured.timeout_seconds == 3.5
+
+
+@pytest.mark.parametrize("configured,expected", [(0.2, 0.2), (8.0, 8.0), (30.0, 8.0)])
+def test_core_flow_budget_leaves_room_before_the_browser_deadline(
+    configured: float, expected: float
+) -> None:
+    settings = LLMSettings(timeout_seconds=configured)
+    assert settings.core_flow_timeout_seconds == expected
+    # Knowledge answering retains its separately configured allowance.
+    assert settings.timeout_seconds == configured

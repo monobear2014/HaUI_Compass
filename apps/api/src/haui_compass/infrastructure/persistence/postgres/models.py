@@ -4,6 +4,7 @@ from datetime import datetime
 from uuid import UUID
 
 from sqlalchemy import (
+    JSON,
     CheckConstraint,
     DateTime,
     ForeignKey,
@@ -12,6 +13,7 @@ from sqlalchemy import (
     Integer,
     String,
     UniqueConstraint,
+    func,
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 from sqlalchemy.types import UUID as PGUUID
@@ -276,3 +278,113 @@ class ReflectionSignalRow(Base):
     actual_seconds: Mapped[int | None] = mapped_column(Integer, nullable=True)
     workload: Mapped[str | None] = mapped_column(String(32), nullable=True)
     topic: Mapped[str | None] = mapped_column(String(500), nullable=True)
+
+
+class WeeklyGoalRow(Base):
+    __tablename__ = "weekly_goals"
+    __table_args__ = (
+        UniqueConstraint("student_id", "period_start", "period_end", name="uq_weekly_goal_scope"),
+        CheckConstraint("target_minutes >= 0", name="ck_weekly_goal_target"),
+        Index("ix_weekly_goals_student", "student_id", "period_start"),
+    )
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    student_id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), nullable=False)
+    period_start: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    period_end: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    goal_text: Mapped[str] = mapped_column(String(500), nullable=False)
+    target_minutes: Mapped[int] = mapped_column(Integer, nullable=False)
+    # [[starts_at_iso, ends_at_iso], ...] in UTC; small, always read with the goal.
+    study_windows: Mapped[list[list[str]]] = mapped_column(JSON, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class SimulatedWorkspaceRow(Base):
+    """Demo/staging only: an account's fictional fixture anchor and virtual clock."""
+
+    __tablename__ = "simulated_workspaces"
+    __table_args__ = (
+        CheckConstraint("generation >= 1", name="ck_simulated_workspace_generation"),
+        CheckConstraint("virtual_now >= anchor", name="ck_simulated_workspace_clock"),
+    )
+    owner_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    generation: Mapped[int] = mapped_column(Integer, nullable=False)
+    anchor: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    virtual_now: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class SimulatedSubmissionRow(Base):
+    __tablename__ = "simulated_submissions"
+    student_id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True)
+    assignment_id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True)
+    submitted_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class TaskDecompositionSessionRow(Base):
+    """Candidate sessions survive between serverless instances; they are not task facts."""
+
+    __tablename__ = "task_decomposition_sessions"
+    __table_args__ = (Index("ix_task_decomposition_sessions_student", "student_id"),)
+    session_id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True)
+    student_id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), nullable=False)
+    session: Mapped[dict[str, object]] = mapped_column(JSON, nullable=False)
+    confirmation: Mapped[dict[str, object] | None] = mapped_column(JSON, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class LearningPreferenceRow(Base):
+    __tablename__ = "learning_preferences"
+    owner: Mapped[str] = mapped_column(String(128), primary_key=True)
+    preferences: Mapped[dict[str, object]] = mapped_column(JSON, nullable=False)
+
+
+class CompanionMemoryRow(Base):
+    __tablename__ = "companion_memories"
+    owner: Mapped[str] = mapped_column(String(128), primary_key=True)
+    identifier: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True)
+    kind: Mapped[str] = mapped_column(String(32), nullable=False)
+    content: Mapped[str] = mapped_column(String(400), nullable=False)
+    confirmed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class CompanionConversationRow(Base):
+    __tablename__ = "companion_conversations"
+    owner: Mapped[str] = mapped_column(String(128), primary_key=True)
+    identifier: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True)
+    title: Mapped[str] = mapped_column(String(80), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class CompanionExchangeRow(Base):
+    __tablename__ = "companion_exchanges"
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["owner", "conversation_id"],
+            ["companion_conversations.owner", "companion_conversations.identifier"],
+            name="fk_companion_exchange_conversation",
+            ondelete="CASCADE",
+        ),
+        Index(
+            "ix_companion_conversation_messages",
+            "owner",
+            "conversation_id",
+            "created_at",
+            "identifier",
+        ),
+    )
+    conversation_id: Mapped[UUID | None] = mapped_column(PGUUID(as_uuid=True), nullable=True)
+    owner: Mapped[str] = mapped_column(String(128), primary_key=True)
+    identifier: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True)
+    payload: Mapped[dict[str, object]] = mapped_column(JSON, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+
+class TicketBoardRow(Base):
+    __tablename__ = "ticket_boards"
+    owner: Mapped[str] = mapped_column(String(128), primary_key=True)
+    scope: Mapped[str] = mapped_column(String(256), primary_key=True)
+    payload: Mapped[dict[str, object]] = mapped_column(JSON, nullable=False)

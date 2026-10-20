@@ -1,74 +1,18 @@
 import { test, expect } from "./fixtures";
 
-test("HaUI Compass landing uses its own identity and explains real student flows", async ({
-  page,
-}, info) => {
-  const errors: string[] = [];
-  const apiRequests: string[] = [];
-  const referenceRequests: string[] = [];
-  page.on("pageerror", (error) => errors.push(error.message));
-  page.on("request", (request) => {
-    if (request.url().includes("/compass-api/"))
-      apiRequests.push(request.url());
-    if (/cursus|vercel.app/.test(request.url()))
-      referenceRequests.push(request.url());
-  });
+test("the root URL opens the login page directly", async ({ page, context }) => {
+  await context.clearCookies();
   await page.goto("/");
-  await expect(page).toHaveTitle(/HaUI Compass/);
+  await expect(page).toHaveURL(/\/login$/);
   await expect(page.getByRole("heading", { level: 1 })).toContainText(
-    "Study with a plan.",
+    "Welcome back.",
   );
   await expect(
-    page.getByRole("link", { name: "HaUI Compass — go to homepage" }).first(),
+    page.getByRole("textbox", { name: "Username", exact: true }),
   ).toBeVisible();
-  await expect(page.locator("body")).not.toContainText(
-    /Cursus|Neural Forge|SSA101|institutional access/i,
-  );
-  await expect(page.locator('img[src*="study-hero"]')).toBeVisible();
-  await expect(page.locator("video")).toHaveCount(0);
-  await expect(page.locator(".app-shell")).toHaveCount(0);
-  await page.screenshot({ path: info.outputPath("compass-hero.png") });
-  await page.getByRole("tab", { name: /Document Q&A/ }).click();
-  await page
-    .locator("#product-canvas-panel")
-    .getByText("Database assignments · Database Mini Project", { exact: true })
-    .click();
-  await expect(page.locator("#product-canvas-panel details")).toHaveAttribute(
-    "open",
-    "",
-  );
-  await expect(page.locator("#product-canvas-panel")).toContainText(
-    "fictional demo material",
-  );
-  await page.getByRole("tab", { name: /Document Q&A/ }).press("ArrowUp");
   await expect(
-    page.getByRole("tab", { name: /AI assignment breakdown/ }),
-  ).toHaveAttribute("aria-selected", "true");
-  await expect(
-    page.getByRole("link", { name: "Open this screen" }),
-  ).toHaveAttribute("href", "/academic");
-  await page
-    .getByRole("button", {
-      name: "Do I need an account to try it?",
-      exact: true,
-    })
-    .click();
-  await expect(page.locator("#faq-panel-1")).toBeVisible();
-  await expect(page.locator("#faq-panel-0")).toBeHidden();
-  await page
-    .getByRole("button", { name: "Open the HaUI Compass guide" })
-    .click();
-  await expect(
-    page.getByRole("complementary", { name: "HaUI Compass guide" }),
-  ).toContainText("not an AI conversation");
-  expect(
-    await page.evaluate(
-      () => document.documentElement.scrollWidth <= innerWidth,
-    ),
-  ).toBe(true);
-  expect(apiRequests).toEqual([]);
-  expect(referenceRequests).toEqual([]);
-  expect(errors).toEqual([]);
+    page.getByRole("button", { name: "Sign in", exact: true }),
+  ).toBeVisible();
 });
 
 test("Vietnamese preferences and student-first entry lead to the working workspace", async ({
@@ -77,20 +21,17 @@ test("Vietnamese preferences and student-first entry lead to the working workspa
   await page.goto("/");
   await page.getByRole("radio", { name: "VI", exact: true }).click();
   await expect(page.getByRole("heading", { level: 1 })).toContainText(
-    "Học có kế hoạch.",
+    "Chào mừng bạn trở lại.",
   );
   await page.getByRole("switch", { name: "Switch to dark mode" }).click();
   await expect(page.locator("[data-theme=dark]").first()).toBeVisible();
   await page.screenshot({ path: info.outputPath("compass-dark-vi.png") });
-  await expect(
-    page.getByRole("link", { name: "Mở việc hôm nay", exact: true }),
-  ).toHaveAttribute("href", "/today");
   await page.goto("/demo");
   await expect(
     page.getByRole("heading", { name: "Bạn muốn bắt đầu từ đâu?" }),
   ).toBeVisible();
   await expect(page.locator("body")).not.toContainText(
-    /Teacher|Admin|Giảng viên|Quản trị viên/,
+    /Teacher|Admin|Quản trị viên/,
   );
   await page.screenshot({
     path: info.outputPath("student-demo-entry.png"),

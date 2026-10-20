@@ -1,0 +1,32 @@
+{
+  "result": "PASS",
+  "url": "https://haui-compass-po729kg7w-nam-4b71.vercel.app",
+  "checks": [
+    {
+      "check": "create-three-tickets-through-ui",
+      "result": "PASS"
+    },
+    {
+      "check": "multiple-tickets-all-four-columns-and-reload",
+      "result": "PASS"
+    },
+    {
+      "check": "notes-persist",
+      "result": "PASS"
+    }
+  ],
+  "local_checks": {
+    "browser_passed": 14,
+    "api_ticket_tests_passed": 5,
+    "postgres_passed": 1,
+    "backend_non_postgres": "PASS",
+    "typescript": "PASS",
+    "eslint": "PASS",
+    "ruff": "PASS",
+    "build": "PASS"
+  },
+  "aliases": [
+    "https://haui-compass.vercel.app",
+    "https://haui-compass-preview-nam-4b71.vercel.app"
+  ]
+}

@@ -1,0 +1,6 @@
+from typing import Protocol
+
+
+class TicketBoardRepository(Protocol):
+    def get(self, owner: str, scope: str) -> dict[str, object] | None: ...
+    def save(self, owner: str, scope: str, value: dict[str, object], version: int) -> bool: ...

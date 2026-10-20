@@ -1,0 +1,18 @@
+{
+  "result": "PASS",
+  "url": "https://haui-compass-lx9ezfvna-nam-4b71.vercel.app",
+  "checks": [
+    {
+      "check": "final-preview-profile-persistence-and-week-draft",
+      "result": "PASS"
+    },
+    {
+      "check": "final-preview-source-backed-question",
+      "result": "PASS"
+    },
+    {
+      "check": "final-preview-role-boundaries",
+      "result": "PASS"
+    }
+  ]
+}

@@ -33,6 +33,18 @@ class FixtureTransport:
         context = json.loads(payload["input"])
         evidence = context["evidence"]
         question = context["question"]
+        if not evidence:
+            text = json.dumps(
+                {
+                    "answer": "Mình chưa tìm thấy đủ thông tin trong tài liệu của bạn về điều này.",
+                    "citation_handles": [],
+                    "abstained": True,
+                }
+            )
+            return {
+                "status": "completed",
+                "output": [{"type": "message", "content": [{"type": "output_text", "text": text}]}],
+            }
         prefix = "Theo tài liệu: "
         if "nó" in question and context["recent_conversation"]:
             prefix = "Hỏi tiếp về softmax: "

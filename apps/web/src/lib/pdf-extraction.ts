@@ -1,6 +1,7 @@
 import "server-only";
 import { DocumentError } from "./document-store";
 import type { PdfPage } from "./document-chunking.cjs";
+import { resolveCompassApiUrl } from "./compass-api-config";
 
 export async function extractPdf(
   content: Buffer,
@@ -12,7 +13,7 @@ export async function extractPdf(
     response = await fetch(
       new URL(
         "/api/v1/internal/compass/extract-pdf",
-        process.env.COMPASS_API_URL || "http://127.0.0.1:8000",
+        resolveCompassApiUrl(),
       ),
       {
         method: "POST",

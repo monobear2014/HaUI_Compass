@@ -1,6 +1,6 @@
-# Fictional course packs v1
+# Course packs & public courseware
 
-**HƯ CẤU / FICTIONAL.** Đây là tài liệu gốc do dự án soạn bằng tiếng Việt cho demo hội đồng,
+Phần mô phỏng cũ: **HƯ CẤU / FICTIONAL.** Đây là tài liệu gốc do dự án soạn bằng tiếng Việt cho demo hội đồng,
 không phải syllabus/rubric học phần chính thức HaUI. Mỗi pack có năm tài liệu:
 `syllabus.md`, `notes.md`, `assignments.md`, `rubric.md`, `faq.md`.
 
@@ -22,3 +22,12 @@ Deadline/estimate lấy từ academic.json theo scenario, không ghi một deadl
 
 RAG v1 load các file đã đăng ký qua manifest, chunk theo heading và retrieve với hard filter theo
 course. Chúng không được đưa vào prompt decomposition, Risk/NBA/Planner/Replanner hoặc LMS fixture.
+
+
+## Public originals (2026-10-19)
+
+Ngoài các pack trên, kho có 12 file gốc từ MIT OpenCourseWare và Dive into Deep Learning,
+ở các thư mục `ai`, `ml`, `la`, `stats`, `automation`. Các file `mit-*.pdf` và `d2l-*.md`
+thuộc `open_educational`, không phải nội dung hư cấu. Xem [danh sách nguồn và giấy phép](../../README.md#học-liệu-công-khai-bổ-sung-ngày-2026-10-19).
+Sáu PDF và sáu Markdown giữ nguyên byte nguồn; không đổi các deadline/assignment LMS mô phỏng.
+UI năm môn mới lọc public-only; muốn kiểm thử fixture ML cũ qua API thì bỏ `public_only`.

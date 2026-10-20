@@ -10,7 +10,9 @@ const standalonePages = [
   "/register",
   // Protected by proxy, but intentionally displayed without the workspace shell.
   "/onboarding",
+  "/documents/upload",
   "/demo/select-role",
+  "/lecturer",
   "/demo",
   "/privacy",
   "/terms",

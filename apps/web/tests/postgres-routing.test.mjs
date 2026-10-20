@@ -61,3 +61,26 @@ test("the PostgreSQL migration stores references, not document bytes", async () 
   assert.match(migration, /CREATE TABLE web\.message_citations/);
   assert.doesNotMatch(migration, /\b(?:BYTEA|BLOB)\b/i);
 });
+
+test("the upload lifecycle migration adds fenced durable states", async () => {
+  const migration = await readFile(
+    join(sourceRoot, "../migrations/postgres/002_document_upload_lifecycle.sql"),
+    "utf8",
+  );
+  assert.match(migration, /document_upload_intents/);
+  assert.match(migration, /'uploaded'/);
+  assert.match(migration, /'ingesting'/);
+  assert.match(migration, /expires_at/);
+  assert.match(migration, /FOREIGN KEY \(document_id, owner\)/);
+});
+
+test("the cleanup migration records cross-system deletion retries", async () => {
+  const migration = await readFile(
+    join(sourceRoot, "../migrations/postgres/003_document_storage_cleanup.sql"),
+    "utf8",
+  );
+  assert.match(migration, /document_storage_cleanup/);
+  assert.match(migration, /'failed'/);
+  assert.match(migration, /attempts/);
+  assert.match(migration, /storage_key TEXT NOT NULL UNIQUE/);
+});

@@ -1,16 +1,45 @@
 # HaUI Compass
 
+> Update 2026-10-19: the current online Preview now includes per-account weekly cycles,
+> live aggregate lecturer reporting, public PDF/Markdown courseware and explicit confirmed
+> learning preferences. Historical milestone notes below describe their original delivery scope.
+> Current acceptance: [AI, weekly cycle and memory](deployment/ai-memory-weekly-cycle-20261019.md).
+> Evaluation baseline: [Vietnamese AI suite](evaluation/student-ai-vi-v1.md).
+
 > **Know what to do next.**
 
 **Document status:** Product source of truth
 
-**Project phase:** Technical MVP / council demo system, development-only
+**Project phase:** Technical MVP / council demo system, protected online Preview
 
 **Implementation status:** This document distinguishes **IMPLEMENTED** development/demo
 capabilities from **PLANNED** product capabilities. Implemented status does not imply a production
 deployment, real HaUI LMS integration, or validated educational outcome.
 
 ## Vision
+
+### Delivery direction confirmed on 2026-10-19
+
+Keep the Plan–Do–Reflect learning companion as the primary product. Course-grounded
+Q&A and private document uploads support that cycle. Start with simulated LMS data;
+real Canvas integration remains a later milestone. The basic acceptance scope is:
+student/lecturer authorization, weekly goals, confirmed task decomposition, deadline
+reminders, end-of-week reflection, aggregate lecturer reporting and explicitly defined
+on-time submission metrics. The basic simulated release is implemented and accepted;
+see [requirement mapping](implementation/basic-requirements-completion.md) and
+[online acceptance](deployment/basic-requirements-completion-20261019.md). Advanced
+product capabilities below retain their separately stated status.
+
+The student-first follow-up adds authoritative personal submission tracking and
+assignment filters; the lecturer can now drill into assignments, inspect aggregate
+support signals, filter/sort and export reports. See
+[student and lecturer acceptance](implementation/student-first-and-lecturer-insights.md).
+
+[ADR-0009](decisions/0009-learning-companion-stack.md) records the incremental stack,
+cost assumptions and gates for advanced infrastructure. The first navigation slice
+places planning, execution, reflection and source-backed Q&A above the personal file
+library on `/learn`. Advanced graph agents, semantic retrieval, classifiers and Redis
+remain deferred until evaluation justifies them.
 
 HaUI Compass is a **PLANNED** adaptive AI learning companion for students at Hanoi University of Industry (HaUI). It will help each student continuously understand academic commitments, choose a feasible next action, learn from actual execution, and improve the next plan.
 
@@ -111,6 +140,27 @@ does not imply remaining effort; confirmed reflection remains informational in v
 Production identity, real LMS integration, arbitrary task/window management, durable
 reflection browsing and frontend-to-PostgreSQL demo composition remain **PLANNED**.
 See [web setup and limitations](../apps/web/README.md).
+
+**Weekly Cycle v1 is IMPLEMENTED, development/demo-only:** the student workspace connects
+Plan → Do → Adapt → Reflect → next week. A student sets a weekly goal and free time, may confirm
+AI-assisted task breakdowns, previews a deterministic Weekly Planner proposal with deadline risk,
+and explicitly approves it. Today supports start/complete/pause (student-reported minutes),
+missed-session and deadline alerts, and links to materials/Compass Assistant. Adaptation previews a
+deterministic replan with risk before/after and is persisted only on confirmation. The weekly
+review is rule-based (explicit thresholds); optional LLM reflection prompts fall back to an offline
+template. Confirmed reflection drafts next week's goal through transparent adjustments (carry-over,
+±20 % target for reported workload, estimate buffer advice, deferred work, difficult topics); the
+planner itself is unchanged. Weekly goals persist in memory or PostgreSQL (Alembic `0003`, not yet
+applied to any cloud database). The opt-in demo starts on an unplanned Canvas-like two-week fixture
+with demo-only time controls. See the [weekly cycle demo](demo/weekly-cycle-demo.md).
+**Per-account simulated workspaces are IMPLEMENTED, staging-demo only and not yet deployed:** with
+`HAUI_COMPASS_SIMULATED_WORKSPACES=1` the normal API gives every signed-in account its own labelled
+fictional Canvas-like fixture, virtual clock and persisted weekly cycle. The web backend forwards the
+account with the service key; the API rejects student references the account does not own
+(Alembic `0004`, not yet applied to any cloud database). See
+[weekly cycle on staging](deployment/weekly-cycle-staging.md) and ADR-0008.
+**PLANNED:** production identity for real student data, retention of retired demo generations,
+calibrated estimates and planner use of student priorities.
 
 **PostgreSQL Persistence v0 is IMPLEMENTED:** synchronous SQLAlchemy 2.x,
 psycopg, Alembic, typed relational models/adapters, and a small transaction boundary are present.

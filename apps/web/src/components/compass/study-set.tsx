@@ -1,18 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { DocumentStudyProgress, StudyDocument } from "@/lib/documents";
 import { usePreferences } from "../preferences";
 import { CIcon } from "./primitives";
 import styles from "./study-set.module.css";
 import { ToolArtwork } from "./document-journey";
-import { AssistantPanel } from "./assistant-panel";
-import type {
-  ChatMessage,
-  ChatSession,
-  MessageCitation,
-} from "@/lib/compass-chat-types";
 
 type Topic = { id: string; title: string; content: string };
 type Mode = "read" | "cards" | "recall";
@@ -71,17 +65,13 @@ export function StudySet({
   text,
   initialProgress,
   initialMode,
-  initialSessions,
-  initialMessages,
-  initialSessionId,
+  initialChunk,
 }: {
   document: StudyDocument;
   text: string | null;
   initialProgress: DocumentStudyProgress;
   initialMode?: string;
-  initialSessions: ChatSession[];
-  initialMessages: ChatMessage[];
-  initialSessionId?: string;
+  initialChunk?: string;
 }) {
   const { language } = usePreferences();
   const vi = language === "vi";
@@ -107,55 +97,53 @@ export function StudySet({
   } | null>(null);
   const [sourceError, setSourceError] = useState(false);
   const sourceRef = useRef<HTMLElement>(null);
-  const citationRequest = useRef(0);
-  async function navigateCitation(citation: MessageCitation) {
-    const request = ++citationRequest.current;
-    setSource(null);
-    if (citation.document_id !== document.id) {
-      window.location.assign(
-        `/study-set/${citation.document_id}?chunk=${citation.chunk_id}`,
-      );
-      return;
-    }
-    setSourceError(false);
-    try {
-      const response = await fetch(
-        `/api/documents/${document.id}/chunks/${citation.chunk_id}`,
-        { cache: "no-store" },
-      );
-      if (!response.ok) throw new Error("source_unavailable");
-      const result = await response.json();
-      if (request !== citationRequest.current) return;
-      if (
-        document.kind === "pdf" &&
-        Number.isInteger(result.chunk.page_number) &&
-        result.chunk.page_number > 0
-      ) {
-        window.location.assign(
-          `/documents/${document.id}?page=${result.chunk.page_number}`,
+  useEffect(() => {
+    if (!source) return;
+    const frame = requestAnimationFrame(() => {
+      sourceRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+      sourceRef.current?.focus({ preventScroll: true });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [source]);
+  useEffect(() => {
+    if (!initialChunk || !/^[a-f0-9-]{36}$/i.test(initialChunk)) return;
+    const controller = new AbortController();
+    void fetch(`/api/documents/${document.id}/chunks/${initialChunk}`, {
+      cache: "no-store",
+      signal: controller.signal,
+    })
+      .then(async (response) => {
+        if (!response.ok) throw new Error("source_unavailable");
+        const result = await response.json();
+        if (controller.signal.aborted) return;
+        if (
+          document.kind === "pdf" &&
+          Number.isInteger(result.chunk.page_number) &&
+          result.chunk.page_number > 0
+        ) {
+          window.location.assign(
+            `/documents/${document.id}?page=${result.chunk.page_number}`,
+          );
+          return;
+        }
+        setSourceError(false);
+        setSource(result.chunk);
+        setMode("read");
+        setAnswerShown(false);
+        setRecall("");
+        const index = topics.findIndex(
+          (topic) => topic.title === result.chunk.heading,
         );
-        return;
-      }
-      setSource(result.chunk);
-      chooseMode("read");
-      const index = topics.findIndex(
-        (topic) => topic.title === citation.heading,
-      );
-      if (index >= 0) setActive(index);
-      // Wait for the source card to render before scrolling and focusing it.
-      requestAnimationFrame(() =>
-        sourceRef.current?.scrollIntoView({
-          behavior: "smooth",
-          block: "center",
-        }),
-      );
-      requestAnimationFrame(() =>
-        sourceRef.current?.focus({ preventScroll: true }),
-      );
-    } catch {
-      if (request === citationRequest.current) setSourceError(true);
-    }
-  }
+        if (index >= 0) setActive(index);
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) setSourceError(true);
+      });
+    return () => controller.abort();
+  }, [initialChunk, document.id, document.kind, topics]);
   const topic = topics[active];
   const total = topics.length;
   const percent = total ? Math.round((mastered.length / total) * 100) : null;
@@ -214,19 +202,21 @@ export function StudySet({
           {vi ? "BỘ HỌC TẬP CỦA BẠN" : "YOUR STUDY SET"}
         </p>
         <h1>{document.name}</h1>
-        <p className={styles.subtitle}>
-          {vi
-            ? "Đọc theo từng mục, tự nhớ lại rồi đánh dấu phần đã nắm."
-            : "Read one section, recall it in your own words and track what you know."}
-        </p>
+
         <div className={styles.headerActions}>
+          <Link
+            className={styles.secondary}
+            href={`/onboarding/ready?next=%2Flearn&ids=${encodeURIComponent(document.id)}`}
+          >
+            {vi ? "Lộ trình học" : "Learning roadmap"}
+          </Link>
           <Link className={styles.secondary} href={`/documents/${document.id}`}>
             <CIcon name="book" size={17} />
             {vi ? "Đọc tài liệu gốc" : "Read original material"}
           </Link>
           <Link
             className={styles.secondary}
-            href="/onboarding/upload?next=%2Flearn"
+            href="/documents/upload?next=%2Flearn"
           >
             <CIcon name="plus" size={17} />
             {vi ? "Thêm tài liệu" : "Add materials"}
@@ -265,11 +255,6 @@ export function StudySet({
         >
           <span style={{ width: `${percent ?? 0}%` }} />
         </div>
-        <p>
-          {vi
-            ? "Tiến độ tự đánh giá của bạn, không phải điểm bài kiểm tra."
-            : "Your self-reported progress, not a quiz grade."}
-        </p>
       </section>
 
       <div className={styles.layout}>
@@ -432,11 +417,7 @@ export function StudySet({
                             : "No extracted text is available for this section.")}
                       </pre>
                     ) : (
-                      <p className={styles.hint}>
-                        {vi
-                          ? "Hãy thử giải thích chủ đề này trước khi xem ghi chú trong tài liệu."
-                          : "Try explaining this topic before revealing the source notes."}
-                      </p>
+                      <></>
                     )}
                     <div className={styles.actionRow}>
                       <button
@@ -560,11 +541,7 @@ export function StudySet({
                   ? "Tài liệu PDF đã sẵn sàng để đọc"
                   : "Your PDF is ready to read"}
               </h2>
-              <p>
-                {vi
-                  ? "Trợ lý hỗ trợ PDF có văn bản với trích dẫn theo trang. PDF ảnh chưa hỗ trợ OCR. Chủ đề, flashcard và bài tự kiểm tra từ PDF chưa được tạo."
-                  : "The assistant supports text-based PDFs with page citations, without OCR. PDF topics, flashcards and recall activities are not generated."}
-              </p>
+
               <Link
                 className={styles.primary}
                 href={`/documents/${document.id}`}
@@ -574,21 +551,9 @@ export function StudySet({
               </Link>
             </section>
           )}
-          <p className={styles.trustNote}>
-            {vi
-              ? "Nội dung ôn tập trích nguyên văn từ tài liệu của bạn. Bạn có thể hỏi Trợ lý Compass và đối chiếu câu trả lời với nguồn."
-              : "Review notes are taken directly from your file. Ask Compass and compare its answers with the cited sources."}
-          </p>
         </section>
 
         <aside className={styles.sidebar}>
-          <AssistantPanel
-            document={document}
-            initialSessions={initialSessions}
-            initialMessages={initialMessages}
-            initialSessionId={initialSessionId}
-            onCitation={(citation) => void navigateCitation(citation)}
-          />
           <section className={styles.topicPanel}>
             <div className={styles.panelHead}>
               <h2>{vi ? "Chủ đề trong tài liệu" : "Topics in this file"}</h2>

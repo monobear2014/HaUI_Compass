@@ -149,17 +149,21 @@ test("real HTTP learning loop preserves explicit student choices", async ({
     ),
   );
   await page.getByRole("button", { name: "Adjust & replan" }).click();
+  await page.getByText("Re-estimate remaining time (optional)").click();
   const remaining = page.getByRole("spinbutton").first();
   await remaining.fill(String(45 + revision));
-  await page.getByRole("button", { name: "Remove study window 2" }).click();
+  await page.getByRole("button", { name: "I'm busy 2" }).click();
   await noOverflow(page);
+  await page.getByRole("button", { name: "Preview new schedule" }).click();
+  await expect(
+    page.getByText("Nothing changes until you confirm."),
+  ).toBeVisible();
   const replanRequest = page.waitForRequest((request) =>
-    request.url().includes("/compass-api/weekly-plans/replan"),
+    request.url().endsWith("/compass-api/weekly-plans/adapt"),
   );
-  const replanNow = contextNow;
-  await page.getByRole("button", { name: "Create revised plan" }).click();
+  await page.getByRole("button", { name: "Apply new schedule" }).click();
   const replanPayload = (await replanRequest).postDataJSON();
-  expect(Date.parse(replanPayload.effective_at)).toBe(Date.parse(replanNow));
+  expect(replanPayload.record_id).toBeTruthy();
   expect(replanPayload.study_windows).toHaveLength(2);
   expect(replanPayload.study_windows).not.toContainEqual(contextWindows[1]);
   await expect(
@@ -290,7 +294,7 @@ test("empty recommendation and plan do not fabricate work", async ({
   ).toHaveCount(0);
   await navigate(page, "/plan");
   await expect(
-    page.getByRole("button", { name: "Generate plan", exact: true }),
+    page.getByRole("button", { name: "Preview proposed plan", exact: true }),
   ).toBeVisible();
   await navigate(page, "/history");
   await expect(

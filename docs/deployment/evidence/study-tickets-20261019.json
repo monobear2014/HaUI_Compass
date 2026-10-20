@@ -1,0 +1,45 @@
+{
+  "result": "PASS",
+  "url": "https://haui-compass-c00ausf7a-nam-4b71.vercel.app",
+  "checks": [
+    {
+      "check": "online-ticket-order-focus-estimates-persist",
+      "result": "PASS"
+    },
+    {
+      "check": "online-ticket-version-ownership-role-validation",
+      "result": "PASS"
+    },
+    {
+      "check": "online-ticket-reorder-and-log-real-study",
+      "result": "PASS"
+    }
+  ],
+  "backend_passed": 1697,
+  "ticket_and_companion_ui_passed": 14,
+  "production_weekly_cycle_passed": 2,
+  "migration": "0008_ticket_boards",
+  "readyState": "READY",
+  "target": null,
+  "limitations": [
+    "REA research inspected official public documentation, not authenticated Jira/Sunsama applications.",
+    "Daily task selection does not edit approved study sessions."
+  ],
+  "recheck": [
+    {
+      "check": "final-deployment-durable-ticket-board",
+      "result": "PASS"
+    }
+  ],
+  "recovery_fix": "Successful reload clears stale errors and serializes reload/save operations.",
+  "aliases": [
+    {
+      "alias": "haui-compass.vercel.app",
+      "result": "PASS"
+    },
+    {
+      "alias": "haui-compass-preview-nam-4b71.vercel.app",
+      "result": "PASS"
+    }
+  ]
+}

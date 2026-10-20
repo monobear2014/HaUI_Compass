@@ -1,26 +1,21 @@
-from typing import cast
+import os
 
 from fastapi import FastAPI
 
-from haui_compass.api.compass_chat import router as compass_router
-from haui_compass.api.dependencies import AppContainer, build_container, build_runtime_container
-from haui_compass.api.errors import register_error_handlers
-from haui_compass.api.v1.routes import container_from_app, router
+from haui_compass.api.app_factory import create_app
+from haui_compass.api.dependencies import build_runtime_container
+
+__all__ = ["app", "build_runtime_app", "create_app"]
 
 
-def create_app(container: AppContainer | None = None) -> FastAPI:
-    resolved = container or build_container()
-    app = FastAPI(title="HaUI Compass API", version="0.1.0")
-    app.state.container = resolved
+def build_runtime_app() -> FastAPI:
+    """Select the process composition from explicit configuration at startup."""
+    if os.getenv("HAUI_COMPASS_SIMULATED_WORKSPACES") == "1":
+        # Staging demo: per-account simulated Canvas data behind the web session.
+        from haui_compass.api.simulated_workspaces import build_simulated_workspace_app
 
-    def get_container() -> AppContainer:
-        return cast(AppContainer, app.state.container)
-
-    app.dependency_overrides[container_from_app] = get_container
-    app.include_router(router, prefix="/api/v1")
-    app.include_router(compass_router, prefix="/api/v1")
-    register_error_handlers(app)
-    return app
+        return build_simulated_workspace_app()
+    return create_app(build_runtime_container())
 
 
-app = create_app(build_runtime_container())
+app = build_runtime_app()

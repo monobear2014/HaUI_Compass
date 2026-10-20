@@ -34,7 +34,7 @@ test("upload → ready → study set → reader → study set → library stays 
 }, info) => {
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
-  await page.goto("/onboarding/upload?next=%2Fdashboard");
+  await page.goto("/documents/upload?next=%2Fdashboard");
   await page.getByRole("button", { name: "Try a sample document" }).click();
   await page.getByRole("button", { name: "Upload & continue" }).click();
   await expect(

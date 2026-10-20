@@ -1,0 +1,123 @@
+{
+  "result": "PASS",
+  "url": "https://haui-compass-qt6shsqfi-nam-4b71.vercel.app",
+  "checks": [
+    {
+      "check": "synthetic-accounts-normal-login",
+      "result": "PASS"
+    },
+    {
+      "check": "initial-aggregate",
+      "result": "PASS"
+    },
+    {
+      "check": "server-timestamp-and-client-timestamp-rejection",
+      "result": "PASS"
+    },
+    {
+      "check": "foreign-owner-and-role-denials",
+      "result": "PASS"
+    },
+    {
+      "check": "on-time-late-missing-and-retry",
+      "result": "PASS"
+    },
+    {
+      "check": "persisted-event-after-new-session",
+      "result": "PASS"
+    },
+    {
+      "check": "grounding-and-integrity",
+      "result": "PASS"
+    },
+    {
+      "check": "prepare-ui-acceptance-account",
+      "result": "PASS"
+    }
+  ],
+  "progressBefore": {
+    "on_time": 0,
+    "late": 0,
+    "not_submitted": 3,
+    "not_yet_due": 22,
+    "no_deadline": 0,
+    "due_obligations": 3,
+    "on_time_due": 0,
+    "on_time_rate": 0
+  },
+  "progressAfter": {
+    "on_time": 1,
+    "late": 1,
+    "not_submitted": 4,
+    "not_yet_due": 19,
+    "no_deadline": 0,
+    "due_obligations": 6,
+    "on_time_due": 1,
+    "on_time_rate": 16.7
+  },
+  "baseline": {
+    "on_time": 4,
+    "late": 1,
+    "not_submitted": 0,
+    "not_yet_due": 0,
+    "no_deadline": 0,
+    "due_obligations": 5,
+    "on_time_due": 4,
+    "on_time_rate": 80
+  },
+  "activityUnchanged": true,
+  "hostedDecomposition": {
+    "phase": "authorized",
+    "resourceType": "unknown",
+    "status": 200,
+    "access": "allowed",
+    "elapsedMs": null,
+    "expiration": "unverified",
+    "result": "PASS",
+    "source": "ai",
+    "fallbackReason": null,
+    "candidateCount": 5
+  },
+  "deployment": {
+    "id": "dpl_4STNsdkJNf2MoUTt7GkBTgUtK7KH",
+    "state": "READY",
+    "environment": "Preview",
+    "stableUrl": "https://haui-compass.vercel.app",
+    "migration": "0005_simulated_submissions"
+  },
+  "browserChecks": {
+    "loginWithoutStaleDemoCredentials": "PASS",
+    "lecturerAggregateMatchesApi": "PASS",
+    "lecturerLogout": "PASS",
+    "studentStartsAtLearnWithoutUploadGate": "PASS",
+    "syllabusDisclosure": "PASS",
+    "submissionButtonBecomesTimestamp": "PASS",
+    "submissionPersistsAcrossReload": "PASS",
+    "mobile390pxNoOverflow": "PASS",
+    "decompositionButtonProvidesEditableSuggestions": "PASS"
+  },
+  "stableAliasPreflight": "PASS",
+  "aliasesVerified": [
+    "haui-compass.vercel.app",
+    "haui-compass-preview-nam-4b71.vercel.app"
+  ],
+  "localChecks": {
+    "backendUnitAndApi": {
+      "passed": 1619
+    },
+    "targetedPostgres": {
+      "passed": 10
+    },
+    "configuration": {
+      "passed": 32
+    },
+    "finalProductionBuild": "PASS",
+    "finalSubmissionUiDesktopAndMobile": "PASS",
+    "deadlineReminderStatesDesktopAndMobile": "PASS",
+    "ruff": "PASS",
+    "mypy": "PASS",
+    "typecheck": "PASS",
+    "eslint": "PASS",
+    "whitespace": "PASS"
+  }
+}

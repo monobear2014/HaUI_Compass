@@ -15,7 +15,7 @@ test("onboarding requires a session, preserves the intended screen and rejects e
   await page.goto("/onboarding?next=https%3A%2F%2Funtrusted.example");
   await expect(
     page.getByRole("link", { name: "Student — enter your study space" }),
-  ).toHaveAttribute("href", "/onboarding/upload?next=%2Flearn");
+  ).toHaveAttribute("href", "/learn");
   await page.getByRole("link", { name: "Back", exact: true }).click();
   await expect(page).toHaveURL(/\/login\?next=%2Flearn$/);
   await expect(
@@ -25,14 +25,10 @@ test("onboarding requires a session, preserves the intended screen and rejects e
   await page
     .getByRole("link", { name: "Student — enter your study space" })
     .press("Enter");
-  await expect(page).toHaveURL(/\/onboarding\/upload\?next=%2Fplan$/);
-  await page
-    .getByRole("link", { name: "I'll do this later", exact: true })
-    .click();
   await expect(page).toHaveURL(/\/plan$/);
 });
 
-test("role selection uses a readable two-by-two layout without pretending unsupported roles work", async ({
+test("role selection exposes only supported student and authorized lecturer routes", async ({
   page,
   context,
   baseURL,
@@ -47,27 +43,15 @@ test("role selection uses a readable two-by-two layout without pretending unsupp
   const student = page.getByRole("link", {
     name: "Student — enter your study space",
   });
-  const teacher = page.getByRole("button", {
-    name: "Teacher Coming soon",
+  const teacher = page.getByRole("link", {
+    name: "Lecturer Authorized accounts",
     exact: true,
   });
-  const professor = page.getByRole("button", {
-    name: "Professor Coming soon",
-    exact: true,
-  });
-  const parent = page.getByRole("button", {
-    name: "Parent Coming soon",
-    exact: true,
-  });
-  for (const role of [teacher, professor, parent])
-    await expect(role).toBeDisabled();
-  const a = (await student.boundingBox())!;
-  const b = (await teacher.boundingBox())!;
-  const c = (await professor.boundingBox())!;
-  expect(Math.abs(a.y - b.y)).toBeLessThan(1);
-  expect(b.x).toBeGreaterThan(a.x + a.width);
-  expect(c.y).toBeGreaterThan(a.y + a.height);
-  expect(Math.abs(a.x - c.x)).toBeLessThan(1);
+  await expect(teacher).toHaveAttribute("href", "/login?next=%2Flecturer");
+  await expect(page.getByRole("button", { name: /Coming soon/ })).toHaveCount(
+    0,
+  );
+  await expect(student).toBeVisible();
   await expect(page.locator(".sidebar, .topbar")).toHaveCount(0);
   expect(
     await page.evaluate(
@@ -78,16 +62,15 @@ test("role selection uses a readable two-by-two layout without pretending unsupp
   await page.getByRole("radio", { name: "VI", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Tôi là…" })).toBeVisible();
   await expect(
-    page.getByRole("button", { name: "Giảng viên Sắp có", exact: true }),
-  ).toBeDisabled();
+    page.getByRole("link", {
+      name: "Giảng viên Tài khoản được cấp quyền",
+      exact: true,
+    }),
+  ).toHaveAttribute("href", "/login?next=%2Flecturer");
   await page.getByRole("switch", { name: "Switch to dark mode" }).click();
   await expect(page.locator("main[data-theme=dark]")).toBeVisible();
   await page
     .getByRole("link", { name: "Sinh viên — vào không gian học tập" })
-    .click();
-  await expect(page).toHaveURL(/\/onboarding\/upload\?next=%2Flearn$/);
-  await page
-    .getByRole("link", { name: "Để sau, vào không gian học", exact: true })
     .click();
   await expect(page).toHaveURL(/\/learn$/);
 });

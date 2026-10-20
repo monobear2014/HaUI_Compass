@@ -4,7 +4,7 @@ export type { Page } from "@playwright/test";
 import type { Page } from "@playwright/test";
 
 export async function openPreferences(page: Page) {
-  const settings = page.getByTestId("workspace-settings");
+  const settings = page.getByTestId("account-menu");
   if ((await settings.getAttribute("open")) === null)
     await settings.locator("summary").first().click();
 }
@@ -17,7 +17,7 @@ export async function openDemo(page: Page) {
 }
 
 export async function navigate(page: Page, path: string) {
-  const settings = page.getByTestId("workspace-settings");
+  const settings = page.getByTestId("account-menu");
   if ((await settings.getAttribute("open")) !== null)
     await settings.locator("summary").first().click();
   const navigation = page.locator(

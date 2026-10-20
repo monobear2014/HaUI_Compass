@@ -26,11 +26,13 @@ from haui_compass.application.use_cases.query_knowledge import QueryKnowledge
 from haui_compass.application.use_cases.record_persisted_task_execution import (
     RecordPersistedTaskExecution,
 )
+from haui_compass.application.use_cases.reflection_coach import CoachWeeklyReflection
 from haui_compass.application.use_cases.submit_reflection import SubmitReflection
 from haui_compass.application.use_cases.task_decomposition import (
     ConfirmTaskDecomposition,
     GenerateTaskDecomposition,
 )
+from haui_compass.application.use_cases.weekly_cycle import WeeklyCycle
 from haui_compass.infrastructure.clock import SystemClock
 from haui_compass.infrastructure.config.database import DatabaseSettings
 from haui_compass.infrastructure.config.llm import LLMSettings
@@ -40,14 +42,15 @@ from haui_compass.infrastructure.decomposition.template import (
 from haui_compass.infrastructure.explanation.template import TemplateExplanationProvider
 from haui_compass.infrastructure.llm.openai_responses import OpenAIResponsesAdapter
 from haui_compass.infrastructure.lms.mock import MockLMSProvider
-from haui_compass.infrastructure.persistence.memory.task_decompositions import (
-    InMemoryTaskDecompositionSessionStore,
-)
 from haui_compass.infrastructure.persistence.postgres.academic_data import (
     PostgresImportedAcademicDataProvider,
 )
+from haui_compass.infrastructure.persistence.postgres.companion import PostgresCompanionRepository
 from haui_compass.infrastructure.persistence.postgres.executions import (
     PostgresTaskExecutionRepository,
+)
+from haui_compass.infrastructure.persistence.postgres.learning_preferences import (
+    PostgresLearningPreferenceRepository,
 )
 from haui_compass.infrastructure.persistence.postgres.plans import PostgresStudyPlanRepository
 from haui_compass.infrastructure.persistence.postgres.reflections import (
@@ -57,11 +60,32 @@ from haui_compass.infrastructure.persistence.postgres.session import (
     PostgresPersistenceTransactionManager,
     PostgresSessionFactory,
 )
+from haui_compass.infrastructure.persistence.postgres.task_decompositions import (
+    PostgresTaskDecompositionSessionStore,
+)
 from haui_compass.infrastructure.persistence.postgres.tasks import PostgresTaskRepository
+from haui_compass.infrastructure.persistence.postgres.ticket_board import (
+    PostgresTicketBoardRepository,
+)
+from haui_compass.infrastructure.persistence.postgres.weekly_goals import (
+    PostgresWeeklyGoalRepository,
+)
+from haui_compass.infrastructure.reflection_coach.template import TemplateReflectionCoachProvider
+from haui_compass.infrastructure.retrieval.catalog import LocalPublicCourseware
 from haui_compass.infrastructure.retrieval.ingestion import ingest_manifest
 from haui_compass.infrastructure.retrieval.lexical import LocalLexicalKnowledgeRetriever
 from haui_compass.infrastructure.retrieval.pdf import PypdfTextExtractor
 from haui_compass.infrastructure.retrieval.template_answer import TemplateGroundedAnswerProvider
+
+
+def _corpus_root() -> Path:
+    """Resolve the corpus from either the monorepo or the isolated Vercel service."""
+    source_path = Path(__file__).resolve()
+    candidates = (source_path.parents[5] / "data", source_path.parents[3] / "data")
+    for candidate in candidates:
+        if (candidate / "manifest.json").is_file():
+            return candidate
+    raise FileNotFoundError("HaUI Compass corpus manifest is missing from the API deployment")
 
 
 def build_postgres_container(
@@ -84,6 +108,7 @@ def build_postgres_container(
     executions = PostgresTaskExecutionRepository(provider)
     plans = PostgresStudyPlanRepository(provider)
     reflections = PostgresConfirmedReflectionRepository(provider)
+    goals = PostgresWeeklyGoalRepository(provider)
     generator = GenerateDailyRecommendation(lms=resolved_lms, clock=resolved_clock)
     reflection_candidates = GenerateReflectionCandidates(
         task_repository=tasks,
@@ -91,7 +116,8 @@ def build_postgres_container(
         submit_reflection=SubmitReflection(clock=resolved_clock),
         transaction_manager=transaction_manager,
     )
-    decomposition_sessions = InMemoryTaskDecompositionSessionStore()
+    # Durable: generate and confirm may reach different serverless instances.
+    decomposition_sessions = PostgresTaskDecompositionSessionStore(provider, transaction_manager)
     create_task = CreateStudyTask(
         lms=resolved_lms,
         tasks=tasks,
@@ -109,8 +135,15 @@ def build_postgres_container(
         else "not_configured"
     )
     llm_timeout = llm_settings.timeout_seconds if llm_settings is not None else 2.0
-    corpus_root = Path(__file__).resolve().parents[5] / "data"
+    core_flow_timeout = llm_settings.core_flow_timeout_seconds if llm_settings is not None else 2.0
+    corpus_root = _corpus_root()
     return AppContainer(
+        ticket_boards=PostgresTicketBoardRepository(provider),
+        companion_repository=PostgresCompanionRepository(provider),
+        agent_advice=llm_adapter,
+        agent_timeout=core_flow_timeout,
+        learning_preferences=PostgresLearningPreferenceRepository(provider),
+        public_courseware=LocalPublicCourseware(corpus_root),
         pdf_text_extractor=PypdfTextExtractor(),
         compass_answer=GroundedAnswerService(
             template=TemplateGroundedAnswerProvider(),
@@ -128,7 +161,7 @@ def build_postgres_container(
         explain_recommendation=ExplainRecommendation(
             template=TemplateExplanationProvider(),
             provider=llm_adapter,
-            timeout_seconds=llm_timeout,
+            timeout_seconds=core_flow_timeout,
             unavailable_reason=unavailable_reason,
         ),
         generate_task_decomposition=GenerateTaskDecomposition(
@@ -136,7 +169,7 @@ def build_postgres_container(
             sessions=decomposition_sessions,
             fallback=DeterministicTaskDecompositionProvider(),
             provider=llm_adapter,
-            timeout_seconds=llm_timeout,
+            timeout_seconds=core_flow_timeout,
             unavailable_reason=unavailable_reason,
         ),
         confirm_task_decomposition=ConfirmTaskDecomposition(
@@ -185,4 +218,21 @@ def build_postgres_container(
         ),
         create_study_task=create_task,
         transaction_manager=transaction_manager,
+        weekly_goal_repository=goals,
+        weekly_cycle=WeeklyCycle(
+            task_repository=tasks,
+            execution_repository=executions,
+            reflection_repository=reflections,
+            plan_repository=plans,
+            goal_repository=goals,
+            lms=resolved_lms,
+            clock=resolved_clock,
+            transaction_manager=transaction_manager,
+        ),
+        coach_weekly_reflection=CoachWeeklyReflection(
+            template=TemplateReflectionCoachProvider(),
+            provider=llm_adapter,
+            timeout_seconds=core_flow_timeout,
+            unavailable_reason=unavailable_reason,
+        ),
     )

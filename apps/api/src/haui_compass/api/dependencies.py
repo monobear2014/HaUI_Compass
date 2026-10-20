@@ -10,10 +10,13 @@ from haui_compass.application.academic_import import (
     ImportedAcademicDataProvider,
 )
 from haui_compass.application.ports.clock import Clock
+from haui_compass.application.ports.companion import AgentAdviceProvider, CompanionRepository
+from haui_compass.application.ports.courseware import PublicCourseware
 from haui_compass.application.ports.documents import PdfTextExtractor
 from haui_compass.application.ports.executions import TaskExecutionRepository
 from haui_compass.application.ports.explanation import RecommendationExplanationProvider
 from haui_compass.application.ports.knowledge import GroundedAnswerProvider
+from haui_compass.application.ports.learning_preferences import LearningPreferenceRepository
 from haui_compass.application.ports.lms import LMSProvider
 from haui_compass.application.ports.reflections import ConfirmedReflectionRepository
 from haui_compass.application.ports.study_plans import StudyPlanRepository
@@ -22,7 +25,9 @@ from haui_compass.application.ports.task_decomposition import (
     TaskDecompositionSessionStore,
 )
 from haui_compass.application.ports.tasks import TaskRepository
+from haui_compass.application.ports.ticket_board import TicketBoardRepository
 from haui_compass.application.ports.transactions import PersistenceTransactionManager
+from haui_compass.application.ports.weekly_goals import WeeklyGoalRepository
 from haui_compass.application.use_cases.confirm_reflection_signals import ConfirmReflectionSignals
 from haui_compass.application.use_cases.create_study_task import CreateStudyTask
 from haui_compass.application.use_cases.explain_recommendation import ExplainRecommendation
@@ -41,11 +46,13 @@ from haui_compass.application.use_cases.query_knowledge import QueryKnowledge
 from haui_compass.application.use_cases.record_persisted_task_execution import (
     RecordPersistedTaskExecution,
 )
+from haui_compass.application.use_cases.reflection_coach import CoachWeeklyReflection
 from haui_compass.application.use_cases.submit_reflection import SubmitReflection
 from haui_compass.application.use_cases.task_decomposition import (
     ConfirmTaskDecomposition,
     GenerateTaskDecomposition,
 )
+from haui_compass.application.use_cases.weekly_cycle import WeeklyCycle
 from haui_compass.infrastructure.clock import SystemClock
 from haui_compass.infrastructure.config.llm import LLMSettings
 from haui_compass.infrastructure.decomposition.template import (
@@ -57,8 +64,12 @@ from haui_compass.infrastructure.llm.openai_responses import (
     ResponsesTransport,
 )
 from haui_compass.infrastructure.lms.mock import MockLMSProvider
+from haui_compass.infrastructure.persistence.memory.companion import InMemoryCompanionRepository
 from haui_compass.infrastructure.persistence.memory.executions import (
     InMemoryTaskExecutionRepository,
+)
+from haui_compass.infrastructure.persistence.memory.learning_preferences import (
+    InMemoryLearningPreferenceRepository,
 )
 from haui_compass.infrastructure.persistence.memory.reflections import (
     InMemoryConfirmedReflectionRepository,
@@ -68,9 +79,17 @@ from haui_compass.infrastructure.persistence.memory.task_decompositions import (
     InMemoryTaskDecompositionSessionStore,
 )
 from haui_compass.infrastructure.persistence.memory.tasks import InMemoryTaskRepository
+from haui_compass.infrastructure.persistence.memory.ticket_board import (
+    InMemoryTicketBoardRepository,
+)
 from haui_compass.infrastructure.persistence.memory.transactions import (
     InMemoryPersistenceTransactionManager,
 )
+from haui_compass.infrastructure.persistence.memory.weekly_goals import (
+    InMemoryWeeklyGoalRepository,
+)
+from haui_compass.infrastructure.reflection_coach.template import TemplateReflectionCoachProvider
+from haui_compass.infrastructure.retrieval.catalog import LocalPublicCourseware
 from haui_compass.infrastructure.retrieval.ingestion import ingest_manifest
 from haui_compass.infrastructure.retrieval.lexical import LocalLexicalKnowledgeRetriever
 from haui_compass.infrastructure.retrieval.pdf import PypdfTextExtractor
@@ -101,6 +120,15 @@ class AppContainer:
     replan_persisted_study_plan: ReplanPersistedStudyPlan
     create_study_task: CreateStudyTask
     transaction_manager: PersistenceTransactionManager
+    weekly_goal_repository: WeeklyGoalRepository
+    weekly_cycle: WeeklyCycle
+    coach_weekly_reflection: CoachWeeklyReflection
+    ticket_boards: TicketBoardRepository
+    companion_repository: CompanionRepository
+    agent_advice: AgentAdviceProvider | None
+    agent_timeout: float
+    learning_preferences: LearningPreferenceRepository
+    public_courseware: PublicCourseware
 
 
 def build_container(
@@ -115,6 +143,7 @@ def build_container(
     plan_repository: StudyPlanRepository | None = None,
     reflection_repository: ConfirmedReflectionRepository | None = None,
     task_decomposition_sessions: TaskDecompositionSessionStore | None = None,
+    weekly_goal_repository: WeeklyGoalRepository | None = None,
     llm_settings: LLMSettings | None = None,
     llm_transport: ResponsesTransport | None = None,
     grounded_answer_provider: GroundedAnswerProvider | None = None,
@@ -131,6 +160,7 @@ def build_container(
     resolved_plans = plan_repository or InMemoryStudyPlanRepository()
     resolved_reflections = reflection_repository or InMemoryConfirmedReflectionRepository()
     resolved_decompositions = task_decomposition_sessions or InMemoryTaskDecompositionSessionStore()
+    resolved_goals = weekly_goal_repository or InMemoryWeeklyGoalRepository()
     llm_adapter = (
         OpenAIResponsesAdapter(llm_settings, transport=llm_transport)
         if llm_settings is not None and llm_settings.unavailable_reason is None
@@ -145,8 +175,13 @@ def build_container(
         else "not_configured"
     )
     llm_timeout = llm_settings.timeout_seconds if llm_settings is not None else 2.0
+    core_flow_timeout = llm_settings.core_flow_timeout_seconds if llm_settings is not None else 2.0
     transaction_manager = InMemoryPersistenceTransactionManager(
         resolved_tasks, resolved_executions, imported_academic_data, resolved_decompositions
+    )
+    # The weekly cycle writes plans and goals together; roll both back on failure.
+    weekly_transaction_manager = InMemoryPersistenceTransactionManager(
+        resolved_plans, resolved_goals
     )
     generator = GenerateDailyRecommendation(lms=resolved_lms, clock=resolved_clock)
     reflection_candidates = GenerateReflectionCandidates(
@@ -163,6 +198,12 @@ def build_container(
     corpus_root = knowledge_root or Path(__file__).resolve().parents[5] / "data"
     knowledge_retriever = LocalLexicalKnowledgeRetriever(ingest_manifest(corpus_root))
     return AppContainer(
+        ticket_boards=InMemoryTicketBoardRepository(),
+        companion_repository=InMemoryCompanionRepository(),
+        agent_advice=llm_adapter,
+        agent_timeout=core_flow_timeout,
+        learning_preferences=InMemoryLearningPreferenceRepository(),
+        public_courseware=LocalPublicCourseware(corpus_root),
         pdf_text_extractor=PypdfTextExtractor(),
         compass_answer=GroundedAnswerService(
             template=TemplateGroundedAnswerProvider(),
@@ -180,7 +221,7 @@ def build_container(
         explain_recommendation=ExplainRecommendation(
             template=TemplateExplanationProvider(),
             provider=resolved_explanation_provider,
-            timeout_seconds=llm_timeout,
+            timeout_seconds=core_flow_timeout,
             unavailable_reason=unavailable_reason,
         ),
         generate_task_decomposition=GenerateTaskDecomposition(
@@ -191,7 +232,7 @@ def build_container(
             timeout_seconds=(
                 task_decomposition_timeout_seconds
                 if task_decomposition_provider is not None
-                else llm_timeout
+                else core_flow_timeout
             ),
             unavailable_reason=unavailable_reason,
         ),
@@ -238,16 +279,34 @@ def build_container(
         ),
         create_study_task=create_task,
         transaction_manager=transaction_manager,
+        weekly_goal_repository=resolved_goals,
+        weekly_cycle=WeeklyCycle(
+            task_repository=resolved_tasks,
+            execution_repository=resolved_executions,
+            reflection_repository=resolved_reflections,
+            plan_repository=resolved_plans,
+            goal_repository=resolved_goals,
+            lms=resolved_lms,
+            clock=resolved_clock,
+            transaction_manager=weekly_transaction_manager,
+        ),
+        coach_weekly_reflection=CoachWeeklyReflection(
+            template=TemplateReflectionCoachProvider(),
+            provider=llm_adapter,
+            timeout_seconds=core_flow_timeout,
+            unavailable_reason=unavailable_reason,
+        ),
     )
+
+
+def database_url_configured() -> bool:
+    return bool(os.getenv("HAUI_COMPASS_DATABASE_URL") or os.getenv("DATABASE_URL"))
 
 
 def build_runtime_container() -> AppContainer:
     """Read process configuration at the composition boundary used by normal startup."""
     llm_settings = LLMSettings.from_env()
-    database_url_configured = bool(
-        os.getenv("HAUI_COMPASS_DATABASE_URL") or os.getenv("DATABASE_URL")
-    )
-    if database_url_configured:
+    if database_url_configured():
         # Import only when PostgreSQL is configured so local/test startup keeps its
         # lightweight in-memory composition and dependency boundaries stay explicit.
         from haui_compass.api.postgres_dependencies import build_postgres_container

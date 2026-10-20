@@ -5,6 +5,7 @@ import json
 import re
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
+from functools import lru_cache
 from pathlib import Path
 from typing import Protocol
 
@@ -39,6 +40,8 @@ def ingest_manifest(
     """Read registered knowledge documents only; demo/student snapshots are excluded."""
     if max_chars < 200:
         raise CorpusIngestionError("max_chars must be at least 200")
+    if pdf_reader is None:
+        pdf_reader = CuratedPdfPageReader()
     manifest_path = data_root / "manifest.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     if manifest.get("schema_version") != "haui-compass-corpus-v1":
@@ -75,6 +78,8 @@ def ingest_manifest(
                         source_type=(
                             "official_public"
                             if document["source_kind"] == "official_public"
+                            else "open_educational"
+                            if document["source_kind"] == "open_educational"
                             else "fictional_demo"
                         ),
                         course_id=document["course_id"],
@@ -228,3 +233,20 @@ def _normalize(text: str) -> str:
         re.sub(r"[ \t]+", " ", line).strip() for line in text.replace("\r\n", "\n").splitlines()
     ]
     return "\n".join(line for line in lines if line).strip()
+
+
+class CuratedPdfPageReader:
+    """Only hash-verified, reviewed bundled PDFs; private uploads use the isolated worker."""
+
+    def pages(self, path: Path) -> Sequence[str]:
+        return _curated_pdf_pages(path, hashlib.sha256(path.read_bytes()).hexdigest())
+
+
+@lru_cache(maxsize=32)
+def _curated_pdf_pages(path: Path, digest: str) -> tuple[str, ...]:
+    from haui_compass.infrastructure.retrieval.pdf import extract_pages
+
+    content = path.read_bytes()
+    if hashlib.sha256(content).hexdigest() != digest:
+        raise CorpusIngestionError("curated PDF changed during ingestion")
+    return tuple(page.text for page in extract_pages(content))

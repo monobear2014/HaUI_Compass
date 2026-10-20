@@ -5,13 +5,15 @@ from typing import Literal
 from pydantic import Field, model_validator
 
 from haui_compass.api.schemas.common import ApiModel
+from haui_compass.application.ports.knowledge import KnowledgeCourseId, KnowledgeSourceType
 from haui_compass.application.use_cases.query_knowledge import KnowledgeQueryResult
 
 
 class KnowledgeQueryRequestDTO(ApiModel):
     question: str = Field(min_length=3, max_length=500)
     scope: Literal["institutional", "course"]
-    course_id: Literal["db", "ml", "se"] | None = None
+    course_id: KnowledgeCourseId | None = None
+    public_only: bool = False
 
     @model_validator(mode="after")
     def valid_scope(self) -> "KnowledgeQueryRequestDTO":
@@ -29,8 +31,8 @@ class CitationDTO(ApiModel):
     title: str
     source_url: str | None
     local_path: str
-    source_type: Literal["official_public", "fictional_demo", "uploaded_private"]
-    source_label: Literal["Nguồn công khai HaUI", "Tài liệu môn học demo", "Tài liệu của bạn"]
+    source_type: KnowledgeSourceType
+    source_label: str
     page: int | None
     section: str | None
 
@@ -67,6 +69,8 @@ def knowledge_response(result: KnowledgeQueryResult) -> KnowledgeQueryResponseDT
                 source_label=(
                     "Nguồn công khai HaUI"
                     if item.source_type == "official_public"
+                    else "Học liệu công khai"
+                    if item.source_type == "open_educational"
                     else "Tài liệu của bạn"
                     if item.source_type == "uploaded_private"
                     else "Tài liệu môn học demo"

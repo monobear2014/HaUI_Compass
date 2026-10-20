@@ -82,6 +82,59 @@ export async function listChatSessions(
   // Node SQLite rows have null prototypes; React Server Components require plain objects.
   return rows.map((row) => ({ ...row }));
 }
+export async function clearLegacyChatHistory(owner: string) {
+  if (isWebPostgresConfigured()) {
+    await webPostgresPool().query(
+      "DELETE FROM web.chat_sessions WHERE owner = $1",
+      [owner],
+    );
+  } else {
+    const db = documentDatabase();
+    db.exec("BEGIN IMMEDIATE");
+    try {
+      db.prepare(
+        `DELETE FROM message_citations WHERE message_id IN
+        (SELECT m.id FROM chat_messages m JOIN chat_sessions s ON s.id = m.session_id WHERE s.owner = ?)`,
+      ).run(owner);
+      db.prepare(
+        "DELETE FROM chat_messages WHERE session_id IN (SELECT id FROM chat_sessions WHERE owner = ?)",
+      ).run(owner);
+      db.prepare("DELETE FROM chat_sessions WHERE owner = ?").run(owner);
+      db.exec("COMMIT");
+    } catch (error) {
+      db.exec("ROLLBACK");
+      throw error;
+    }
+  }
+}
+export async function listLegacyChatSessions(
+  owner: string,
+): Promise<ChatSession[]> {
+  // Query actual conversations, without scanning every uploaded file.
+  if (isWebPostgresConfigured()) {
+    return (
+      await webPostgresPool().query<ChatSession>(
+        `
+      SELECT s.id, s.study_set_id, s.title, s.created_at, s.updated_at
+      FROM web.chat_sessions s JOIN web.documents d ON d.id = s.study_set_id AND d.owner = s.owner
+      WHERE s.owner = $1 AND EXISTS (SELECT 1 FROM web.chat_messages m WHERE m.session_id = s.id)
+      ORDER BY s.created_at, s.id`,
+        [owner],
+      )
+    ).rows;
+  }
+  return (
+    documentDatabase()
+      .prepare(
+        `
+    SELECT s.id, s.study_set_id, s.title, s.created_at, s.updated_at
+    FROM chat_sessions s JOIN documents d ON d.id = s.study_set_id AND d.owner = s.owner
+    WHERE s.owner = ? AND EXISTS (SELECT 1 FROM chat_messages m WHERE m.session_id = s.id)
+    ORDER BY s.created_at, s.id`,
+      )
+      .all(owner) as ChatSession[]
+  ).map((row) => ({ ...row }));
+}
 export async function createChatSession(
   owner: string,
   studySetId: string,

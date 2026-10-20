@@ -75,6 +75,7 @@ def test_migrations_apply_both_revisions_and_expose_import_constraints(database_
             "imported_courses",
             "imported_assignments",
             "imported_submissions",
+            "weekly_goals",
         } <= set(inspector.get_table_names())
         assert "uq_academic_source_student_source" in {
             item["name"] for item in inspector.get_unique_constraints("academic_sources")
@@ -94,7 +95,7 @@ def test_migrations_apply_both_revisions_and_expose_import_constraints(database_
         } == {"academic_sources", "imported_courses"}
         with engine.connect() as connection:
             assert connection.scalar(text("SELECT version_num FROM alembic_version")) == (
-                "0002_imported_academic_data"
+                "0009_companion_conversations"
             )
     finally:
         engine.dispose()

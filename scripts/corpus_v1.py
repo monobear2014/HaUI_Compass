@@ -37,7 +37,7 @@ def scenario_assets() -> dict[str, str]:
     )
 
     assets = {}
-    for identifier in ScenarioId:
+    for identifier in (ScenarioId.NORMAL, ScenarioId.CRUNCH, ScenarioId.DISRUPTED):
         scenario = scenario_data(identifier, NOW)
         courses, assignments, submissions = scenario.records
         academic = {
@@ -321,6 +321,14 @@ def validate(root: Path) -> dict[str, int]:
                 or entry["authority"] != "public_information_snapshot"
             ):
                 raise ValueError("official provenance mismatch")
+        elif entry["source_kind"] == "open_educational":
+            url = urlparse(entry["source_url"])
+            if (entry["group"] != "courses" or url.scheme != "https" or
+                url.hostname not in {"ocw.mit.edu", "raw.githubusercontent.com"} or
+                entry["authority"] != "external_educational_material" or
+                not entry.get("authors") or not entry.get("license_url") or
+                entry["rights"] not in {"CC BY-SA 4.0", "CC BY-NC-SA 4.0"}):
+                raise ValueError("invalid open-courseware provenance")
         elif (
             entry["source_kind"] != "synthetic"
             or entry["source_url"] is not None
@@ -328,8 +336,8 @@ def validate(root: Path) -> dict[str, int]:
         ):
             raise ValueError("fictional provenance mismatch")
         if group == "courses" and (
-            entry["course_id"] not in {"db", "ml", "en", "se"}
-            or "HƯ CẤU" not in content.decode()
+            entry["course_id"] not in {"db", "ml", "en", "se", "ai", "la", "stats", "automation"}
+            or (entry["source_kind"] == "synthetic" and "HƯ CẤU" not in content.decode())
             or not entry["path"].startswith(f"knowledge/courses/{entry['course_id']}/")
         ):
             raise ValueError("course must be linked and visibly fictional")

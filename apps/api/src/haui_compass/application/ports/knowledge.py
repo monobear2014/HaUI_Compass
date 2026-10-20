@@ -4,7 +4,11 @@ from dataclasses import dataclass
 from typing import Literal, Protocol
 
 KnowledgeScope = Literal["institutional", "course"]
-KnowledgeSourceType = Literal["official_public", "fictional_demo", "uploaded_private"]
+KnowledgeSourceType = Literal[
+    "official_public", "fictional_demo", "uploaded_private", "open_educational"
+]
+KnowledgeCourseId = Literal["db", "ml", "se", "ai", "la", "stats", "automation"]
+KNOWLEDGE_COURSES = ("db", "ml", "se", "ai", "la", "stats", "automation")
 AnswerSource = Literal["ai", "template"]
 
 
@@ -40,6 +44,7 @@ class RetrievalQuery:
     scope: KnowledgeScope
     course_id: str | None
     top_k: int
+    source_type: KnowledgeSourceType | None = None
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -79,6 +84,9 @@ class GroundedAnswerInput:
     question: str
     evidence: tuple[CitationEvidence, ...]
     history: tuple[ConversationTurn, ...] = ()
+    preferences: tuple[str, ...] = ()
+    # Private study chat may reply to small talk and general questions without citations.
+    conversational: bool = False
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)

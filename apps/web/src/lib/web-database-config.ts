@@ -2,6 +2,7 @@ export type WebDatabaseEnvironment = {
   HAUI_COMPASS_WEB_DATABASE_URL?: string;
   NODE_ENV?: string;
   VERCEL?: string;
+  COMPASS_TEST_STORAGE?: string;
 };
 
 export type WebDatabaseConfiguration =
@@ -14,7 +15,10 @@ export function resolveWebDatabaseConfiguration(
   const connectionString = environment.HAUI_COMPASS_WEB_DATABASE_URL?.trim();
   if (connectionString) return { kind: "postgres", connectionString };
 
-  if (environment.NODE_ENV === "production" || environment.VERCEL === "1")
+  if (
+    (environment.NODE_ENV === "production" || environment.VERCEL === "1") &&
+    environment.COMPASS_TEST_STORAGE !== "1"
+  )
     throw new Error("HAUI_COMPASS_WEB_DATABASE_URL is required in staging/production");
 
   return { kind: "sqlite" };

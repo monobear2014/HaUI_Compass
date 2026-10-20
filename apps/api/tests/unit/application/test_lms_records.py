@@ -103,7 +103,15 @@ class TestAssignmentRecord:
 
     def test_has_no_place_for_raw_provider_payloads(self) -> None:
         fields = set(LMSAssignmentRecord.__dataclass_fields__)
-        assert fields == {"ref", "course_ref", "title", "deadline", "estimated_effort"}
+        assert fields == {
+            "ref",
+            "course_ref",
+            "title",
+            "deadline",
+            "estimated_effort",
+            "instructions",
+            "source_label",
+        }
 
 
 class TestSubmissionRecord:

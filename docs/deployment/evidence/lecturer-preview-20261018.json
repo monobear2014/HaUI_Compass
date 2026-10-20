@@ -1,0 +1,138 @@
+{
+  "date": "2026-10-18",
+  "environment": "Preview",
+  "branch": "feat/vercel-staging-deployment",
+  "neonRevision": "0004_simulated_workspaces",
+  "browser": {
+    "deployment": {
+      "id": "dpl_FJJzPSHmeNQHVN6vWPNi7yEtroAt",
+      "url": "https://haui-compass-k3hxr330r-nam-4b71.vercel.app",
+      "sha": "5f441e56d42b5656d235a456515bb55586eeedc9"
+    },
+    "exitCode": 0,
+    "results": [
+      {
+        "project": "desktop",
+        "test": "Preview lecturer dashboard and server authorization",
+        "status": "passed",
+        "durationMs": 11466
+      },
+      {
+        "project": "desktop",
+        "test": "hai sinh viên staging có tuần học, đồng hồ và dữ liệu riêng",
+        "status": "passed",
+        "durationMs": 222289
+      },
+      {
+        "project": "mobile",
+        "test": "Preview lecturer dashboard and server authorization",
+        "status": "passed",
+        "durationMs": 7969
+      },
+      {
+        "project": "mobile",
+        "test": "hai sinh viên staging có tuần học, đồng hồ và dữ liệu riêng",
+        "status": "passed",
+        "durationMs": 226231
+      },
+      {
+        "release": "passed"
+      }
+    ]
+  },
+  "httpSmoke": {
+    "deployment": {
+      "id": "dpl_FJJzPSHmeNQHVN6vWPNi7yEtroAt",
+      "url": "https://haui-compass-k3hxr330r-nam-4b71.vercel.app",
+      "sha": "5f441e56d42b5656d235a456515bb55586eeedc9"
+    },
+    "exitCode": 0,
+    "results": [
+      {
+        "check": "student-0:workspace",
+        "phase": "authorized",
+        "resourceType": "unknown",
+        "status": 200,
+        "access": "allowed",
+        "elapsedMs": 602,
+        "expiration": "unverified"
+      },
+      {
+        "check": "student-0:role-denied",
+        "phase": "foreign-owner",
+        "resourceType": "unknown",
+        "status": 403,
+        "access": "denied",
+        "elapsedMs": 414,
+        "expiration": "unverified"
+      },
+      {
+        "check": "student-0:foreign-owner-denied",
+        "phase": "foreign-owner",
+        "resourceType": "unknown",
+        "status": 403,
+        "access": "denied",
+        "elapsedMs": 394,
+        "expiration": "unverified"
+      },
+      {
+        "check": "student-1:workspace",
+        "phase": "authorized",
+        "resourceType": "unknown",
+        "status": 200,
+        "access": "allowed",
+        "elapsedMs": 452,
+        "expiration": "unverified"
+      },
+      {
+        "check": "student-1:role-denied",
+        "phase": "foreign-owner",
+        "resourceType": "unknown",
+        "status": 403,
+        "access": "denied",
+        "elapsedMs": 379,
+        "expiration": "unverified"
+      },
+      {
+        "check": "student-1:foreign-owner-denied",
+        "phase": "foreign-owner",
+        "resourceType": "unknown",
+        "status": 403,
+        "access": "denied",
+        "elapsedMs": 421,
+        "expiration": "unverified"
+      },
+      {
+        "check": "lecturer:classes",
+        "phase": "authorized",
+        "resourceType": "unknown",
+        "status": 200,
+        "access": "allowed",
+        "elapsedMs": 376,
+        "expiration": "unverified"
+      },
+      {
+        "check": "lecturer:student-route-denied",
+        "phase": "foreign-owner",
+        "resourceType": "unknown",
+        "status": 403,
+        "access": "denied",
+        "elapsedMs": 319,
+        "expiration": "unverified"
+      },
+      {
+        "check": "lecturer:unassigned-class-denied",
+        "phase": "foreign-owner",
+        "resourceType": "unknown",
+        "status": 404,
+        "access": "denied",
+        "elapsedMs": 531,
+        "expiration": "unverified"
+      },
+      {
+        "check": "lecturer:aggregate-contract",
+        "result": "PASS"
+      }
+    ]
+  }
+}

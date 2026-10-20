@@ -1,0 +1,41 @@
+{
+  "result": "PASS",
+  "url": "https://haui-compass-d9uul8e6j-nam-4b71.vercel.app",
+  "checks": [
+    {
+      "check": "clean-interface-learn",
+      "result": "PASS"
+    },
+    {
+      "check": "clean-interface-today",
+      "result": "PASS"
+    },
+    {
+      "check": "clean-interface-plan",
+      "result": "PASS"
+    },
+    {
+      "check": "clean-interface-academic",
+      "result": "PASS"
+    },
+    {
+      "check": "clean-interface-settings",
+      "result": "PASS"
+    },
+    {
+      "check": "clean-interface-dashboard",
+      "result": "PASS"
+    }
+  ],
+  "validation": {
+    "typescript": "PASS",
+    "eslint": "PASS",
+    "production_build": "PASS",
+    "final_ticket_and_deadline_browser_passed": 22,
+    "other_feature_regressions": "Account, companion, public courseware, lecturer and learning-space checks exercised; initial learning-space timing failure passed on rerun. Touch regression was updated to wait for sensor activation and passed in the final ticket suite."
+  },
+  "aliases": [
+    "https://haui-compass.vercel.app",
+    "https://haui-compass-preview-nam-4b71.vercel.app"
+  ]
+}

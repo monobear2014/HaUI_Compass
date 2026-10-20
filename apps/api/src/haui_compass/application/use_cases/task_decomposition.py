@@ -162,6 +162,8 @@ class GenerateTaskDecomposition:
             deadline=assignment_row.deadline,
             course_name=course.name,
             course_code=course.code,
+            assignment_instructions=assignment_row.instructions,
+            source_label=assignment_row.source_label,
         )
 
 

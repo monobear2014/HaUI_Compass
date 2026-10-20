@@ -1,0 +1,15 @@
+{
+  "result": "PASS",
+  "aliases": [
+    {
+      "alias": "haui-compass.vercel.app",
+      "deployment_id": "dpl_CDffPCmkTSWSpsxd1rRxvwJ4gDsJ",
+      "verified": true
+    },
+    {
+      "alias": "haui-compass-preview-nam-4b71.vercel.app",
+      "deployment_id": "dpl_CDffPCmkTSWSpsxd1rRxvwJ4gDsJ",
+      "verified": true
+    }
+  ]
+}

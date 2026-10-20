@@ -6,6 +6,7 @@ export function safeReturnPath(value: unknown) {
       url.origin === "http://compass.local" &&
       ([
         "/learn",
+        "/lecturer",
         "/today",
         "/plan",
         "/academic",

@@ -10,6 +10,7 @@ import {
 } from "./compass-chat-store";
 import { WebDocumentRetriever } from "./document-retriever";
 import { resolveRetrievalQuery } from "./document-ranking.cjs";
+import { resolveCompassApiUrl } from "./compass-api-config";
 
 const REFUSAL =
   "Mình chưa tìm thấy đủ thông tin trong tài liệu hiện tại để trả lời chắc chắn câu hỏi này.";
@@ -84,18 +85,6 @@ export async function sendChatMessage(
         (m) => m[1],
       ),
     }));
-    if (!chunks.length) {
-      await finishTurn(
-        owner,
-        sessionId,
-        input.request_id,
-        turn.token,
-        REFUSAL,
-        "abstained",
-        [],
-      );
-      return await getChatMessages(owner, sessionId);
-    }
     const key = process.env.COMPASS_SERVICE_KEY;
     if (!key) throw new DocumentError("assistant_unavailable", 503);
     generationStarted = performance.now();
@@ -103,7 +92,7 @@ export async function sendChatMessage(
     const response = await fetch(
       new URL(
         "/api/v1/internal/compass/answer",
-        process.env.COMPASS_API_URL || "http://127.0.0.1:8000",
+        resolveCompassApiUrl(),
       ),
       {
         method: "POST",
@@ -151,9 +140,7 @@ export async function sendChatMessage(
       throw new DocumentError("invalid_citations", 502);
     // Ignore any model-generated inline handles. The UI numbers real persisted sources.
     const content =
-      status === "abstained"
-        ? REFUSAL
-        : answer.replace(/\[(?:c\d+|\d+)\]/g, "").trim();
+      answer.replace(/\[(?:c\d+|\d+)\]/g, "").trim() || REFUSAL;
     await finishTurn(
       owner,
       sessionId,

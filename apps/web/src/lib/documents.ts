@@ -8,7 +8,13 @@ export type StudyDocument = {
   size: number;
   createdAt: string;
   headings: string[];
-  ingestionStatus?: "pending" | "ready" | "failed" | "unsupported";
+  ingestionStatus?:
+    | "pending"
+    | "uploaded"
+    | "ingesting"
+    | "ready"
+    | "failed"
+    | "unsupported";
 };
 export type DocumentStudyProgress = {
   covered: string[];

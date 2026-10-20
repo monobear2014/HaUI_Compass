@@ -42,7 +42,7 @@ test("Vietnamese preference covers the student workflow screens", async ({
   ).toBeVisible();
   await navigate(page, "/reflect");
   await expect(
-    page.getByRole("heading", { name: "Buổi học vừa rồi thế nào?" }),
+    page.getByRole("heading", { name: "Nhìn lại tuần học" }),
   ).toBeVisible();
   await navigate(page, "/history");
   await expect(
@@ -93,7 +93,7 @@ test("showcase: normal → crunch → execute, reflect and replan disrupted week
   await expect(page.locator(".why-box")).toContainText("60 phút");
 
   await expect(page.locator(".why-box .decision-evidence")).toContainText(
-    "effort_exceeds_capacity",
+    "Remaining effort exceeds the stated available capacity.",
   );
   await page.locator(".risk-overview > summary").click();
   await expect(
@@ -147,12 +147,17 @@ test("showcase: normal → crunch → execute, reflect and replan disrupted week
 
   await navigate(page, "/plan");
   await page.getByRole("button", { name: "Adjust & replan" }).click();
+  await page.getByText("Re-estimate remaining time (optional)").click();
   await expect(page.getByRole("spinbutton")).toHaveCount(3);
   await page
     .getByLabel("Remaining minutes for Implement the regression baseline")
     .fill("90");
-  await page.getByRole("button", { name: "Remove study window 2" }).click();
-  await page.getByRole("button", { name: "Create revised plan" }).click();
+  await page.getByRole("button", { name: "I'm busy 2" }).click();
+  await page.getByRole("button", { name: "Preview new schedule" }).click();
+  await expect(
+    page.getByText("Nothing changes until you confirm."),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Apply new schedule" }).click();
   await expect(
     page.getByRole("heading", { name: "Plan updated" }),
   ).toBeVisible();
@@ -204,6 +209,7 @@ test("switching scenario clears unsaved reflection candidates and plan editor", 
   await expect(page.getByLabel("Topics that felt difficult")).toHaveValue("");
   await navigate(page, "/plan");
   await page.getByRole("button", { name: "Adjust & replan" }).click();
+  await page.getByText("Re-estimate remaining time (optional)").click();
   await page
     .getByLabel("Remaining minutes for Implement the regression baseline")
     .fill("999");
@@ -212,7 +218,7 @@ test("switching scenario clears unsaved reflection candidates and plan editor", 
     .getByLabel("Demo scenario", { exact: true })
     .selectOption("normal");
   await expect(
-    page.getByRole("heading", { name: "Adjust your next steps" }),
+    page.getByRole("heading", { name: "What changed?" }),
   ).toHaveCount(0);
 });
 
@@ -263,10 +269,12 @@ test("AI task candidates require review and confirmation before deterministic pl
   );
   await navigate(page, "/plan");
   await page.getByRole("button", { name: "Adjust & replan" }).click();
+  await page.getByText("Re-estimate remaining time (optional)").click();
   await expect(
     page.getByLabel("Remaining minutes for Clarify rubric and project scope"),
   ).toHaveValue("40");
-  await page.getByRole("button", { name: "Create revised plan" }).click();
+  await page.getByRole("button", { name: "Preview new schedule" }).click();
+  await page.getByRole("button", { name: "Apply new schedule" }).click();
   await expect(
     page.getByRole("heading", { name: "Plan updated" }),
   ).toBeVisible();

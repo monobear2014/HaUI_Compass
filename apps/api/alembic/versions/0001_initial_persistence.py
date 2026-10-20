@@ -17,6 +17,19 @@ _IMPORTED_ACADEMIC_TABLES = frozenset(
         "imported_courses",
         "imported_assignments",
         "imported_submissions",
+        # Introduced by 0003.
+        "weekly_goals",
+        # Introduced by 0004.
+        "simulated_workspaces",
+        "task_decomposition_sessions",
+        # Introduced by 0005.
+        "simulated_submissions",
+        # Introduced by 0006.
+        "learning_preferences",
+        # Introduced by 0007.
+        "companion_memories",
+        "companion_exchanges",
+        "ticket_boards",
     }
 )
 

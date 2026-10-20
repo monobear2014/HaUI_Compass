@@ -37,6 +37,7 @@ export type Translation = {
     demoScenario: string;
     resetScenario: string;
     demoNotice: string;
+    simulatedNotice: string;
     fictionalData: string;
     resetsOnRestart: string;
     loadingScenario: string;
@@ -291,6 +292,8 @@ const en: Translation = {
     resetScenario: "Reset this scenario",
     demoNotice:
       "Fictional data · fixed demo clock · selecting or resetting clears this in-memory demo session, including imports.",
+    simulatedNotice:
+      "Simulated Canvas data for your account only · your own demo clock · resetting starts your simulated week again; it never affects other students.",
     fictionalData: "Fictional student · Mock LMS",
     resetsOnRestart: "Data resets when API restarts.",
     loadingScenario: "Loading fictional scenario…",
@@ -527,7 +530,7 @@ const vi: Translation = {
   nav: {
     today: "Hôm nay",
     plan: "Kế hoạch tuần",
-    reflect: "Sau buổi học",
+    reflect: "Phản tư tuần",
     history: "Lịch sử kế hoạch",
     academic: "Môn học & bài tập",
     knowledge: "Hỏi tài liệu",
@@ -561,6 +564,8 @@ const vi: Translation = {
     resetScenario: "Đặt lại kịch bản",
     demoNotice:
       "Dữ liệu giả lập · đồng hồ demo cố định · chọn hoặc đặt lại sẽ xóa phiên demo trong bộ nhớ, bao gồm cả dữ liệu import.",
+    simulatedNotice:
+      "Dữ liệu Canvas giả lập chỉ dành cho tài khoản của bạn · đồng hồ demo riêng · đặt lại sẽ bắt đầu lại tuần giả lập của bạn, không ảnh hưởng sinh viên khác.",
     fictionalData: "Sinh viên giả lập · LMS mô phỏng",
     resetsOnRestart: "Dữ liệu được làm mới khi API khởi động lại.",
     loadingScenario: "Đang tải kịch bản giả lập…",
@@ -679,9 +684,10 @@ const vi: Translation = {
     unplanned: "chưa xếp",
   },
   reflection: {
-    eyebrow: "SAU BUỔI HỌC",
-    title: "Buổi học vừa rồi thế nào?",
-    description: "Nhìn lại việc vừa học, rồi chọn điều muốn ghi nhớ.",
+    eyebrow: "CUỐI TUẦN",
+    title: "Nhìn lại tuần học",
+    description:
+      "Xem tổng kết, trả lời vài câu hỏi ngắn, rồi chọn điều muốn mang sang tuần sau.",
     yourReflection: "Phản hồi của bạn",
     stepOne: "BƯỚC 1 / 2",
     stepTwo: "BƯỚC 2 / 2",

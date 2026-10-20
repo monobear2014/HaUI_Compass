@@ -41,6 +41,11 @@ class LLMSettings:
         )
 
     @property
+    def core_flow_timeout_seconds(self) -> float:
+        """Leave room for persistence/proxy work within the web client's 15s deadline."""
+        return min(self.timeout_seconds, 8.0)
+
+    @property
     def unavailable_reason(self) -> ProviderUnavailableReason | None:
         if not self.enabled:
             return "disabled"

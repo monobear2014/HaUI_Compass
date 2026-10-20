@@ -1,0 +1,125 @@
+{
+  "date": "2026-10-19",
+  "deployment": "dpl_2qmymAc8S1zuBvc2tMdkPVswNDD8",
+  "target": "preview",
+  "url": "https://haui-compass-8gsxccncu-nam-4b71.vercel.app",
+  "sourceDigest": "d817f3073e065b30b5bf01ed15e05832b45bf82b39ce4280b289fd8d2159fe0b",
+  "httpSmoke": {
+    "exitCode": 0,
+    "records": [
+      {
+        "check": "student-0:workspace",
+        "phase": "authorized",
+        "resourceType": "unknown",
+        "status": 200,
+        "access": "allowed",
+        "elapsedMs": 371,
+        "expiration": "unverified"
+      },
+      {
+        "check": "student-0:role-denied",
+        "phase": "foreign-owner",
+        "resourceType": "unknown",
+        "status": 403,
+        "access": "denied",
+        "elapsedMs": 338,
+        "expiration": "unverified"
+      },
+      {
+        "check": "student-0:foreign-owner-denied",
+        "phase": "foreign-owner",
+        "resourceType": "unknown",
+        "status": 403,
+        "access": "denied",
+        "elapsedMs": 340,
+        "expiration": "unverified"
+      },
+      {
+        "check": "student-1:workspace",
+        "phase": "authorized",
+        "resourceType": "unknown",
+        "status": 200,
+        "access": "allowed",
+        "elapsedMs": 366,
+        "expiration": "unverified"
+      },
+      {
+        "check": "student-1:role-denied",
+        "phase": "foreign-owner",
+        "resourceType": "unknown",
+        "status": 403,
+        "access": "denied",
+        "elapsedMs": 458,
+        "expiration": "unverified"
+      },
+      {
+        "check": "student-1:foreign-owner-denied",
+        "phase": "foreign-owner",
+        "resourceType": "unknown",
+        "status": 403,
+        "access": "denied",
+        "elapsedMs": 324,
+        "expiration": "unverified"
+      },
+      {
+        "check": "lecturer:classes",
+        "phase": "authorized",
+        "resourceType": "unknown",
+        "status": 200,
+        "access": "allowed",
+        "elapsedMs": 331,
+        "expiration": "unverified"
+      },
+      {
+        "check": "lecturer:student-route-denied",
+        "phase": "foreign-owner",
+        "resourceType": "unknown",
+        "status": 403,
+        "access": "denied",
+        "elapsedMs": 278,
+        "expiration": "unverified"
+      },
+      {
+        "check": "lecturer:unassigned-class-denied",
+        "phase": "foreign-owner",
+        "resourceType": "unknown",
+        "status": 404,
+        "access": "denied",
+        "elapsedMs": 348,
+        "expiration": "unverified"
+      },
+      {
+        "check": "lecturer:aggregate-contract",
+        "result": "PASS"
+      }
+    ]
+  },
+  "weeklyHttp": {
+    "result": "PASS",
+    "checks": [
+      {
+        "check": "fresh-student-accounts",
+        "result": "PASS"
+      },
+      {
+        "check": "plan-do-adapt-reflect-next-week",
+        "result": "PASS"
+      },
+      {
+        "check": "relogin-persists-plan-and-clock",
+        "result": "PASS"
+      },
+      {
+        "check": "student-isolation",
+        "result": "PASS"
+      }
+    ]
+  },
+  "browser": {
+    "studentWeeklyCycle": "PASS",
+    "studentRelogin": "PASS",
+    "lecturerDashboard": "PASS",
+    "lecturerMobileOverflow": false,
+    "googleSignIn": "PASS_AFTER_OWNER_VERIFICATION"
+  }
+}

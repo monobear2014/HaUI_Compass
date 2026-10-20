@@ -1,0 +1,90 @@
+{
+  "result": "PASS",
+  "checks": [
+    {
+      "check": "student-0:workspace",
+      "phase": "authorized",
+      "resourceType": "unknown",
+      "status": 200,
+      "access": "allowed",
+      "elapsedMs": 486,
+      "expiration": "unverified"
+    },
+    {
+      "check": "student-0:role-denied",
+      "phase": "foreign-owner",
+      "resourceType": "unknown",
+      "status": 403,
+      "access": "denied",
+      "elapsedMs": 415,
+      "expiration": "unverified"
+    },
+    {
+      "check": "student-0:foreign-owner-denied",
+      "phase": "foreign-owner",
+      "resourceType": "unknown",
+      "status": 403,
+      "access": "denied",
+      "elapsedMs": 374,
+      "expiration": "unverified"
+    },
+    {
+      "check": "student-1:workspace",
+      "phase": "authorized",
+      "resourceType": "unknown",
+      "status": 200,
+      "access": "allowed",
+      "elapsedMs": 482,
+      "expiration": "unverified"
+    },
+    {
+      "check": "student-1:role-denied",
+      "phase": "foreign-owner",
+      "resourceType": "unknown",
+      "status": 403,
+      "access": "denied",
+      "elapsedMs": 395,
+      "expiration": "unverified"
+    },
+    {
+      "check": "student-1:foreign-owner-denied",
+      "phase": "foreign-owner",
+      "resourceType": "unknown",
+      "status": 403,
+      "access": "denied",
+      "elapsedMs": 371,
+      "expiration": "unverified"
+    },
+    {
+      "check": "lecturer:classes",
+      "phase": "authorized",
+      "resourceType": "unknown",
+      "status": 200,
+      "access": "allowed",
+      "elapsedMs": 650,
+      "expiration": "unverified"
+    },
+    {
+      "check": "lecturer:student-route-denied",
+      "phase": "foreign-owner",
+      "resourceType": "unknown",
+      "status": 403,
+      "access": "denied",
+      "elapsedMs": 380,
+      "expiration": "unverified"
+    },
+    {
+      "check": "lecturer:unassigned-class-denied",
+      "phase": "foreign-owner",
+      "resourceType": "unknown",
+      "status": 404,
+      "access": "denied",
+      "elapsedMs": 443,
+      "expiration": "unverified"
+    },
+    {
+      "check": "lecturer:aggregate-contract",
+      "result": "PASS"
+    }
+  ]
+}

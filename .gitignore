@@ -49,3 +49,4 @@ research-data/
 
 # Isolated browser-test accounts, uploads and chat history
 apps/web/.playwright-data/
+.vercel/
