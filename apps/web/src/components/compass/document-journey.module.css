@@ -282,6 +282,7 @@
 .readyContent {
   width: 100%;
   max-width: 1320px;
+  min-width: 0;
 }
 .readyHeader {
   text-align: center;
@@ -340,10 +341,17 @@
   padding: 0;
   display: grid;
   gap: 6px;
+  min-width: 0;
+  grid-template-columns: minmax(0, 1fr);
+}
+.fileRows li,
+.readingRows li {
+  min-width: 0;
 }
 .fileRows a,
 .readingRows a {
-  display: flex;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
   gap: 12px;
   min-height: 35px;
@@ -353,6 +361,9 @@
   border-radius: 9px;
   color: var(--study-muted);
   font-size: 13px;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 .fileRows a:hover,
 .readingRows a:hover {
@@ -370,6 +381,27 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   min-width: 0;
+}
+.readingRows a > span:not(.number) {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.5;
+}
+.openStudySet {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 10px 18px;
+  border: 1px solid var(--study-line);
+  border-radius: 999px;
+  background: var(--onboard-card);
+  color: var(--onboard-ink);
+  font-size: 13px;
 }
 .number {
   flex-shrink: 0;

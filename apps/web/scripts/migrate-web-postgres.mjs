@@ -4,7 +4,9 @@ import { Pool } from "pg";
 
 const connectionString = process.env.HAUI_COMPASS_WEB_DATABASE_URL?.trim();
 if (!connectionString) {
-  console.error("HAUI_COMPASS_WEB_DATABASE_URL is required to run web migrations");
+  console.error(
+    "HAUI_COMPASS_WEB_DATABASE_URL is required to run web migrations",
+  );
   process.exit(1);
 }
 
@@ -29,6 +31,9 @@ try {
       [1, "001_initial.sql"],
       [2, "002_document_upload_lifecycle.sql"],
       [3, "003_document_storage_cleanup.sql"],
+      [4, "004_oauth_accounts.sql"],
+      [5, "005_account_profiles.sql"],
+      [6, "006_account_avatars.sql"],
     ];
     const appliedVersions = await client.query(
       "SELECT version FROM web.schema_migrations ORDER BY version",
@@ -36,17 +41,27 @@ try {
     const applied = new Set(appliedVersions.rows.map((row) => row.version));
     for (const [version, filename] of migrations) {
       if (applied.has(version)) continue;
-      const migrationPath = new URL(`../migrations/postgres/${filename}`, import.meta.url);
+      const migrationPath = new URL(
+        `../migrations/postgres/${filename}`,
+        import.meta.url,
+      );
       const migration = await readFile(fileURLToPath(migrationPath), "utf8");
       await client.query(migration);
-      await client.query("INSERT INTO web.schema_migrations (version) VALUES ($1)", [version]);
+      await client.query(
+        "INSERT INTO web.schema_migrations (version) VALUES ($1)",
+        [version],
+      );
       console.log(`Applied web PostgreSQL migration revision ${version}`);
     }
     await client.query("COMMIT");
-    console.log(`Web PostgreSQL schema is current (revision ${migrations.at(-1)[0]})`);
+    console.log(
+      `Web PostgreSQL schema is current (revision ${migrations.at(-1)[0]})`,
+    );
   } catch {
     await client.query("ROLLBACK").catch(() => undefined);
-    console.error("Web PostgreSQL migration failed; transaction was rolled back");
+    console.error(
+      "Web PostgreSQL migration failed; transaction was rolled back",
+    );
     process.exitCode = 1;
   } finally {
     client.release();

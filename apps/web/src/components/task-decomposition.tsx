@@ -116,7 +116,7 @@ export function TaskDecomposition({
             : t("academic.offline")}
         </span>
       </div>
-      <p className="fine-print">{t("academic.suggestionsHint")}</p>
+
       {drafts.map((candidate, index) => (
         <div className="decomposition-candidate" key={candidate.id}>
           <label className="choice">

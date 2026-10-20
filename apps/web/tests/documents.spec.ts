@@ -17,7 +17,7 @@ test("sample upload creates the three-panel ready page, survives reload and open
   page,
   context,
 }, info) => {
-  await page.goto("/onboarding/upload?next=%2Fdashboard");
+  await page.goto("/documents/upload?next=%2Fdashboard");
   await expect(
     page.getByRole("heading", { name: "Start with your study material." }),
   ).toBeVisible();
@@ -124,7 +124,7 @@ test("sample upload creates the three-panel ready page, survives reload and open
 test("selection validates formats and limits, and a failed upload keeps files for retry", async ({
   page,
 }, info) => {
-  await page.goto("/onboarding/upload?next=%2Fplan");
+  await page.goto("/documents/upload?next=%2Fplan");
   const input = page.locator('input[type="file"]');
   const alert = page.locator("main").getByRole("alert");
   await input.setInputFiles({
@@ -134,11 +134,20 @@ test("selection validates formats and limits, and a failed upload keeps files fo
   });
   await expect(alert).toContainText("Only PDF, TXT and Markdown");
   await input.setInputFiles({
+    name: "empty.md",
+    mimeType: "text/markdown",
+    buffer: Buffer.alloc(0),
+  });
+  await expect(alert).toContainText("empty.md (0 bytes)");
+  await expect(alert).toContainText("The file is empty");
+  await expect(page.getByRole("button", { name: "Upload & continue" })).toBeDisabled();
+  await input.setInputFiles({
     name: "large.txt",
     mimeType: "text/plain",
     buffer: Buffer.alloc(MAX_DOCUMENT_BYTES + 1, "x"),
   });
   await expect(alert).toContainText("no larger than 5 MB");
+  await expect(alert).toContainText("large.txt (5,242,881 bytes)");
   await input.setInputFiles(
     Array.from({ length: 4 }, (_, i) => ({
       name: `note-${i}.txt`,
@@ -184,7 +193,7 @@ test("selection validates formats and limits, and a failed upload keeps files fo
 });
 
 test("upload intent uses canonical MIME types for Markdown files", async ({ page }) => {
-  await page.goto("/onboarding/upload?next=%2Fplan");
+  await page.goto("/documents/upload?next=%2Fplan");
   await page.locator('input[type="file"]').setInputFiles({
     name: "notes.md",
     mimeType: "application/octet-stream",
@@ -327,7 +336,7 @@ test("upload API enforces owner isolation, same-origin writes, server validation
   const result = await page.goto(`/documents/${doc.id}`);
   expect(result?.status()).toBe(404);
   await page.goto(`/onboarding/ready?next=%2Fplan&ids=${doc.id}`);
-  await expect(page).toHaveURL(/\/onboarding\/upload\?next=%2Fplan$/);
+  await expect(page).toHaveURL(/\/documents\/upload\?next=%2Fplan$/);
 });
 
 test("upload routes protect sessions, sanitize destinations and do not invent a successful empty result", async ({
@@ -335,12 +344,12 @@ test("upload routes protect sessions, sanitize destinations and do not invent a 
   context,
 }) => {
   await page.goto("/onboarding/ready?next=https%3A%2F%2Funtrusted.example");
-  await expect(page).toHaveURL(/\/onboarding\/upload\?next=%2Flearn$/);
+  await expect(page).toHaveURL(/\/documents\/upload\?next=%2Flearn$/);
   await expect(
     page.getByRole("link", { name: "I'll do this later" }),
   ).toHaveAttribute("href", "/learn");
   await context.clearCookies();
-  await page.goto("/onboarding/upload?next=%2Fplan");
+  await page.goto("/documents/upload?next=%2Fplan");
   await expect(page).toHaveURL(/\/login\?next=%2Fplan$/);
   await page.goto("/onboarding/ready?next=%2Fdashboard&ids=anything");
   await expect(page).toHaveURL(/\/login\?next=%2Fdashboard$/);

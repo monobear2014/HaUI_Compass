@@ -91,13 +91,16 @@ test("hai sinh viên staging có tuần học, đồng hồ và dữ liệu riê
   await page.getByRole("link", { name: "Bắt đầu hôm nay" }).click();
 
   // DO
-  const card = page.locator(".next-action");
+  const card = page
+    .getByRole("region", { name: "Danh sách hôm nay", exact: true })
+    .getByRole("article")
+    .first();
   await card.getByRole("button", { name: "Bắt đầu", exact: true }).click();
-  await expect(card.getByText("ĐANG LÀM")).toBeVisible();
+  await expect(card.getByText("● Đang tập trung")).toBeVisible();
   await card.getByRole("button", { name: "Hoàn thành" }).click();
   await page.getByLabel("Bạn đã học bao nhiêu phút?").fill("80");
   await page.getByRole("button", { name: "Lưu", exact: true }).click();
-  await expect(page.getByText(/Đã hoàn thành:/)).toBeVisible();
+  await expect(card.getByText("✓ Đã hoàn thành")).toBeVisible();
 
   // ADAPT
   await nextDay();

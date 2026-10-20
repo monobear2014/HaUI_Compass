@@ -1,6 +1,9 @@
 import { test, expect } from "@playwright/test";
 import type { Context, Plan, Task } from "../src/lib/api";
-import { studyStatistics } from "../src/lib/study-statistics";
+import {
+  studyStatistics,
+  submissionStatistics,
+} from "../src/lib/study-statistics";
 
 const context: Context = {
   mode: "test",
@@ -67,7 +70,7 @@ test("statistics measures task completion, keeps taskless assignments and never 
   ).toMatchObject({ total: 0, completed: 0, percent: null });
   expect(
     result.deadlines.map((assignment) => assignment.assignment_id),
-  ).toEqual(["b", "c", "taskless"]);
+  ).toEqual(["a", "b", "c", "taskless"]);
   expect(result).not.toHaveProperty("gpa");
 });
 
@@ -172,4 +175,54 @@ test("today preview follows Hanoi midnight, excludes other days and stale refere
     ends_at: "2026-10-05T17:00:00.000Z",
     task: { id: "b", status: "in_progress" },
   });
+});
+
+test("submission metrics include due missing work and ignore future obligations", () => {
+  const base = {
+    assignment_id: "a",
+    provider: "test",
+    external_id: "a",
+    title: "Assignment",
+    course: "Databases",
+    existing_task_count: 0,
+  };
+  const sample = {
+    ...context,
+    now: "2026-10-08T02:00:00Z",
+    tasks: [task("a", "completed")],
+    assignments: [
+      {
+        ...base,
+        deadline: "2026-10-07T02:00:00Z",
+        submitted_at: "2026-10-07T02:00:00Z",
+      },
+      {
+        ...base,
+        assignment_id: "b",
+        deadline: "2026-10-07T02:00:00Z",
+        submitted_at: "2026-10-07T03:00:00Z",
+      },
+      { ...base, assignment_id: "c", deadline: "2026-10-07T02:00:00Z" },
+      {
+        ...base,
+        assignment_id: "d",
+        deadline: "2026-10-10T02:00:00Z",
+        submitted_at: "2026-10-08T02:00:00Z",
+      },
+      { ...base, assignment_id: "e", deadline: "2026-10-10T02:00:00Z" },
+    ],
+  };
+  expect(submissionStatistics(sample)).toEqual({
+    onTime: 2,
+    late: 1,
+    overdue: 1,
+    pending: 1,
+    due: 3,
+    onTimeDue: 1,
+    rate: 33.3,
+  });
+  expect(
+    studyStatistics(sample, []).deadlines.map((a) => a.assignment_id),
+  ).toEqual(["c", "e"]);
+  expect(submissionStatistics({ ...context, assignments: [] }).rate).toBeNull();
 });

@@ -78,6 +78,10 @@ function JourneyDrawing() {
 }
 
 const errorMessages: Record<string, [string, string]> = {
+  file_empty: [
+    "Tệp đang rỗng (0 byte). Hãy lưu nội dung vào tệp rồi chọn lại.",
+    "The file is empty (0 bytes). Save content to the file and select it again.",
+  ],
   file_count: [
     "Chọn từ 1 đến 3 tài liệu mỗi lần.",
     "Choose 1–3 files at a time.",
@@ -137,9 +141,11 @@ export function DocumentUpload({ nextPath }: { nextPath: string }) {
   const [dragging, setDragging] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [rejectedFile, setRejectedFile] = useState<File | null>(null);
   const next = encodeURIComponent(nextPath);
   function addFiles(selected: File[]) {
     if (busy) return;
+    setRejectedFile(null);
     const combined = [...files];
     for (const file of selected) {
       if (!/\.(pdf|txt|md|markdown)$/i.test(file.name)) {
@@ -147,7 +153,8 @@ export function DocumentUpload({ nextPath }: { nextPath: string }) {
         return;
       }
       if (!file.size || file.size > MAX_DOCUMENT_BYTES) {
-        setError("file_size");
+        setRejectedFile(file);
+        setError(file.size === 0 ? "file_empty" : "file_size");
         return;
       }
       if (
@@ -171,6 +178,7 @@ export function DocumentUpload({ nextPath }: { nextPath: string }) {
     if (busy || !files.length) return;
     setBusy(true);
     setError(null);
+    setRejectedFile(null);
     try {
       const intentResponse = await fetch("/api/documents/upload-intent", {
         method: "POST",
@@ -222,12 +230,16 @@ export function DocumentUpload({ nextPath }: { nextPath: string }) {
             document: StudyDocument | null;
           } | null = null;
           for (let attempt = 0; attempt < 30; attempt++) {
-            const poll = await fetch(`/api/documents/upload-intent/${intent.id}`, {
-              cache: "no-store",
-            });
+            const poll = await fetch(
+              `/api/documents/upload-intent/${intent.id}`,
+              {
+                cache: "no-store",
+              },
+            );
             if (!poll.ok) throw new Error("upload_status_unavailable");
             status = await poll.json();
-            if (status?.status === "ready" || status?.status === "failed") break;
+            if (status?.status === "ready" || status?.status === "failed")
+              break;
             await new Promise((resolve) => setTimeout(resolve, 500));
           }
           if (!status || status.status !== "ready" || !status.document) {
@@ -276,11 +288,7 @@ export function DocumentUpload({ nextPath }: { nextPath: string }) {
             ? "Bắt đầu từ tài liệu của bạn."
             : "Start with your study material."}
         </h1>
-        <p className={styles.subtitle}>
-          {vi
-            ? "Thêm bài giảng, ghi chú hoặc tài liệu bạn muốn học."
-            : "Bring your lecture notes, readings, or something you want to learn."}
-        </p>
+
         <div
           className={`${styles.dropzone} ${dragging ? styles.dragging : ""}`}
           aria-busy={busy}
@@ -362,6 +370,8 @@ export function DocumentUpload({ nextPath }: { nextPath: string }) {
         )}
         {error && (
           <p className={styles.error} role="alert">
+            {rejectedFile &&
+              `${rejectedFile.name} (${rejectedFile.size.toLocaleString(vi ? "vi-VN" : "en-US")} ${vi ? "byte" : "bytes"}): `}
             {errorMessages[error]?.[vi ? 0 : 1] ??
               (vi
                 ? "Chưa thể lưu tài liệu. Vui lòng thử lại."
@@ -417,23 +427,13 @@ export function DocumentUpload({ nextPath }: { nextPath: string }) {
             {vi ? "Để sau, vào không gian học" : "I'll do this later"}
           </Link>
         </div>
-        <p className={styles.privacy}>
-          <CIcon name="shield" size={14} />
-          {vi
-            ? "Tài liệu được lưu theo tài khoản. Khi hỏi Compass, các đoạn liên quan được dùng để tạo câu trả lời."
-            : "Files are saved under your account. When you ask Compass, relevant excerpts are used to generate an answer."}
-        </p>
+
         <details className={styles.disclosure}>
           <summary>
             {vi
               ? "Tài liệu này sẽ dùng như thế nào?"
               : "How will my files be used?"}
           </summary>
-          <p>
-            {vi
-              ? "Bạn có thể mở PDF và đọc TXT/Markdown. Trợ lý trả lời từ tài liệu của bạn, hỗ trợ PDF có văn bản với trích dẫn theo trang. OCR và tự tạo kế hoạch chưa được hỗ trợ."
-              : "You can reopen PDFs and read TXT/Markdown. Compass answers from your files, including text-based PDFs with page citations. OCR and automatic planning are not supported."}
-          </p>
         </details>
       </section>
     </JourneyFrame>
@@ -491,13 +491,7 @@ export function ToolArtwork({ kind }: { kind: string }) {
   );
 }
 
-export function DocumentReady({
-  documents,
-  nextPath,
-}: {
-  documents: StudyDocument[];
-  nextPath: string;
-}) {
+export function DocumentReady({ documents }: { documents: StudyDocument[] }) {
   const { language } = usePreferences();
   const vi = language === "vi";
   const first = documents[0];
@@ -508,19 +502,11 @@ export function DocumentReady({
     ? headings
     : documents.map((doc) => ({ doc, heading: doc.name }));
   return (
-    <JourneyFrame
-      ready
-      back={`/onboarding/upload?next=${encodeURIComponent(nextPath)}`}
-    >
+    <JourneyFrame ready back="/learn">
       <div className={styles.readyContent}>
         <header className={styles.readyHeader}>
           <JourneyDrawing />
-          <h1>{vi ? "Cùng bắt đầu học nhé!" : "Let's start learning!"}</h1>
-          <p className={styles.subtitle}>
-            {vi
-              ? "Tài liệu của bạn đã sẵn sàng. Chọn một điểm bắt đầu."
-              : "Your files are ready. Pick a place to start."}
-          </p>
+          <h1>{vi ? "Lộ trình học của bạn" : "Your learning roadmap"}</h1>
         </header>
         <div className={styles.columns}>
           <section className={styles.panel}>
@@ -570,25 +556,6 @@ export function DocumentReady({
                 </li>
               ))}
             </ol>
-            <p className={styles.panelNote}>
-              {headings.length
-                ? vi
-                  ? "Các mục lấy từ tiêu đề trong tài liệu Markdown. Bạn tự chọn thứ tự học."
-                  : "Sections from your Markdown headings. Choose your own learning order."
-                : vi
-                  ? "Bắt đầu bằng việc đọc tài liệu. Trợ lý hỗ trợ PDF có văn bản; chưa hỗ trợ OCR hoặc tạo kế hoạch AI."
-                  : "Start by reading your files. The assistant supports text-based PDF, without OCR or AI planning."}
-            </p>
-            <Link className={styles.planLink} href="/plan">
-              {vi ? "Mở kế hoạch tuần" : "Open weekly plan"}
-              <CIcon name="arrow" size={16} />
-            </Link>
-            {first.kind === "text" && (
-              <Link className={styles.planLink} href={`/study-set/${first.id}`}>
-                {vi ? "Mở bộ học tập" : "Open study set"}
-                <CIcon name="arrow" size={16} />
-              </Link>
-            )}
           </section>
           <section className={`${styles.panel} ${styles.toolsPanel}`}>
             <div className={styles.panelHeading}>
@@ -633,77 +600,52 @@ export function DocumentReady({
                   enabled: first.kind === "text",
                   href: `/study-set/${first.id}?mode=cards`,
                 },
-              ].map((tool) => {
-                const contents = (
-                  <>
-                    <span className={`${styles.artwork} ${styles[tool.color]}`}>
-                      <ToolArtwork kind={tool.kind} />
-                    </span>
-                    <span className={styles.toolLabel}>
-                      <CIcon
-                        name={
-                          tool.kind === "book"
-                            ? "book"
-                            : tool.kind === "recall"
-                              ? "check"
-                              : "file"
-                        }
-                        size={16}
-                      />
-                      {tool.label}
-                    </span>
-                    {!tool.enabled && (
-                      <small>
-                        {(tool.kind === "cards" || tool.kind === "recall") &&
-                        first.kind === "pdf"
-                          ? vi
-                            ? "Chưa tạo từ PDF"
-                            : "Not generated from PDF"
-                          : vi
-                            ? "Sắp có"
-                            : "Coming soon"}
-                      </small>
-                    )}
-                  </>
-                );
-                return tool.enabled ? (
-                  <Link
-                    className={styles.tool}
-                    key={tool.kind}
-                    href={tool.href}
-                  >
-                    {contents}
-                  </Link>
-                ) : (
-                  <button className={styles.tool} key={tool.kind} disabled>
-                    {contents}
-                  </button>
-                );
-              })}
+              ]
+                .filter((tool) => tool.enabled)
+                .map((tool) => {
+                  const contents = (
+                    <>
+                      <span
+                        className={`${styles.artwork} ${styles[tool.color]}`}
+                      >
+                        <ToolArtwork kind={tool.kind} />
+                      </span>
+                      <span className={styles.toolLabel}>
+                        <CIcon
+                          name={
+                            tool.kind === "book"
+                              ? "book"
+                              : tool.kind === "recall"
+                                ? "check"
+                                : "file"
+                          }
+                          size={16}
+                        />
+                        {tool.label}
+                      </span>
+                    </>
+                  );
+                  return (
+                    <Link
+                      className={styles.tool}
+                      key={tool.kind}
+                      href={tool.href}
+                    >
+                      {contents}
+                    </Link>
+                  );
+                })}
             </div>
-            <p className={styles.panelNote}>
-              {vi
-                ? "Mở bộ học tập để hỏi Trợ lý Compass về tài liệu TXT/Markdown của bạn."
-                : "Open your study set to ask Compass about your TXT/Markdown material."}
-            </p>
           </section>
         </div>
         <div className={styles.continueRow}>
-          <Link className={styles.primary} href={`/study-set/${first.id}`}>
-            {vi ? "Tiếp tục" : "Continue"}
+          <Link className={styles.primary} href="/learn">
+            {vi ? "Về Không gian học" : "Go to learning space"}
           </Link>
-          <span className={styles.handwritten}>
-            <svg
-              viewBox="0 0 115 46"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              aria-hidden="true"
-            >
-              <path d="M110 27C70 45 43 27 50 10c7-18 32-3 21 13C56 45 22 41 7 23m0 0 1 13m-1-13 14 1" />
-            </svg>
-            {vi ? "Bắt đầu hành trình của bạn" : "Start your learning journey"}
-          </span>
+          <Link className={styles.openStudySet} href={`/study-set/${first.id}`}>
+            {vi ? "Bắt đầu học tài liệu này" : "Start studying this material"}
+            <CIcon name="arrow" size={16} />
+          </Link>
         </div>
       </div>
     </JourneyFrame>
@@ -793,11 +735,7 @@ export function DocumentReader({
         {vi ? "TÀI LIỆU CỦA BẠN" : "YOUR DOCUMENT"} · {fileSize(document.size)}
       </p>
       <h1>{document.name}</h1>
-      <p className={styles.subtitle}>
-        {vi
-          ? "Tài liệu bạn tải lên · không phải nguồn đã được HaUI xác minh."
-          : "Your upload · not a source verified by HaUI."}
-      </p>
+
       {document.kind === "text" && (
         <Link className="secondary" href={`/study-set/${document.id}`}>
           {vi ? "Ôn tập tài liệu này" : "Study this material"}

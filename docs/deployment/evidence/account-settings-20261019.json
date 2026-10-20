@@ -1,0 +1,43 @@
+{
+  "result": "PASS",
+  "url": "https://haui-compass-4zc61ob13-nam-4b71.vercel.app",
+  "checks": [
+    {
+      "check": "online-account-profile-persistence",
+      "result": "PASS"
+    },
+    {
+      "check": "online-profile-validation-and-isolation",
+      "result": "PASS"
+    },
+    {
+      "check": "online-password-rotation-revokes-previous-sessions",
+      "result": "PASS"
+    },
+    {
+      "check": "online-settings-and-legacy-chat-route",
+      "result": "PASS"
+    }
+  ],
+  "readyState": "READY",
+  "target": null,
+  "webMigration": 5,
+  "validation": {
+    "accountTicketCompanion": 20,
+    "finalAccountSourceRoutes": 14,
+    "googleAndAccount": 8,
+    "productionPostgres": 4,
+    "configuration": 33
+  },
+  "visualReview": "Automated desktop/mobile screenshots inspected; native browser policy unavailable.",
+  "aliases": [
+    {
+      "alias": "haui-compass.vercel.app",
+      "result": "PASS"
+    },
+    {
+      "alias": "haui-compass-preview-nam-4b71.vercel.app",
+      "result": "PASS"
+    }
+  ]
+}

@@ -16,14 +16,6 @@ test("protected screens and learning API reject anonymous or forged sessions", a
   ).toBe(401);
   await page.getByRole("button", { name: "Fill demo account" }).click();
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
-  await expect(page).toHaveURL(/\/onboarding\?next=%2Fdashboard$/);
-  await page
-    .getByRole("link", { name: "Student — enter your study space" })
-    .click();
-  await expect(page).toHaveURL(/\/onboarding\/upload\?next=%2Fdashboard$/);
-  await page
-    .getByRole("link", { name: "I'll do this later", exact: true })
-    .click();
   await expect(page).toHaveURL(/\/dashboard$/);
   await expect(
     page.getByRole("heading", { name: "Your learning, at a glance." }),
@@ -58,15 +50,6 @@ test("demo login validates credentials, remembers the session and revokes it on 
   );
   await page.getByRole("button", { name: "Fill demo account" }).click();
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
-  await expect(page).toHaveURL(/\/onboarding\?next=%2Fplan$/);
-  await expect(page.getByRole("heading", { name: "I'm a…" })).toBeVisible();
-  await page
-    .getByRole("link", { name: "Student — enter your study space" })
-    .click();
-  await expect(page).toHaveURL(/\/onboarding\/upload\?next=%2Fplan$/);
-  await page
-    .getByRole("link", { name: "I'll do this later", exact: true })
-    .click();
   await expect(page).toHaveURL(/\/plan$/);
   await expect(
     page.getByRole("heading", { name: /Your weekly plan\.|Plan your week/ }),
@@ -112,20 +95,14 @@ test("registration checks matching passwords, creates a persistent account and p
   );
   await page.getByLabel("Confirm password").fill("test123");
   await page.getByRole("button", { name: "Create account" }).click();
-  await expect(page).toHaveURL(/\/onboarding\?next=%2Flearn$/);
-  await page
-    .getByRole("link", { name: "Student — enter your study space" })
-    .click();
-  await expect(page).toHaveURL(/\/onboarding\/upload\?next=%2Flearn$/);
-  await page
-    .getByRole("link", { name: "I'll do this later", exact: true })
-    .click();
   await expect(page).toHaveURL(/\/learn$/);
   await expect(
     page.getByRole("heading", { name: "What will you learn today?" }),
   ).toBeVisible();
   await expect(
-    page.getByText("Hi Test student. Your materials, your pace."),
+    page.getByText(
+      "Hi Test student. Plan your week, take action and reflect on your learning.",
+    ),
   ).toBeVisible();
   await page.getByLabel("Settings", { exact: true }).click();
   await page.getByRole("button", { name: "Sign out", exact: true }).click();
@@ -208,15 +185,6 @@ test("login ignores external return URLs and Vietnamese forms remain responsive"
   await page.getByRole("radio", { name: "VI", exact: true }).click();
   await page.getByRole("button", { name: "Điền tài khoản demo" }).click();
   await page.getByRole("button", { name: "Đăng nhập", exact: true }).click();
-  await expect(page).toHaveURL(/\/onboarding\?next=%2Flearn$/);
-  await expect(page.getByRole("heading", { name: "Tôi là…" })).toBeVisible();
-  await page
-    .getByRole("link", { name: "Sinh viên — vào không gian học tập" })
-    .click();
-  await expect(page).toHaveURL(/\/onboarding\/upload\?next=%2Flearn$/);
-  await page
-    .getByRole("link", { name: "Để sau, vào không gian học", exact: true })
-    .click();
   await expect(page).toHaveURL(/\/learn$/);
   await page.getByLabel("Tuỳ chọn", { exact: true }).click();
   await page.getByRole("button", { name: "Đăng xuất", exact: true }).click();
@@ -251,8 +219,11 @@ test("registration keeps the first step focused and preserves details when going
     await expect(companion).toBeVisible();
   }
   await expect(page.locator("body")).not.toContainText(
-    /StudyFetch|Harvard|Yale|92%|Continue with Google/,
+    /StudyFetch|Harvard|Yale|92%/,
   );
+  await expect(
+    page.getByRole("link", { name: "Continue with Google", exact: true }),
+  ).toBeVisible();
   await page.getByLabel("Username", { exact: true }).fill("invalid name");
   await page.getByRole("button", { name: "Continue", exact: true }).click();
   await expect(page.locator("form input")).toHaveCount(1);

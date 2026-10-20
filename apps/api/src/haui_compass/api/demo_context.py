@@ -39,6 +39,9 @@ class DemoAssignmentDTO(ApiModel):
     course: str
     deadline: datetime
     existing_task_count: int
+    instructions: str | None = None
+    source_label: str | None = None
+    submitted_at: datetime | None = None
 
 
 class DemoContextDTO(ApiModel):
@@ -129,6 +132,8 @@ def snapshot(session: DemoSession) -> DemoContextDTO:
             title=assignment.title,
             course=courses[assignment.course_ref],
             deadline=assignment.deadline,
+            instructions=assignment.instructions,
+            source_label=assignment.source_label,
             existing_task_count=sum(
                 1 for task in tasks if task.assignment_id == assignment_id_for(assignment.ref)
             ),

@@ -1,0 +1,41 @@
+{
+  "result": "PASS",
+  "url": "https://haui-compass-hlrassyrj-nam-4b71.vercel.app",
+  "checks": [
+    {
+      "check": "initial-live-aggregate",
+      "result": "PASS"
+    },
+    {
+      "check": "persisted-live-activity",
+      "result": "PASS"
+    },
+    {
+      "check": "student-role-isolation",
+      "result": "PASS"
+    },
+    {
+      "check": "hosted-ai-boundaries",
+      "result": "PASS"
+    }
+  ],
+  "aggregateBefore": {
+    "tasks": 26,
+    "completed_tasks": 1,
+    "study_minutes": 80,
+    "learners_with_plan": 1,
+    "learners_reflected": 1
+  },
+  "aggregateAfter": {
+    "tasks": 26,
+    "completed_tasks": 1,
+    "study_minutes": 80,
+    "learners_with_plan": 1,
+    "learners_reflected": 1
+  },
+  "hostedGeneration": {
+    "source": "ai",
+    "fallbackReason": null
+  },
+  "deployment": "dpl_2bb7i2oqX3VKa2rJnknqmULe3kPR"
+}

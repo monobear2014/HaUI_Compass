@@ -1,5 +1,6 @@
 """Per-account simulated workspaces on real PostgreSQL, across independent API instances."""
 
+import json
 import os
 from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime
@@ -24,6 +25,9 @@ from haui_compass.infrastructure.demo.simulated_workspaces import (
 from haui_compass.infrastructure.persistence.postgres.models import Base, TaskRow
 from haui_compass.infrastructure.persistence.postgres.session import (
     PostgresPersistenceTransactionManager,
+)
+from haui_compass.infrastructure.persistence.postgres.simulated_submissions import (
+    PostgresSimulatedSubmissionRepository,
 )
 from haui_compass.infrastructure.persistence.postgres.simulated_workspaces import (
     PostgresSimulatedWorkspaceRepository,
@@ -58,6 +62,9 @@ def instance() -> tuple[FastAPI, SimulatedWorkspaces]:
         tasks=container.task_repository,
         transaction_manager=container.transaction_manager,
         clock=real,
+        submissions=PostgresSimulatedSubmissionRepository(
+            container.transaction_manager.current_session
+        ),
     )
     app = create_simulated_workspace_app(
         container=container, workspaces=workspaces, service_key=KEY
@@ -67,6 +74,27 @@ def instance() -> tuple[FastAPI, SimulatedWorkspaces]:
 
 def as_user(app: FastAPI, owner: str) -> TestClient:
     return TestClient(app, headers={"X-Compass-Service-Key": KEY, "X-Compass-User": owner})
+
+
+@pytest.mark.postgres
+def test_submission_survives_instances_and_concurrent_retries() -> None:
+    first, _ = instance()
+    a = as_user(first, "submit-a")
+    ctx = context(a)
+    assignment = ctx["assignments"][0]["assignment_id"]
+    second, _ = instance()
+    b = as_user(second, "submit-a")
+    path = f"/api/v1/demo/submissions/{assignment}"
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        outcomes = list(pool.map(lambda c: c.post(path, json={}), [a, b]))
+    assert all(r.status_code == 200 for r in outcomes)
+    assert outcomes[0].json() == outcomes[1].json()
+    advance(a)
+    assert b.post(path, json={}).json() == outcomes[0].json()
+    third, _ = instance()
+    assert (
+        len(as_user(third, "submit-a").get("/api/v1/demo/submissions").json()["submissions"]) == 1
+    )
 
 
 @pytest.mark.postgres
@@ -154,3 +182,41 @@ def test_migrations_match_models_and_downgrade_cleanly() -> None:
         command.upgrade(config, "head")
     finally:
         engine.dispose()
+
+
+@pytest.mark.postgres
+def test_live_submission_aggregate_on_postgres(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("COMPASS_SERVICE_KEY", KEY)
+    monkeypatch.setenv("COMPASS_LECTURER_GRANTS", '{"teacher":["canvas-demo-ai"]}')
+    monkeypatch.setenv(
+        "COMPASS_SIMULATED_CLASS_ROSTERS",
+        json.dumps({"canvas-demo-ai": [f"learner-{i}" for i in range(5)]}),
+    )
+    app, _ = instance()
+    learners = [as_user(app, f"learner-{i}") for i in range(5)]
+    contexts = [context(learner) for learner in learners]
+    teacher = as_user(app, "teacher")
+    initial = teacher.get("/api/v1/lecturer/classes")
+    assert initial.status_code == 200
+    assert initial.json()["classes"][0]["progress"]["on_time_rate"] is None
+    assignment = contexts[0]["assignments"][0]["assignment_id"]
+    assert learners[0].post(f"/api/v1/demo/submissions/{assignment}", json={}).status_code == 200
+    for _ in range(5):
+        advance(learners[0])
+    fresh, _ = instance()
+    response = as_user(fresh, "teacher").get("/api/v1/lecturer/classes")
+    assert response.status_code == 200
+    main = response.json()["classes"][0]
+    assert main["enrollment_count"] == 5
+    assert main["progress"]["due_obligations"] == 3
+    assert main["progress"]["on_time_rate"] == 33.3
+    assert main["progress"] == main["comparison"]["after"]
+    assert main["activity"]["completed_tasks"] == 0
+    detail_response = as_user(fresh, "teacher").get(
+        "/api/v1/lecturer/classes/canvas-demo-ai/insights"
+    )
+    assert detail_response.status_code == 200
+    detail = detail_response.json()["detail"]
+    assert detail["support"]["learners_overdue"] == 1
+    assert detail["assignments"][0]["progress"]["on_time_rate"] == 100
+    assert sum(a["progress"]["not_submitted"] for a in detail["assignments"]) == 2

@@ -12,9 +12,11 @@ from collections.abc import Callable, Collection
 from contextvars import ContextVar
 from dataclasses import replace
 from datetime import datetime, timedelta
+from hashlib import sha256
 from typing import Literal
+from uuid import UUID
 
-from haui_compass.application.lms_mapping import student_id_for
+from haui_compass.application.lms_mapping import assignment_id_for, student_id_for
 from haui_compass.application.ports.clock import Clock
 from haui_compass.application.ports.lms import (
     ExternalRef,
@@ -23,6 +25,11 @@ from haui_compass.application.ports.lms import (
     LMSEntity,
     LMSNotFoundError,
     LMSSubmissionRecord,
+)
+from haui_compass.application.ports.simulated_submissions import (
+    SimulatedAssignmentCatalogEntry,
+    SimulatedSubmission,
+    SimulatedSubmissionRepository,
 )
 from haui_compass.application.ports.simulated_workspaces import (
     SimulatedWorkspace,
@@ -38,6 +45,9 @@ from haui_compass.infrastructure.demo.scenarios import (
     week_scenario,
 )
 from haui_compass.infrastructure.lms.mock import MockLMSProvider
+from haui_compass.infrastructure.persistence.memory.simulated_submissions import (
+    InMemorySimulatedSubmissionRepository,
+)
 
 # The workspace of the account making the current request; never shared between requests.
 ACTIVE_WORKSPACE: ContextVar[SimulatedWorkspace | None] = ContextVar(
@@ -101,11 +111,84 @@ class SimulatedWorkspaces:
         tasks: TaskRepository,
         transaction_manager: PersistenceTransactionManager,
         clock: Clock,
+        submissions: SimulatedSubmissionRepository | None = None,
     ) -> None:
         self._repository = repository
         self._tasks = tasks
         self._tx = transaction_manager
         self._clock = clock  # real time: only used to date new fixtures and audit timestamps
+        self._submissions = submissions or InMemorySimulatedSubmissionRepository()
+
+    def submit(self, owner: str, assignment_id: UUID) -> SimulatedSubmission:
+        def operation() -> SimulatedSubmission:
+            space = self._repository.get(owner, for_update=True)
+            if space is None or not any(
+                assignment_id_for(a.ref) == assignment_id for a in scenario_for(space).records[1]
+            ):
+                raise LMSNotFoundError(
+                    LMSEntity.ASSIGNMENT, ExternalRef("simulated", str(assignment_id))
+                )
+            return self._submissions.first(
+                SimulatedSubmission(
+                    student_id_for(space.student),
+                    assignment_id,
+                    space.now,
+                )
+            )
+
+        return self._tx.run(operation)
+
+    def assignment_catalog(
+        self, space: SimulatedWorkspace
+    ) -> tuple[SimulatedAssignmentCatalogEntry, ...]:
+        scenario = scenario_for(space)
+        courses = {course.ref: course.name for course in scenario.records[0]}
+        return tuple(
+            SimulatedAssignmentCatalogEntry(
+                key=f"assignment-{index + 1}",
+                assignment_id=assignment_id_for(assignment.ref),
+                title=assignment.title,
+                course=courses[assignment.course_ref],
+            )
+            for index, assignment in enumerate(scenario.records[1])
+        )
+
+    def submission_rows(
+        self, space: SimulatedWorkspace
+    ) -> tuple[
+        tuple[tuple[datetime | None, datetime | None], ...],
+        tuple[tuple[datetime | None, datetime | None], ...],
+    ]:
+        """Called inside the reporting transaction. Baseline is explicitly synthetic."""
+        events = {
+            row.assignment_id: row.submitted_at
+            for row in self._submissions.list_for_student(student_id_for(space.student))
+        }
+        after = tuple(
+            (a.deadline, events.get(assignment_id_for(a.ref)))
+            for a in scenario_for(space).records[1]
+        )
+        due = space.anchor - timedelta(days=3)
+        before = (
+            (
+                due,
+                due - timedelta(hours=1)
+                if sha256(space.owner.encode()).digest()[0] % 2
+                else due + timedelta(hours=1),
+            ),
+        )
+        return before, after
+
+    def submissions_for(self, owner: str) -> tuple[SimulatedSubmission, ...]:
+        def operation() -> tuple[SimulatedSubmission, ...]:
+            space = self._repository.get(owner)
+            return (
+                ()
+                if space is None
+                else self._submissions.list_for_student(student_id_for(space.student))
+            )
+
+        return self._tx.run(operation)
 
     def get(self, owner: str) -> SimulatedWorkspace | None:
         return self._tx.run(lambda: self._repository.get(owner))

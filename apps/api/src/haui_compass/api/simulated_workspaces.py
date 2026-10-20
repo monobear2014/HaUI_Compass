@@ -17,6 +17,7 @@ import json
 import os
 import secrets
 from typing import Annotated, Any
+from uuid import UUID
 
 from fastapi import Depends, FastAPI, Header, Request
 from fastapi.responses import JSONResponse
@@ -37,7 +38,9 @@ from haui_compass.api.dependencies import (
     build_container,
     database_url_configured,
 )
+from haui_compass.api.schemas.common import ApiModel
 from haui_compass.application.academic_import import AcademicSource
+from haui_compass.application.ports.simulated_submissions import SimulatedSubmissionRepository
 from haui_compass.application.ports.simulated_workspaces import (
     OWNER_PATTERN,
     SimulatedWorkspace,
@@ -67,6 +70,10 @@ class WorkspaceAccessError(Exception):
         self.status = status
         self.code = code
         self.message = message
+
+
+class SubmitSimulationDTO(ApiModel):
+    """The server owns the timestamp; client-supplied submission dates are rejected."""
 
 
 def _forbidden_student() -> WorkspaceAccessError:
@@ -186,6 +193,32 @@ def create_simulated_workspace_app(
         ACTIVE_WORKSPACE.set(workspace)
 
     app = create_app(container, dependencies=(Depends(authorize),))
+    from haui_compass.api.lecturer_activity import activity_summary, class_insights
+
+    app.state.lecturer_activity = lambda owners: activity_summary(owners, container, workspaces)
+    app.state.lecturer_insights = lambda owners, minimum: class_insights(
+        owners, container, workspaces, minimum=minimum
+    )
+
+    @app.get("/api/v1/demo/submissions")
+    def submissions(request: Request) -> dict[str, object]:
+        return {
+            "submissions": [
+                {"assignment_id": row.assignment_id, "submitted_at": row.submitted_at}
+                for row in workspaces.submissions_for(request.state.owner)
+            ]
+        }
+
+    @app.post("/api/v1/demo/submissions/{assignment_id}")
+    def submit_assignment(
+        request: Request, assignment_id: UUID, body: SubmitSimulationDTO
+    ) -> dict[str, object]:
+        row = workspaces.submit(request.state.owner, assignment_id)
+        return {
+            "assignment_id": row.assignment_id,
+            "submitted_at": row.submitted_at,
+            "simulated": True,
+        }
 
     @app.exception_handler(WorkspaceAccessError)
     async def access_error(_: Request, exc: WorkspaceAccessError) -> JSONResponse:
@@ -198,7 +231,25 @@ def create_simulated_workspace_app(
         session = DemoSession(
             container, scenario_for(workspace), workspace.generation, SIMULATED_WORKSPACE_MODE
         )
-        return container.transaction_manager.run(lambda: snapshot(session))
+        result = container.transaction_manager.run(lambda: snapshot(session))
+        events = {
+            row.assignment_id: row.submitted_at
+            for row in workspaces.submissions_for(workspace.owner)
+        }
+        return result.model_copy(
+            update={
+                "assignments": [
+                    row.model_copy(
+                        update={
+                            "submitted_at": events.get(row.assignment_id),
+                        }
+                    )
+                    for row in result.assignments
+                ]
+            }
+        )
+
+    app.state.companion_context = lambda owner: context_for(workspaces.ensure(owner))
 
     @app.get("/api/v1/demo/context", response_model=DemoContextDTO)
     def demo_context(request: Request) -> DemoContextDTO:
@@ -247,16 +298,29 @@ def build_simulated_workspace_app() -> FastAPI:
         repository: SimulatedWorkspaceRepository = PostgresSimulatedWorkspaceRepository(
             container.transaction_manager.current_session
         )
+        from haui_compass.infrastructure.persistence.postgres.simulated_submissions import (
+            PostgresSimulatedSubmissionRepository,
+        )
+
+        submissions_repository: SimulatedSubmissionRepository = (
+            PostgresSimulatedSubmissionRepository(container.transaction_manager.current_session)
+        )
     elif os.getenv("VERCEL") == "1":
         raise RuntimeError("HAUI_COMPASS_DATABASE_URL is required on Vercel")
     else:
         container = build_container(lms=lms, clock=clock, llm_settings=llm_settings)
         repository = InMemorySimulatedWorkspaceRepository()
+        from haui_compass.infrastructure.persistence.memory.simulated_submissions import (
+            InMemorySimulatedSubmissionRepository,
+        )
+
+        submissions_repository = InMemorySimulatedSubmissionRepository()
     workspaces = SimulatedWorkspaces(
         repository=repository,
         tasks=container.task_repository,
         transaction_manager=container.transaction_manager,
         clock=SystemClock(),
+        submissions=submissions_repository,
     )
     return create_simulated_workspace_app(
         container=container, workspaces=workspaces, service_key=service_key

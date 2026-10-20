@@ -10,12 +10,14 @@ import {
   date,
   label,
   minutes,
+  SIMULATED_MODE,
 } from "@/lib/api";
 import { useWorkspace } from "@/components/workspace";
 import Link from "next/link";
 import { usePreferences } from "@/components/preferences";
 import { PageHeading } from "@/components/ui";
 import { Icon } from "@/components/icons";
+import { assignmentSubmissionState } from "@/lib/study-statistics";
 import { TaskDecomposition } from "@/components/task-decomposition";
 
 type Source = "manual" | "csv" | "json";
@@ -57,6 +59,50 @@ export default function AcademicPage() {
   const [effort, setEffort] = useState("60");
   const [importMode, setImportMode] = useState<"manual" | "file">("manual");
   const importDrawer = useRef<HTMLDetailsElement>(null);
+  const [submitting, setSubmitting] = useState<string | null>(null);
+  const [importing, setImporting] = useState(false);
+  const [courseFilter, setCourseFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [search, setSearch] = useState("");
+  const visibleSubmitted = Object.fromEntries(
+    (context?.assignments || [])
+      .filter((a) => a.submitted_at)
+      .map((a) => [a.assignment_id, a.submitted_at!]),
+  );
+  const filteredAssignments = (context?.assignments || []).filter(
+    (a) =>
+      (!courseFilter || a.course === courseFilter) &&
+      (!statusFilter ||
+        assignmentSubmissionState(a, context!.now) === statusFilter) &&
+      `${a.course} ${a.title}`
+        .toLocaleLowerCase()
+        .includes(search.trim().toLocaleLowerCase()),
+  );
+  async function submitSimulated(assignmentId: string) {
+    if (submitting || visibleSubmitted[assignmentId]) return;
+    setSubmitting(assignmentId);
+    setError("");
+    try {
+      await api<{ assignment_id: string; submitted_at: string }>(
+        `demo/submissions/${assignmentId}`,
+        {},
+      );
+      setNotice(
+        language === "vi"
+          ? "Đã ghi nhận nộp bài mô phỏng."
+          : "Simulated submission recorded.",
+      );
+      await refresh();
+    } catch (reason) {
+      setError(
+        reason instanceof Error
+          ? reason.message
+          : "Could not record submission.",
+      );
+    } finally {
+      setSubmitting(null);
+    }
+  }
 
   const load = useCallback(
     async (selected = source) => {
@@ -82,6 +128,8 @@ export default function AcademicPage() {
   }, [load]);
   async function importManual(event: FormEvent) {
     event.preventDefault();
+    if (importing) return;
+    setImporting(true);
     setError("");
     try {
       const courseId = course
@@ -116,10 +164,13 @@ export default function AcademicPage() {
       setError(
         err instanceof Error ? err.message : "Could not import academic data.",
       );
+    } finally {
+      setImporting(false);
     }
   }
   async function importFile() {
-    if (!file) return;
+    if (!file || importing) return;
+    setImporting(true);
     setError("");
     try {
       const content = await file.text();
@@ -145,6 +196,8 @@ export default function AcademicPage() {
       setNotice(`${t("academic.fileImported")} (${file.name})`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not import file.");
+    } finally {
+      setImporting(false);
     }
   }
   async function createTask(
@@ -172,7 +225,7 @@ export default function AcademicPage() {
     <>
       <PageHeading
         title={t("academic.title")}
-        description={t("academic.description")}
+
         action={
           <button
             className="primary"
@@ -194,49 +247,207 @@ export default function AcademicPage() {
             <h2>{t("academic.academicToTasks")}</h2>
             <span className="badge">{t("common.demo")}</span>
           </div>
+          {context.mode === SIMULATED_MODE && <></>}
+          <div className="assignment-filters">
+            <label>
+              {language === "vi" ? "Tìm bài tập" : "Search assignments"}
+              <input
+                type="search"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </label>
+            <label>
+              {language === "vi" ? "Lọc môn học" : "Filter course"}
+              <select
+                aria-label={language === "vi" ? "Lọc môn học" : "Filter course"}
+                value={courseFilter}
+                onChange={(e) => setCourseFilter(e.target.value)}
+              >
+                <option value="">
+                  {language === "vi" ? "Tất cả môn" : "All courses"}
+                </option>
+                {[...new Set(context.assignments?.map((a) => a.course))].map(
+                  (course) => (
+                    <option key={course}>{course}</option>
+                  ),
+                )}
+              </select>
+            </label>
+            <label>
+              {language === "vi"
+                ? "Lọc trạng thái nộp"
+                : "Filter submission status"}
+              <select
+                aria-label={
+                  language === "vi"
+                    ? "Lọc trạng thái nộp"
+                    : "Filter submission status"
+                }
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+              >
+                {[
+                  ["", "Tất cả trạng thái", "All statuses"],
+                  ["pending", "Chưa đến hạn", "Not yet due"],
+                  ["overdue", "Quá hạn chưa nộp", "Overdue"],
+                  ["on_time", "Đã nộp đúng hạn", "Submitted on time"],
+                  ["late", "Đã nộp trễ", "Submitted late"],
+                ].map(([value, vi, en]) => (
+                  <option key={value} value={value}>
+                    {language === "vi" ? vi : en}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+          {filteredAssignments.length === 0 && (
+            <p role="status">
+              {language === "vi"
+                ? "Không có bài tập phù hợp bộ lọc."
+                : "No assignments match these filters."}
+            </p>
+          )}
           <ul className="academic-list">
-            {context.assignments?.map((assignment) => {
+            {filteredAssignments.map((assignment) => {
               const tasks = context.tasks.filter(
                 (task) => task.assignment_id === assignment.assignment_id,
               );
               return (
                 <li key={assignment.external_id} className="assignment-card">
-                  <div>
-                    <strong>
-                      {assignment.course} / {assignment.title}
-                    </strong>
-                    <span>
-                      {t("academic.deadline")}:{" "}
-                      {date(assignment.deadline, {
-                        day: "numeric",
-                        month: "short",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </span>
-                    {tasks.length ? (
-                      <details className="assignment-steps">
-                        <summary>
-                          {tasks.length}{" "}
-                          {language === "vi" ? "công việc" : "study tasks"}
-                        </summary>
-                        {tasks.map((task) => (
-                          <span key={task.id}>
-                            {t("common.task")}: {task.title} ·{" "}
-                            {minutes(task.estimated_duration_seconds)} min ·{" "}
-                            {label(task.status, language)}
+                  <div className="assignment-main">
+                    <div className="assignment-heading">
+                      <div className="assignment-identity">
+                        <div className="assignment-field">
+                          <span className="assignment-field-label">
+                            {language === "vi" ? "Môn học" : "Course"}
                           </span>
-                        ))}
+                          <strong>{assignment.course}</strong>
+                        </div>
+                        <div className="assignment-field">
+                          <span className="assignment-field-label">
+                            {language === "vi" ? "Bài tập" : "Assignment"}
+                          </span>
+                          <strong>{assignment.title}</strong>
+                        </div>
+                        <div className="assignment-field">
+                          <span className="assignment-field-label">
+                            {t("academic.deadline")}
+                          </span>
+                          <strong>
+                            {date(assignment.deadline, {
+                              day: "numeric",
+                              month: "short",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </strong>
+                        </div>
+                      </div>
+                      <TaskDecomposition
+                        assignment={assignment}
+                        student={context.student}
+                        onConfirmed={refresh}
+                      />
+                    </div>
+                    {assignment.instructions && (
+                      <details className="assignment-details">
+                        <summary>
+                          {language === "vi"
+                            ? "Xem yêu cầu bài tập"
+                            : "View assignment instructions"}
+                        </summary>
+                        <p>{assignment.instructions}</p>
+                        <small>
+                          {language === "vi" ? "Nguồn:" : "Source:"}{" "}
+                          {assignment.source_label}
+                        </small>
                       </details>
-                    ) : (
-                      <span>{t("academic.noConfirmedTasks")}</span>
+                    )}
+                    <details className="assignment-steps">
+                      <summary>
+                        <span>
+                          {language === "vi"
+                            ? "Công việc học tập"
+                            : "Study tasks"}
+                        </span>
+                        <span className="assignment-task-count">
+                          {tasks.length}
+                        </span>
+                      </summary>
+                      {tasks.length ? (
+                        <div className="assignment-task-list">
+                          {tasks.map((task) => (
+                            <div className="assignment-task" key={task.id}>
+                              <strong>{task.title}</strong>
+                              <span>
+                                {minutes(task.estimated_duration_seconds)} min
+                              </span>
+                              <span>{label(task.status, language)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="assignment-no-tasks">
+                          {t("academic.noConfirmedTasks")}
+                        </p>
+                      )}
+                    </details>
+                    {context.mode === SIMULATED_MODE && (
+                      <div className="assignment-submission">
+                        <span className="assignment-field-label">
+                          {language === "vi" ? "Nộp bài" : "Submission"}
+                        </span>
+                        {visibleSubmitted[assignment.assignment_id] ? (
+                          <p role="status">
+                            <strong>
+                              {language === "vi"
+                                ? "Đã nộp mô phỏng"
+                                : "Submitted in simulation"}
+                            </strong>
+                            <span>
+                              {date(
+                                visibleSubmitted[assignment.assignment_id],
+                                {
+                                  day: "numeric",
+                                  month: "short",
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                },
+                              )}
+                              {Date.parse(
+                                visibleSubmitted[assignment.assignment_id],
+                              ) <= Date.parse(assignment.deadline)
+                                ? language === "vi"
+                                  ? " · đúng hạn"
+                                  : " · on time"
+                                : language === "vi"
+                                  ? " · trễ hạn"
+                                  : " · late"}
+                            </span>
+                          </p>
+                        ) : (
+                          <button
+                            type="button"
+                            className="secondary small"
+                            aria-label={`${language === "vi" ? "Nộp bài mô phỏng" : "Submit simulated assignment"}: ${assignment.title}`}
+                            disabled={submitting !== null}
+                            onClick={() =>
+                              void submitSimulated(assignment.assignment_id)
+                            }
+                          >
+                            {submitting === assignment.assignment_id
+                              ? language === "vi"
+                                ? "Đang ghi nhận…"
+                                : "Recording…"
+                              : language === "vi"
+                                ? "Nộp bài mô phỏng"
+                                : "Submit simulated assignment"}
+                          </button>
+                        )}
+                      </div>
                     )}
                   </div>
-                  <TaskDecomposition
-                    assignment={assignment}
-                    student={context.student}
-                    onConfirmed={refresh}
-                  />
                 </li>
               );
             })}
@@ -320,13 +531,15 @@ export default function AcademicPage() {
                   onChange={(e) => setEffort(e.target.value)}
                 />
               </label>
-              <p className="fine-print">{t("academic.estimateHint")}</p>
-              <button className="primary">{t("academic.importManual")}</button>
+
+              <button className="primary" disabled={importing}>
+                {importing ? "…" : t("academic.importManual")}
+              </button>
             </form>
           </section>
           <section hidden={importMode !== "file"}>
             <h2>{t("academic.fileImport")}</h2>
-            <p>{t("academic.fileHint")}</p>
+
             <input
               aria-label={t("academic.fileLabel")}
               type="file"
@@ -340,12 +553,11 @@ export default function AcademicPage() {
             )}
             <button
               className="primary"
-              disabled={!file}
+              disabled={!file || importing}
               onClick={() => void importFile()}
             >
               {t("academic.validateImport")}
             </button>
-            <p className="fine-print">{t("academic.serverValidates")}</p>
           </section>
         </div>
       </details>
@@ -382,11 +594,6 @@ export default function AcademicPage() {
                 {data.courses} {t("academic.courses")} · {data.assignments}{" "}
                 {t("academic.assignments")} · {data.submissions}{" "}
                 {t("academic.submissions")}
-              </p>
-              <p className="fine-print">
-                {language === "vi"
-                  ? "Dữ liệu do bạn cung cấp, không phải dữ liệu HaUI chính thức."
-                  : "student-provided pilot data, never official HaUI data"}
               </p>
             </details>
             <ul className="academic-list">

@@ -102,6 +102,7 @@ async def query_knowledge(
             question=request.question,
             scope=request.scope,
             course_id=request.course_id,
+            public_only=request.public_only,
         )
     )
     return knowledge_response(result)

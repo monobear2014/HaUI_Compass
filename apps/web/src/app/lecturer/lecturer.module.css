@@ -228,3 +228,111 @@
     min-height: auto;
   }
 }
+.classFilter {
+  display: block;
+  margin: 20px 0;
+  max-width: 440px;
+}
+.classFilter select {
+  display: block;
+  width: 100%;
+  margin-top: 8px;
+}
+.insights {
+  margin: 24px 0;
+  border-top: 1px solid var(--border);
+  padding-top: 16px;
+}
+.insights > summary {
+  cursor: pointer;
+  padding: 12px 0;
+  min-height: 44px;
+  font-weight: 650;
+  color: var(--accent);
+}
+.support {
+  padding: 20px;
+  background: var(--background);
+  border-radius: 14px;
+}
+.support ul {
+  padding-left: 20px;
+}
+.support li {
+  margin: 12px 0;
+}
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 20px 0;
+}
+.filters label {
+  flex: 1 1 180px;
+  min-width: 0;
+}
+.filters input:not([type="checkbox"]),
+.filters select {
+  display: block;
+  width: 100%;
+  margin-top: 6px;
+}
+.filters .check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.check input {
+  width: auto;
+}
+.reportActions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 16px 0;
+}
+.assignmentGrid {
+  display: grid;
+  gap: 16px;
+}
+.assignment {
+  min-width: 0;
+  border: 1px solid var(--border);
+  padding: 20px;
+  border-radius: 14px;
+  overflow-wrap: anywhere;
+}
+.assignment h4 {
+  font-size: 18px;
+  margin: 8px 0;
+}
+.assignmentCounts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 16px 0;
+}
+.assignmentCounts dt {
+  color: var(--secondary);
+  font-size: 13px;
+}
+.assignmentCounts dd {
+  font-size: 22px;
+  margin: 6px 0;
+  font-variant-numeric: tabular-nums;
+}
+.attention {
+  padding: 10px;
+  border-radius: 8px;
+  background: var(--accent-soft);
+}
+@media (max-width: 700px) {
+  .assignment {
+    padding: 14px;
+  }
+  .assignmentCounts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

@@ -72,7 +72,8 @@ def test_answer_maps_only_real_chunks_and_passes_bounded_conversation() -> None:
 
 
 @pytest.mark.parametrize(
-    "handles,abstained", [(("fabricated",), False), (("c1", "c1"), False), ((), False), ((), True)]
+    "handles,abstained",
+    [(("fabricated",), False), (("c1", "c1"), False), ((), False), (("c1",), True)],
 )
 def test_invalid_citations_and_provider_refusal_fail_closed(
     handles: tuple[str, ...],
@@ -88,6 +89,20 @@ def test_invalid_citations_and_provider_refusal_fail_closed(
     assert response.json()["status"] == "abstained"
     assert response.json()["citations"] == []
     assert "unsupported" not in response.json()["answer"]
+
+
+def test_small_talk_without_evidence_gets_uncited_conversational_reply() -> None:
+    reply = "Oke bạn! Còn chỗ nào chưa rõ cứ hỏi mình nhé."
+    provider = Provider(ProviderGroundedAnswer(answer=reply, citation_handles=(), abstained=True))
+    client = TestClient(create_app(build_container(grounded_answer_provider=provider)))
+    response = client.post(
+        "/api/v1/internal/compass/answer",
+        headers={"X-Compass-Service-Key": KEY},
+        json={**PAYLOAD, "message": "oke", "evidence": []},
+    )
+    assert response.json() == {"answer": reply, "citations": [], "status": "abstained"}
+    assert provider.requests[0].conversational is True
+    assert provider.requests[0].evidence == ()
 
 
 def test_empty_evidence_does_not_call_llm_and_unconfigured_llm_is_not_mocked() -> None:

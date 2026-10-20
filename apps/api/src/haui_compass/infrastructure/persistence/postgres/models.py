@@ -13,6 +13,7 @@ from sqlalchemy import (
     Integer,
     String,
     UniqueConstraint,
+    func,
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 from sqlalchemy.types import UUID as PGUUID
@@ -313,6 +314,13 @@ class SimulatedWorkspaceRow(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
 
+class SimulatedSubmissionRow(Base):
+    __tablename__ = "simulated_submissions"
+    student_id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True)
+    assignment_id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True)
+    submitted_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
 class TaskDecompositionSessionRow(Base):
     """Candidate sessions survive between serverless instances; they are not task facts."""
 
@@ -323,3 +331,60 @@ class TaskDecompositionSessionRow(Base):
     session: Mapped[dict[str, object]] = mapped_column(JSON, nullable=False)
     confirmation: Mapped[dict[str, object] | None] = mapped_column(JSON, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class LearningPreferenceRow(Base):
+    __tablename__ = "learning_preferences"
+    owner: Mapped[str] = mapped_column(String(128), primary_key=True)
+    preferences: Mapped[dict[str, object]] = mapped_column(JSON, nullable=False)
+
+
+class CompanionMemoryRow(Base):
+    __tablename__ = "companion_memories"
+    owner: Mapped[str] = mapped_column(String(128), primary_key=True)
+    identifier: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True)
+    kind: Mapped[str] = mapped_column(String(32), nullable=False)
+    content: Mapped[str] = mapped_column(String(400), nullable=False)
+    confirmed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class CompanionConversationRow(Base):
+    __tablename__ = "companion_conversations"
+    owner: Mapped[str] = mapped_column(String(128), primary_key=True)
+    identifier: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True)
+    title: Mapped[str] = mapped_column(String(80), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class CompanionExchangeRow(Base):
+    __tablename__ = "companion_exchanges"
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["owner", "conversation_id"],
+            ["companion_conversations.owner", "companion_conversations.identifier"],
+            name="fk_companion_exchange_conversation",
+            ondelete="CASCADE",
+        ),
+        Index(
+            "ix_companion_conversation_messages",
+            "owner",
+            "conversation_id",
+            "created_at",
+            "identifier",
+        ),
+    )
+    conversation_id: Mapped[UUID | None] = mapped_column(PGUUID(as_uuid=True), nullable=True)
+    owner: Mapped[str] = mapped_column(String(128), primary_key=True)
+    identifier: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True)
+    payload: Mapped[dict[str, object]] = mapped_column(JSON, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+
+class TicketBoardRow(Base):
+    __tablename__ = "ticket_boards"
+    owner: Mapped[str] = mapped_column(String(128), primary_key=True)
+    scope: Mapped[str] = mapped_column(String(256), primary_key=True)
+    payload: Mapped[dict[str, object]] = mapped_column(JSON, nullable=False)

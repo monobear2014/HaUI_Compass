@@ -10,6 +10,15 @@ type StorageEnvironment = {
   VERCEL?: string;
 };
 
+// Use the configured storage credential consistently for metadata and content.
+// The Blob SDK otherwise prefers a Vercel OIDC token over the environment's
+// read/write token, which can select a different authorization path on Vercel.
+export function documentBlobCredentials(
+  environment: StorageEnvironment = process.env,
+) {
+  return { token: environment.BLOB_READ_WRITE_TOKEN?.trim() || undefined };
+}
+
 export function isCloudStorageCredentialed(
   environment: StorageEnvironment = process.env,
 ) {

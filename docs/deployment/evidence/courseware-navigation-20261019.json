@@ -1,0 +1,83 @@
+{
+  "result": "PASS",
+  "url": "https://haui-compass-nfk5vsxkn-nam-4b71.vercel.app",
+  "documentCount": 12,
+  "pdfCount": 6,
+  "markdownCount": 6,
+  "checks": [
+    {
+      "check": "authenticated-student",
+      "result": "PASS"
+    },
+    {
+      "check": "public-originals-ai",
+      "result": "PASS",
+      "documentCount": 3
+    },
+    {
+      "check": "public-originals-ml",
+      "result": "PASS",
+      "documentCount": 2
+    },
+    {
+      "check": "public-originals-la",
+      "result": "PASS",
+      "documentCount": 2
+    },
+    {
+      "check": "public-originals-stats",
+      "result": "PASS",
+      "documentCount": 3
+    },
+    {
+      "check": "public-originals-automation",
+      "result": "PASS",
+      "documentCount": 2
+    },
+    {
+      "check": "grounded-public-answer-ai",
+      "result": "PASS",
+      "source": "ai",
+      "citationCount": 5
+    },
+    {
+      "check": "grounded-public-answer-ml",
+      "result": "PASS",
+      "source": "ai",
+      "citationCount": 4
+    },
+    {
+      "check": "grounded-public-answer-la",
+      "result": "PASS",
+      "source": "ai",
+      "citationCount": 4
+    },
+    {
+      "check": "grounded-public-answer-stats",
+      "result": "PASS",
+      "source": "ai",
+      "citationCount": 5
+    },
+    {
+      "check": "grounded-public-answer-automation",
+      "result": "PASS",
+      "source": "ai",
+      "citationCount": 3
+    },
+    {
+      "check": "no-evidence-and-integrity",
+      "result": "PASS"
+    },
+    {
+      "check": "reader-guards",
+      "result": "PASS"
+    },
+    {
+      "check": "role-and-anonymous-isolation",
+      "result": "PASS"
+    }
+  ],
+  "deployment_id": "dpl_9F3qaDvR4jo4AnR5pbvsJbfY38JB",
+  "ui_local": "PASS",
+  "browser_online": "unavailable-connection-timeout"
+}

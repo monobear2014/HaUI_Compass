@@ -45,8 +45,12 @@ from haui_compass.infrastructure.lms.mock import MockLMSProvider
 from haui_compass.infrastructure.persistence.postgres.academic_data import (
     PostgresImportedAcademicDataProvider,
 )
+from haui_compass.infrastructure.persistence.postgres.companion import PostgresCompanionRepository
 from haui_compass.infrastructure.persistence.postgres.executions import (
     PostgresTaskExecutionRepository,
+)
+from haui_compass.infrastructure.persistence.postgres.learning_preferences import (
+    PostgresLearningPreferenceRepository,
 )
 from haui_compass.infrastructure.persistence.postgres.plans import PostgresStudyPlanRepository
 from haui_compass.infrastructure.persistence.postgres.reflections import (
@@ -60,10 +64,14 @@ from haui_compass.infrastructure.persistence.postgres.task_decompositions import
     PostgresTaskDecompositionSessionStore,
 )
 from haui_compass.infrastructure.persistence.postgres.tasks import PostgresTaskRepository
+from haui_compass.infrastructure.persistence.postgres.ticket_board import (
+    PostgresTicketBoardRepository,
+)
 from haui_compass.infrastructure.persistence.postgres.weekly_goals import (
     PostgresWeeklyGoalRepository,
 )
 from haui_compass.infrastructure.reflection_coach.template import TemplateReflectionCoachProvider
+from haui_compass.infrastructure.retrieval.catalog import LocalPublicCourseware
 from haui_compass.infrastructure.retrieval.ingestion import ingest_manifest
 from haui_compass.infrastructure.retrieval.lexical import LocalLexicalKnowledgeRetriever
 from haui_compass.infrastructure.retrieval.pdf import PypdfTextExtractor
@@ -128,7 +136,14 @@ def build_postgres_container(
     )
     llm_timeout = llm_settings.timeout_seconds if llm_settings is not None else 2.0
     core_flow_timeout = llm_settings.core_flow_timeout_seconds if llm_settings is not None else 2.0
+    corpus_root = _corpus_root()
     return AppContainer(
+        ticket_boards=PostgresTicketBoardRepository(provider),
+        companion_repository=PostgresCompanionRepository(provider),
+        agent_advice=llm_adapter,
+        agent_timeout=core_flow_timeout,
+        learning_preferences=PostgresLearningPreferenceRepository(provider),
+        public_courseware=LocalPublicCourseware(corpus_root),
         pdf_text_extractor=PypdfTextExtractor(),
         compass_answer=GroundedAnswerService(
             template=TemplateGroundedAnswerProvider(),
@@ -137,7 +152,7 @@ def build_postgres_container(
             unavailable_reason=unavailable_reason,
         ),
         query_knowledge=QueryKnowledge(
-            retriever=LocalLexicalKnowledgeRetriever(ingest_manifest(_corpus_root())),
+            retriever=LocalLexicalKnowledgeRetriever(ingest_manifest(corpus_root)),
             template=TemplateGroundedAnswerProvider(),
             provider=llm_adapter,
             timeout_seconds=llm_timeout,

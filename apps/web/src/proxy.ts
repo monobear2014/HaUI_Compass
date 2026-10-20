@@ -8,7 +8,8 @@ export async function proxy(request: NextRequest) {
   const login = new URL("/login", request.url);
   login.searchParams.set(
     "next",
-    request.nextUrl.pathname === "/onboarding" ||
+    request.nextUrl.pathname === "/documents/upload" ||
+      request.nextUrl.pathname === "/onboarding" ||
       request.nextUrl.pathname.startsWith("/onboarding/")
       ? safeReturnPath(request.nextUrl.searchParams.get("next"))
       : request.nextUrl.pathname + request.nextUrl.search,
@@ -19,6 +20,7 @@ export async function proxy(request: NextRequest) {
 export const config = {
   matcher: [
     "/learn/:path*",
+    "/settings/:path*",
     "/lecturer/:path*",
     "/onboarding/:path*",
     "/documents/:path*",

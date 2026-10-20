@@ -109,22 +109,25 @@ function metadata(row: Row): StudyDocument {
   };
 }
 
-export async function listDocuments(owner: string): Promise<StudyDocument[]> {
+export async function listDocuments(
+  owner: string,
+  search = "",
+): Promise<StudyDocument[]> {
   if (isWebPostgresConfigured()) {
     const result = await webPostgresPool().query<Row>(
       `SELECT id, name, kind, size, created_at, headings, ingestion_status
-       FROM web.documents WHERE owner = $1
+       FROM web.documents WHERE owner = $1 AND strpos(lower(name), lower($2)) > 0
        ORDER BY created_at DESC, id DESC LIMIT 100`,
-      [owner],
+      [owner, search],
     );
     return result.rows.map(metadata);
   }
   const rows = documentDatabase()
     .prepare(
       `SELECT id, name, kind, size, created_at, headings, ingestion_status
-    FROM documents WHERE owner = ? ORDER BY created_at DESC, id DESC LIMIT 100`,
+    FROM documents WHERE owner = ? AND instr(lower(name), lower(?)) > 0 ORDER BY created_at DESC, id DESC LIMIT 100`,
     )
-    .all(owner) as Row[];
+    .all(owner, search) as Row[];
   return rows.map(metadata);
 }
 export async function findDocument(
@@ -166,8 +169,7 @@ export async function documentDeliveryUrl(owner: string, id: string) {
   );
   const storageKey = result.rows[0]?.storage_key;
   if (!storageKey) return null;
-  if (documentStorage().kind !== "vercel-blob")
-    return `/api/documents/${id}`;
+  if (documentStorage().kind !== "vercel-blob") return `/api/documents/${id}`;
   return signedDocumentContentUrl(storageKey);
 }
 
@@ -553,7 +555,10 @@ export async function deleteDocument(owner: string, id: string) {
   }
 }
 
-export async function retryDocumentStorageCleanup(owner: string, cleanupId: string) {
+export async function retryDocumentStorageCleanup(
+  owner: string,
+  cleanupId: string,
+) {
   if (!/^[a-f0-9-]{36}$/.test(cleanupId)) return false;
   const result = await webPostgresPool().query<{
     storage_key: string;

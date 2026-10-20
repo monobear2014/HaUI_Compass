@@ -562,3 +562,8 @@ html[data-theme="dark"] .page .helperPanel {
   font-size: 18px;
   margin-top: 0;
 }
+
+/* The document assistant lives in the global right dock, not a second inner rail. */
+.layout {
+  grid-template-columns: minmax(0, 1fr) !important;
+}

@@ -18,7 +18,9 @@ logger = logging.getLogger(__name__)
 
 _LEAK = re.compile(
     r"(?:\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b|"
-    r"\b\d{4}-\d{2}-\d{2}T\d{2}:\d{2}|planned_minutes|actual_minutes|weaknesses|strengths)",
+    r"\b\d{4}-\d{2}-\d{2}T\d{2}:\d{2}|planned_minutes|actual_minutes|weaknesses|strengths|"
+    r"missed_sessions|deadline_missed|underestimated|low_follow_through|no_activity|"
+    r"completed_tasks|deadlines_met|consistent_sessions|accurate_estimates)",
     re.IGNORECASE,
 )
 

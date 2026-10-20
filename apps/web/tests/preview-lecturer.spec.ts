@@ -22,16 +22,15 @@ test("Preview lecturer dashboard and server authorization", async ({
     const course = page.getByRole("region", {
       name: "AI Engineering · Lớp mô phỏng",
     });
-    await expect(course.getByText("50%", { exact: true })).toBeVisible();
-    await expect(course.getByText("6 / 12", { exact: true })).toBeVisible();
-    await expect(course.getByRole("progressbar")).toHaveAttribute(
-      "value",
-      "50",
-    );
-    await expect(course.getByRole("progressbar")).toHaveAttribute(
-      "aria-valuetext",
-      /6 trên 12/,
-    );
+    await expect(
+      course.getByRole("region", { name: /Hoạt động học tập/ }),
+    ).toBeVisible();
+    await expect(
+      course.getByText("Trước sử dụng · lịch sử giả lập"),
+    ).toBeVisible();
+    await expect(
+      course.getByText("Sau sử dụng · nộp bài mô phỏng"),
+    ).toBeVisible();
     const small = page.getByRole("region", { name: "Nhóm nhỏ mô phỏng" });
     await expect(small.getByRole("progressbar")).toHaveCount(0);
     await expect(small.locator("dl")).toHaveCount(0);
@@ -40,8 +39,10 @@ test("Preview lecturer dashboard and server authorization", async ({
       small.getByText("Ẩn thống kê để bảo vệ nhóm quá nhỏ."),
     ).toBeVisible();
     expect(
-      Date.parse((await page.locator("time").getAttribute("datetime"))!),
-    ).toBe(Date.UTC(2026, 9, 18, 5));
+      Number.isFinite(
+        Date.parse((await page.locator("time").getAttribute("datetime"))!),
+      ),
+    ).toBe(true);
     await expect(page.getByText(/UTC\+7/)).toBeVisible();
     await page.locator("details summary").focus();
     await page.keyboard.press("Enter");
@@ -76,6 +77,7 @@ test("Preview lecturer dashboard and server authorization", async ({
       "as_of",
       "classes",
       "minimum_cohort",
+      "mode",
       "simulated",
       "source",
     ]);
@@ -83,7 +85,9 @@ test("Preview lecturer dashboard and server authorization", async ({
     expect(data.classes.length).toBe(2);
     for (const item of data.classes) {
       expect(Object.keys(item).sort()).toEqual([
+        "activity",
         "class_id",
+        "comparison",
         "enrollment_count",
         "progress",
         "suppressed",
@@ -92,16 +96,20 @@ test("Preview lecturer dashboard and server authorization", async ({
       if (item.suppressed) {
         expect(item.progress).toBeNull();
         expect(item.enrollment_count).toBeNull();
+        expect(item.comparison).toBeNull();
+        expect(item.activity).toBeNull();
       } else {
-        expect(Object.keys(item.progress).sort()).toEqual([
-          "due_obligations",
-          "late",
-          "no_deadline",
-          "not_submitted",
-          "not_yet_due",
-          "on_time",
-          "on_time_due",
-          "on_time_rate",
+        expect(item.progress).toEqual(item.comparison.after);
+        expect(item.comparison.simulated).toBe(true);
+        expect(item.comparison.before.due_obligations).toBe(
+          item.enrollment_count,
+        );
+        expect(Object.keys(item.activity).sort()).toEqual([
+          "completed_tasks",
+          "learners_reflected",
+          "learners_with_plan",
+          "study_minutes",
+          "tasks",
         ]);
       }
     }

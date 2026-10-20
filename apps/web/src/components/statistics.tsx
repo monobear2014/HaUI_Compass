@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { date, minutes, time } from "@/lib/api";
-import { studyStatistics } from "@/lib/study-statistics";
+import { date, minutes, time, SIMULATED_MODE } from "@/lib/api";
+import { studyStatistics, submissionStatistics } from "@/lib/study-statistics";
 import { usePreferences } from "./preferences";
 import { useWorkspace } from "./workspace";
 import { Icon } from "./icons";
@@ -15,6 +15,7 @@ export function Statistics() {
   const locale = vi ? "vi-VN" : "en-GB";
   if (!context) return null;
   const stats = studyStatistics(context, history);
+  const submissions = submissionStatistics(context);
   const rec = recommendation?.recommendation;
   const next =
     rec?.kind === "recommendation"
@@ -95,11 +96,6 @@ export function Statistics() {
               </strong>{" "}
               {vi ? "giờ dự kiến tuần này" : "planned hours this week"}
             </p>
-            <span>
-              {vi
-                ? "Không phải thời gian học thực tế."
-                : "Not actual recorded study time."}
-            </span>
           </div>
         </div>
         {stats.percent === null ? (
@@ -120,17 +116,40 @@ export function Statistics() {
             <span style={{ width: `${stats.percent}%` }} />
           </div>
         )}
-        <p className={styles.progressNote}>
-          {stats.inProgress} {vi ? "đang làm" : "in progress"} ·{" "}
-          {stats.total - stats.completed - stats.inProgress}{" "}
-          {vi ? "chưa bắt đầu" : "not started"}
-          <span>
-            {vi
-              ? "Tiến độ công việc, không phải điểm môn học."
-              : "Task progress, not a course grade."}
-          </span>
-        </p>
       </section>
+
+      {context.mode === SIMULATED_MODE && (
+        <section
+          className={styles.card}
+          aria-label={
+            vi ? "Nộp bài mô phỏng của bạn" : "Your simulated submissions"
+          }
+        >
+          <h2>
+            {vi ? "Tôi đã nộp bài đúng hạn chưa?" : "Did I submit on time?"}
+          </h2>
+          <p data-testid="personal-submission-kpi">
+            {submissions.rate === null
+              ? vi
+                ? "Chưa có bài đến hạn"
+                : "No assignments due yet"
+              : `${submissions.rate}%`}{" "}
+            · {submissions.onTimeDue} / {submissions.due}{" "}
+            {vi ? "bài đã đến hạn" : "due assignments"}
+          </p>
+          <p>
+            {vi
+              ? `Đã nộp đúng hạn: ${submissions.onTime} · Nộp trễ: ${submissions.late} · Quá hạn chưa nộp: ${submissions.overdue} · Chưa đến hạn: ${submissions.pending}`
+              : `On time: ${submissions.onTime} · Late: ${submissions.late} · Overdue: ${submissions.overdue} · Pending: ${submissions.pending}`}
+          </p>
+
+          <Link href="/academic">
+            {vi
+              ? "Xem bài tập & trạng thái nộp"
+              : "View assignments & submission status"}
+          </Link>
+        </section>
+      )}
 
       <div className={styles.dailyGrid}>
         <section

@@ -4,6 +4,7 @@ import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { MAX_DOCUMENT_BYTES } from "./documents";
 import {
+  documentBlobCredentials,
   resolveDocumentStorageConfiguration,
   type DocumentStorageConfiguration,
 } from "./document-storage-config";
@@ -164,6 +165,7 @@ class VercelBlobDocumentStorage implements DocumentStorage {
   async put(key: string, content: Uint8Array, contentType: string) {
     validateDocumentStorageKey(key);
     const result = await put(key, Buffer.from(content), {
+      ...documentBlobCredentials(),
       access: "private",
       contentType,
       addRandomSuffix: false,
@@ -178,7 +180,11 @@ class VercelBlobDocumentStorage implements DocumentStorage {
 
   async get(key: string) {
     validateDocumentStorageKey(key);
-    const result = await get(key, { access: "private", useCache: false });
+    const result = await get(key, {
+      ...documentBlobCredentials(),
+      access: "private",
+      useCache: false,
+    });
     if (!result || result.statusCode !== 200) return null;
     return {
       pathname: result.blob.pathname,

@@ -160,6 +160,34 @@ def week_scenario(anchor: datetime, student: ExternalRef = SHOWCASE_WEEK_STUDENT
             title=title,
             deadline=_hanoi(anchor, day, hour),
             estimated_effort=timedelta(minutes=effort),
+            instructions={
+                "schema": (
+                    "Syllabus CSDL, tuần 3: mô hình hoá thực thể-liên kết, chuyển sang lược "
+                    "đồ quan hệ, giải thích chuẩn hoá đến 3NF. Nộp bản thiết kế và tự giải "
+                    "thích lựa chọn."
+                ),
+                "regression": (
+                    "Syllabus Học máy, tuần 4: tự xây dựng baseline hồi quy, tách tập huấn "
+                    "luyện/kiểm tra và giải thích MAE/RMSE. Nộp notebook và nhận xét."
+                ),
+                "outline": (
+                    "Syllabus Kỹ năng giao tiếp: xác định thông điệp chính, chia vai và "
+                    "chuẩn bị dàn ý thuyết trình nhóm. Tự xây dựng ví dụ minh hoạ."
+                ),
+                "evaluation": (
+                    "Syllabus Học máy: so sánh mô hình bằng chỉ số trên tập kiểm tra, ghi "
+                    "rõ giới hạn và rủi ro rò rỉ dữ liệu. Nộp báo cáo ngắn."
+                ),
+                "project": (
+                    "Syllabus CSDL, đồ án: tự phân tích yêu cầu hệ quản lý thư viện; thiết "
+                    "kế ERD và chuẩn hoá; tự viết chức năng mượn/trả; kiểm thử ràng buộc; "
+                    "chuẩn bị báo cáo giải thích. Rubric mô phỏng: thiết kế 30%, triển khai "
+                    "30%, kiểm thử 20%, tự đánh giá 20%."
+                ),
+            }[key],
+            source_label=(
+                "Syllabus/assignment giả lập · HaUI Compass · không phải quy định của HaUI"
+            ),
         )
         for key, course, title, day, hour, effort, _ in definitions
     )

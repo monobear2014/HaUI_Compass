@@ -1,0 +1,9 @@
+"""Explicit student-authored preferences, never an inferred learner profile."""
+
+from typing import Protocol
+
+
+class LearningPreferenceRepository(Protocol):
+    def get(self, owner: str) -> dict[str, object] | None: ...
+    def save(self, owner: str, value: dict[str, object]) -> None: ...
+    def delete(self, owner: str) -> None: ...

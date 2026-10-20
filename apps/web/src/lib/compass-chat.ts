@@ -85,18 +85,6 @@ export async function sendChatMessage(
         (m) => m[1],
       ),
     }));
-    if (!chunks.length) {
-      await finishTurn(
-        owner,
-        sessionId,
-        input.request_id,
-        turn.token,
-        REFUSAL,
-        "abstained",
-        [],
-      );
-      return await getChatMessages(owner, sessionId);
-    }
     const key = process.env.COMPASS_SERVICE_KEY;
     if (!key) throw new DocumentError("assistant_unavailable", 503);
     generationStarted = performance.now();
@@ -152,9 +140,7 @@ export async function sendChatMessage(
       throw new DocumentError("invalid_citations", 502);
     // Ignore any model-generated inline handles. The UI numbers real persisted sources.
     const content =
-      status === "abstained"
-        ? REFUSAL
-        : answer.replace(/\[(?:c\d+|\d+)\]/g, "").trim();
+      answer.replace(/\[(?:c\d+|\d+)\]/g, "").trim() || REFUSAL;
     await finishTurn(
       owner,
       sessionId,

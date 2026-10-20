@@ -90,17 +90,71 @@ try {
   const small = data.classes.find(
     (item) => item.class_id === "canvas-demo-small",
   );
-  if (
-    !data.simulated ||
-    Date.parse(data.as_of) !== Date.UTC(2026, 9, 18, 5) ||
-    main?.progress?.on_time_rate !== 50 ||
-    main.progress.due_obligations !== 12 ||
-    main.progress.on_time_due !== 6 ||
-    small?.suppressed !== true ||
-    small.progress !== null ||
-    small.enrollment_count !== null
-  )
-    throw new Error();
+  if (data.mode === "live_activity") {
+    if (!data.simulated || !Number.isFinite(Date.parse(data.as_of)))
+      throw new Error();
+    for (const item of data.classes) {
+      if (item.suppressed) {
+        if (
+          item.activity !== null ||
+          item.enrollment_count !== null ||
+          item.progress !== null ||
+          item.comparison !== null
+        )
+          throw new Error();
+      } else {
+        if (item.enrollment_count < data.minimum_cohort) throw new Error();
+        if (!item.progress || !item.comparison?.simulated) throw new Error();
+        const progress = item.progress;
+        if (JSON.stringify(progress) !== JSON.stringify(item.comparison.after))
+          throw new Error();
+        if (
+          progress.due_obligations === 0
+            ? progress.on_time_rate !== null
+            : progress.on_time_rate !==
+              Math.round(
+                (progress.on_time_due / progress.due_obligations) * 1000,
+              ) /
+                10
+        )
+          throw new Error();
+        const keys = [
+          "completed_tasks",
+          "learners_reflected",
+          "learners_with_plan",
+          "study_minutes",
+          "tasks",
+        ];
+        if (
+          JSON.stringify(Object.keys(item.activity).sort()) !==
+          JSON.stringify(keys)
+        )
+          throw new Error();
+        if (
+          !Object.values(item.activity).every(
+            (value) => Number.isInteger(value) && value >= 0,
+          )
+        )
+          throw new Error();
+      }
+    }
+  } else if (data.mode === "fixture") {
+    if (
+      !data.simulated ||
+      Date.parse(data.as_of) !== Date.UTC(2026, 9, 18, 5) ||
+      main?.progress?.on_time_rate !== 50 ||
+      main.progress.due_obligations !== 12 ||
+      main.progress.on_time_due !== 6 ||
+      main.comparison?.before?.on_time_rate !== 25 ||
+      main.comparison?.after?.on_time_rate !== 50 ||
+      main.comparison?.change_percentage_points !== 25 ||
+      small?.suppressed !== true ||
+      small.progress !== null ||
+      small.enrollment_count !== null ||
+      small.comparison !== null
+    )
+      throw new Error();
+  } else throw new Error();
   console.log(JSON.stringify({ check, result: "PASS" }));
 } catch {
   // Never print a Playwright error: it may contain auth headers or response bodies.

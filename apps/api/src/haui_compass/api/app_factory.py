@@ -10,10 +10,14 @@ from typing import Any, cast
 
 from fastapi import FastAPI
 
+from haui_compass.api.companion import router as companion_router
 from haui_compass.api.compass_chat import router as compass_router
 from haui_compass.api.dependencies import AppContainer, build_container
 from haui_compass.api.errors import register_error_handlers
+from haui_compass.api.learning_preferences import router as learning_preferences_router
 from haui_compass.api.lecturer import router as lecturer_router
+from haui_compass.api.public_courseware import router as courseware_router
+from haui_compass.api.ticket_board import router as ticket_router
 from haui_compass.api.v1.routes import container_from_app, router
 from haui_compass.api.v1.weekly import router as weekly_router
 
@@ -31,6 +35,10 @@ def create_app(
 
     app.dependency_overrides[container_from_app] = get_container
     app.include_router(lecturer_router, prefix="/api/v1")
+    app.include_router(courseware_router, prefix="/api/v1")
+    app.include_router(ticket_router, prefix="/api/v1")
+    app.include_router(companion_router, prefix="/api/v1")
+    app.include_router(learning_preferences_router, prefix="/api/v1")
     app.include_router(router, prefix="/api/v1")
     app.include_router(weekly_router, prefix="/api/v1")
     app.include_router(compass_router, prefix="/api/v1")

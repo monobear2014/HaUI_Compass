@@ -91,6 +91,8 @@ class LMSAssignmentRecord:
     title: str
     deadline: datetime | None
     estimated_effort: timedelta | None = None
+    instructions: str | None = None
+    source_label: str | None = None
 
     def __post_init__(self) -> None:
         object.__setattr__(
@@ -106,6 +108,8 @@ class LMSAssignmentRecord:
             )
         if self.estimated_effort is not None:
             require_non_negative(self.estimated_effort, "LMSAssignmentRecord.estimated_effort")
+        if self.instructions is not None and len(self.instructions) > 6000:
+            raise DomainValidationError("assignment instructions exceed 6000 characters")
 
 
 class SubmissionStatus(StrEnum):

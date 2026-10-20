@@ -24,6 +24,6 @@ export default async function Page({
     ids.includes(doc.id),
   );
   if (!documents.length)
-    redirect(`/onboarding/upload?next=${encodeURIComponent(nextPath)}`);
-  return <DocumentReady documents={documents} nextPath={nextPath} />;
+    redirect(`/documents/upload?next=${encodeURIComponent(nextPath)}`);
+  return <DocumentReady documents={documents} />;
 }

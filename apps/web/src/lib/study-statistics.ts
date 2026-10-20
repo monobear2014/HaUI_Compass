@@ -1,4 +1,4 @@
-import { Context, dayKey, Plan } from "./api";
+import { Assignment, Context, dayKey, Plan } from "./api";
 
 const DAY_MS = 86400000;
 
@@ -88,15 +88,11 @@ export function studyStatistics(context: Context, history: Plan[]) {
     };
   });
   const deadlines = [...assignments.values()]
-    .filter((assignment) => {
-      const related = tasks.filter(
-        (task) => task.assignment_id === assignment.assignment_id,
-      );
-      // Assignments without tasks still need to be tracked, not called completed.
-      return (
-        !related.length || related.some((task) => task.status !== "completed")
-      );
-    })
+    .filter(
+      (assignment) =>
+        assignmentSubmissionState(assignment, context.now) !== "on_time" &&
+        assignmentSubmissionState(assignment, context.now) !== "late",
+    )
     .sort((a, b) => Date.parse(a.deadline) - Date.parse(b.deadline));
   return {
     total: tasks.length,
@@ -125,5 +121,44 @@ export function studyStatistics(context: Context, history: Plan[]) {
         ).toISOString(),
       }))
       .sort((a, b) => Date.parse(a.starts_at) - Date.parse(b.starts_at)),
+  };
+}
+
+export function assignmentSubmissionState(assignment: Assignment, now: string) {
+  const due = Date.parse(assignment.deadline);
+  const observed =
+    assignment.submitted_at &&
+    Date.parse(assignment.submitted_at) <= Date.parse(now);
+  if (observed)
+    return Date.parse(assignment.submitted_at!) <= due ? "on_time" : "late";
+  return due <= Date.parse(now) ? "overdue" : "pending";
+}
+
+export function submissionStatistics(context: Context) {
+  const rows = context.assignments || [];
+  const counts = {
+    onTime: 0,
+    late: 0,
+    overdue: 0,
+    pending: 0,
+    due: 0,
+    onTimeDue: 0,
+  };
+  for (const assignment of rows) {
+    const state = assignmentSubmissionState(assignment, context.now);
+    if (state === "on_time") counts.onTime++;
+    if (state === "late") counts.late++;
+    if (state === "overdue") counts.overdue++;
+    if (state === "pending") counts.pending++;
+    if (Date.parse(assignment.deadline) <= Date.parse(context.now)) {
+      counts.due++;
+      if (state === "on_time") counts.onTimeDue++;
+    }
+  }
+  return {
+    ...counts,
+    rate: counts.due
+      ? Math.round((counts.onTimeDue / counts.due) * 1000) / 10
+      : null,
   };
 }

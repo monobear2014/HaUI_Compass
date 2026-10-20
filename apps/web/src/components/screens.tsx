@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import { TicketWorkspace } from "./ticket-workspace";
+import { LearningPreferences } from "./learning-preferences";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -8,12 +10,10 @@ import {
   Candidate,
   hasDemoClock,
   date,
-  dayKey,
   label,
   minutes,
   Plan,
   Replan,
-  Task,
   time,
 } from "@/lib/api";
 import { Icon } from "./icons";
@@ -29,12 +29,8 @@ import {
 import { usePreferences } from "./preferences";
 import {
   AdaptFlow,
-  FinishTask,
   PlanWizard,
-  useActiveTask,
   useCopy,
-  useRiskText,
-  WeekAlerts,
   WeekHistoryList,
   WeeklySummary,
 } from "./weekly";
@@ -42,12 +38,6 @@ import { useWorkspace } from "./workspace";
 
 function message(error: unknown) {
   return error instanceof Error ? error.message : "Please try again.";
-}
-function localInput(value: string) {
-  const instant = new Date(value);
-  return new Date(instant.getTime() - instant.getTimezoneOffset() * 60000)
-    .toISOString()
-    .slice(0, 16);
 }
 function Feedback({ error, success }: { error: string; success?: string }) {
   return (
@@ -68,484 +58,7 @@ function Feedback({ error, success }: { error: string; success?: string }) {
 }
 
 export function Today() {
-  const { context, recommendation, history, refresh, loading } = useWorkspace();
-  const { language, t } = usePreferences();
-  const c = useCopy();
-  const riskText = useRiskText();
-  const locale = language === "vi" ? "vi-VN" : "en-GB";
-  const [recording, setRecording] = useState<Task | null>(null);
-  const [finishing, setFinishing] = useState<"completed" | "partial" | null>(
-    null,
-  );
-  const [saved, setSaved] = useState("");
-  const { active, start, clear } = useActiveTask();
-  if (!context) return null;
-  const rec = recommendation?.recommendation;
-  const recommended = context.tasks.find((item) => item.id === rec?.task_id);
-  const activeTask = context.tasks.find((item) => item.id === active?.taskId);
-  const task = activeTask || recommended;
-  const plan = history.at(-1);
-  const todayBlocks =
-    plan?.blocks.filter(
-      (block) => dayKey(block.starts_at) === dayKey(context.now),
-    ) || [];
-  const completed = context.tasks.filter(
-    (item) => item.status === "completed",
-  ).length;
-  const deadlines = [...context.tasks]
-    .filter((item) => item.status !== "completed")
-    .sort((a, b) => Date.parse(a.deadline) - Date.parse(b.deadline))
-    .filter(
-      (item, index, list) =>
-        list.findIndex(
-          (other) => other.assignment_id === item.assignment_id,
-        ) === index,
-    )
-    .slice(0, 3);
-  const taskRisk = recommendation?.assignment_risks.find(
-    (risk) => risk.assignment_id === task?.assignment_id,
-  );
-  return (
-    <>
-      <PageHeading
-        eyebrow={date(
-          context.now,
-          { weekday: "long", day: "numeric", month: "long" },
-          locale,
-        )}
-        title={t("today.title")}
-        action={
-          <button
-            className="icon-button"
-            disabled={loading}
-            onClick={() => void refresh()}
-            aria-label={t("common.refresh")}
-          >
-            <Icon name="refresh" size={18} />
-          </button>
-        }
-      />
-      {!plan && (
-        <div className="weekly-alert success no-plan" role="status">
-          <Icon name="plan" size={18} />
-          <p>
-            <strong>
-              {c("Tuần này chưa có kế hoạch", "No plan for this week yet")}
-            </strong>{" "}
-            {c(
-              "— đặt mục tiêu và thời gian rảnh, Compass sẽ đề xuất lịch để bạn duyệt.",
-              "— set a goal and free time; Compass proposes a schedule to approve.",
-            )}
-          </p>
-          <Link className="primary" href="/plan">
-            {c("Lập kế hoạch tuần", "Plan my week")}
-            <Icon name="arrow" size={16} />
-          </Link>
-        </div>
-      )}
-      <WeekAlerts plan={plan} />
-      {saved && (
-        <p className="form-success" role="status">
-          <Icon name="check" size={16} />
-          {saved}
-        </p>
-      )}
-      <div className="today-grid focused-today">
-        <div className="today-primary">
-          <section className="next-action panel">
-            <div className="section-heading">
-              <span className="eyebrow accent inline">
-                <Icon name="compass" size={17} />
-                {activeTask
-                  ? c("ĐANG LÀM", "IN PROGRESS")
-                  : language === "vi"
-                    ? "VIỆC NÊN LÀM"
-                    : "YOUR NEXT STEP"}
-              </span>
-            </div>
-            {task ? (
-              <>
-                <p className="course-label">
-                  {task.course} · {task.assignment_title}
-                </p>
-                <h2 className="action-title">{task.title}</h2>
-                <div className="action-meta">
-                  {taskRisk && (
-                    <Badge
-                      tone={
-                        taskRisk.level === "high"
-                          ? "danger"
-                          : taskRisk.level === "unknown"
-                            ? "warning"
-                            : "neutral"
-                      }
-                    >
-                      <Icon name="alert" size={13} />
-                      {riskText(taskRisk.level)}
-                    </Badge>
-                  )}
-                  <span>
-                    <Icon name="plan" size={16} />
-                    {t("common.due")}{" "}
-                    {date(
-                      task.deadline,
-                      {
-                        day: "numeric",
-                        month: "short",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      },
-                      locale,
-                    )}
-                  </span>
-                  <span>
-                    <Icon name="clock" size={16} />
-                    {minutes(task.estimated_duration_seconds)}{" "}
-                    {t("common.minutes")}
-                  </span>
-                </div>
-                <div className="action-bottom">
-                  {activeTask ? (
-                    <>
-                      <button
-                        className="primary"
-                        onClick={() => setFinishing("completed")}
-                      >
-                        {c("Hoàn thành", "Complete")}
-                        <Icon name="check" size={17} />
-                      </button>
-                      <button
-                        className="secondary"
-                        onClick={() => setFinishing("partial")}
-                      >
-                        {c("Tạm dừng", "Pause")}
-                      </button>
-                    </>
-                  ) : (
-                    <button
-                      className={plan ? "primary" : "secondary"}
-                      onClick={() => start(task.id)}
-                    >
-                      {c("Bắt đầu", "Start")}
-                      <Icon name="arrow" size={17} />
-                    </button>
-                  )}
-                  <button
-                    className="text-link"
-                    onClick={() => setRecording(task)}
-                  >
-                    {t("today.recordWork")}
-                  </button>
-                  <Link href="/learn" className="text-link">
-                    {c(
-                      "Tài liệu & Trợ lý Compass",
-                      "Materials & Compass Assistant",
-                    )}
-                    <Icon name="ask" size={15} />
-                  </Link>
-                </div>
-                {recommended && rec?.evidence && task.id === recommended.id && (
-                  <details className="why-box compact-disclosure">
-                    <summary>{t("today.explanation")}</summary>
-                    <p lang="vi">
-                      {recommendation?.explanation?.text ||
-                        rec.reason_codes
-                          ?.map((code) => label(code, language))
-                          .join(" ")}
-                    </p>
-                    <details className="decision-evidence">
-                      <summary>{t("today.evidence")}</summary>
-                      <Badge>
-                        {recommendation?.explanation?.source === "ai"
-                          ? t("today.online")
-                          : t("today.offline")}
-                      </Badge>
-                      <p className="fine-print">{t("today.decisionText")}</p>
-                      <ul>
-                        {[
-                          ...(rec.reason_codes || []),
-                          ...rec.evidence.risk_reason_codes,
-                        ].map((code) => (
-                          <li key={code}>{label(code, language)}</li>
-                        ))}
-                      </ul>
-                      {taskRisk && (
-                        <p className="fine-print">
-                          {c("Còn", "Remaining")}{" "}
-                          {minutes(
-                            taskRisk.evidence.remaining_effort_seconds || 0,
-                          )}{" "}
-                          {c(
-                            "phút việc · thời gian rảnh trước hạn",
-                            "min of work · free time before deadline",
-                          )}{" "}
-                          {minutes(
-                            taskRisk.evidence.available_capacity_seconds || 0,
-                          )}{" "}
-                          {t("common.minutes")}
-                        </p>
-                      )}
-                    </details>
-                  </details>
-                )}
-              </>
-            ) : (
-              <Empty title={t("today.clearForNow")}>
-                <p>{t("today.clearForNowText")}</p>
-                <Link className="secondary" href="/reflect">
-                  {language === "vi"
-                    ? "Tổng kết & phản tư tuần"
-                    : "Review your week"}
-                  <Icon name="arrow" size={16} />
-                </Link>
-              </Empty>
-            )}
-          </section>
-          <section className="panel">
-            <div className="section-heading">
-              <h2>{t("today.todaysPlan")}</h2>
-              <Link href="/plan" className="text-link">
-                {t("today.viewWeek")}
-                <Icon name="arrow" size={15} />
-              </Link>
-            </div>
-            {todayBlocks.length ? (
-              todayBlocks.map((block, i) => {
-                const blockTask = context.tasks.find(
-                  (item) => item.id === block.task_id,
-                );
-                return (
-                  <BlockRow
-                    key={i}
-                    block={block}
-                    task={blockTask}
-                    action={
-                      blockTask &&
-                      blockTask.status !== "completed" &&
-                      blockTask.id !== activeTask?.id ? (
-                        <button
-                          className="secondary small"
-                          aria-label={`${c("Bắt đầu", "Start")} ${blockTask.title}`}
-                          onClick={() => start(blockTask.id)}
-                        >
-                          {c("Bắt đầu", "Start")}
-                        </button>
-                      ) : undefined
-                    }
-                  />
-                );
-              })
-            ) : (
-              <div className="quiet-empty">
-                <p>
-                  {language === "vi"
-                    ? "Hôm nay chưa có phiên học được xếp lịch."
-                    : "No study sessions scheduled for today."}
-                </p>
-                <Link href="/plan" className="text-link">
-                  {language === "vi"
-                    ? "Mở kế hoạch tuần"
-                    : "Open your weekly plan"}
-                  <Icon name="arrow" size={15} />
-                </Link>
-              </div>
-            )}
-          </section>
-        </div>
-        <aside
-          className="today-secondary"
-          aria-label={
-            language === "vi" ? "Deadline và tiến độ" : "Deadlines and progress"
-          }
-        >
-          <section className="panel">
-            <div className="section-heading">
-              <h2>{t("today.comingUp")}</h2>
-              <Icon name="plan" size={18} />
-            </div>
-            {deadlines.map((item) => (
-              <div className="deadline-row" key={item.assignment_id}>
-                <span className="deadline-date">
-                  <strong>{date(item.deadline, { day: "2-digit" })}</strong>
-                  {date(item.deadline, { month: "short" }, locale)}
-                </span>
-                <div>
-                  <strong>{item.assignment_title}</strong>
-                  <span>{item.course}</span>
-                </div>
-              </div>
-            ))}
-            {!deadlines.length && (
-              <p className="muted">
-                {language === "vi"
-                  ? "Không còn deadline đang mở."
-                  : "No open deadlines."}
-              </p>
-            )}
-            <details className="compact-disclosure risk-overview">
-              <summary>
-                {language === "vi"
-                  ? "Xem đánh giá deadline"
-                  : "Review deadline risk"}
-              </summary>
-              <p className="fine-print">{t("today.riskNote")}</p>
-              {recommendation?.assignment_risks.map((risk) => (
-                <details className="risk-row" key={risk.assignment_id}>
-                  <summary>
-                    {context.assignments?.find(
-                      (item) => item.assignment_id === risk.assignment_id,
-                    )?.title ||
-                      context.tasks.find(
-                        (item) => item.assignment_id === risk.assignment_id,
-                      )?.assignment_title ||
-                      t("common.task")}{" "}
-                    · <strong>{riskText(risk.level)}</strong>
-                  </summary>
-                  {risk.reason_codes.map((code) => (
-                    <p key={code}>{label(code, language)}</p>
-                  ))}
-                </details>
-              ))}
-            </details>
-          </section>
-          <section className="panel compact-progress">
-            <div className="section-heading">
-              <h2>{t("today.progress")}</h2>
-              <strong>
-                {completed}/{context.tasks.length}
-              </strong>
-            </div>
-            <progress
-              aria-label={t("today.tasksCompletedLabel")}
-              value={completed}
-              max={context.tasks.length || 1}
-            />
-            <Link href="/academic" className="text-link">
-              {language === "vi" ? "Xem các bài tập" : "View your assignments"}
-              <Icon name="arrow" size={15} />
-            </Link>
-          </section>
-        </aside>
-      </div>
-      {recording && (
-        <RecordWork task={recording} onClose={() => setRecording(null)} />
-      )}
-      {finishing && activeTask && (
-        <FinishTask
-          task={activeTask}
-          outcome={finishing}
-          onClose={() => setFinishing(null)}
-          onSaved={() => {
-            clear();
-            setSaved(
-              finishing === "completed"
-                ? c("Đã hoàn thành: ", "Completed: ") + activeTask.title
-                : c("Đã lưu tiến độ: ", "Progress saved: ") + activeTask.title,
-            );
-          }}
-        />
-      )}
-    </>
-  );
-}
-
-function RecordWork({ task, onClose }: { task: Task; onClose: () => void }) {
-  const { context, refresh } = useWorkspace();
-  const { t } = usePreferences();
-  const dialog = useRef<HTMLDialogElement>(null);
-  const retry = useRef<{ signature: string; id: string } | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
-  const now = context?.now || new Date().toISOString();
-  useEffect(() => {
-    dialog.current?.showModal();
-  }, []);
-  async function submit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!context) return;
-    const form = new FormData(event.currentTarget);
-    setBusy(true);
-    setError("");
-    try {
-      const body = {
-        student: context.student,
-        task_id: task.id,
-        started_at: new Date(String(form.get("start"))).toISOString(),
-        ended_at: new Date(String(form.get("end"))).toISOString(),
-        outcome: String(form.get("outcome")),
-      };
-      const signature = JSON.stringify(body);
-      if (retry.current?.signature !== signature)
-        retry.current = { signature, id: crypto.randomUUID() };
-      await api("task-executions", { ...body, record_id: retry.current.id });
-      await refresh();
-      onClose();
-    } catch (err) {
-      setError(message(err));
-    } finally {
-      setBusy(false);
-    }
-  }
-  return (
-    <dialog
-      ref={dialog}
-      className="work-dialog"
-      onCancel={onClose}
-      onClose={onClose}
-    >
-      <div className="section-heading">
-        <h2>{t("execution.title")}</h2>
-        <button
-          className="icon-button"
-          onClick={onClose}
-          aria-label={t("execution.close")}
-        >
-          <Icon name="close" />
-        </button>
-      </div>
-      <p className="muted">{task.title}</p>
-      <form onSubmit={submit} className="form-stack">
-        <label>
-          {t("execution.startedAt")}{" "}
-          <span className="muted">({t("execution.deviceTimezone")})</span>
-          <input
-            name="start"
-            type="datetime-local"
-            defaultValue={localInput(
-              new Date(Date.parse(now) - 25 * 60000).toISOString(),
-            )}
-            required
-          />
-        </label>
-        <label>
-          {t("execution.endedAt")}
-          <input
-            name="end"
-            type="datetime-local"
-            defaultValue={localInput(now)}
-            required
-          />
-        </label>
-        <fieldset>
-          <legend>{t("execution.outcome")}</legend>
-          <label className="choice">
-            <input type="radio" name="outcome" value="partial" defaultChecked />
-            {t("execution.partial")}
-          </label>
-          <label className="choice">
-            <input type="radio" name="outcome" value="completed" />
-            {t("execution.completed")}
-          </label>
-        </fieldset>
-        <Feedback error={error} />
-        <button className="primary" disabled={busy}>
-          {busy ? t("execution.saving") : t("execution.save")}
-          <Icon name="check" size={16} />
-        </button>
-        <p className="fine-print">{t("execution.note")}</p>
-      </form>
-    </dialog>
-  );
+  return <TicketWorkspace view="today" />;
 }
 
 export function WeeklyPlan() {
@@ -554,11 +67,16 @@ export function WeeklyPlan() {
   const c = useCopy();
   const [adapting, setAdapting] = useState(false);
   const [approved, setApproved] = useState(false);
+  const [assistantReview, setAssistantReview] = useState(false);
   useEffect(() => {
-    // Today's "Reschedule" link opens the adaptation flow directly.
-    if (new URLSearchParams(window.location.search).get("adapt") !== "1")
-      return;
-    const frame = window.requestAnimationFrame(() => setAdapting(true));
+    const params = new URLSearchParams(window.location.search);
+    const fromAssistant = params.get("assistant") === "review";
+    const shouldAdapt = fromAssistant || params.get("adapt") === "1";
+    if (!shouldAdapt) return;
+    const frame = window.requestAnimationFrame(() => {
+      if (fromAssistant) setAssistantReview(true);
+      setAdapting(true);
+    });
     return () => window.cancelAnimationFrame(frame);
   }, []);
   if (!context) return null;
@@ -568,19 +86,40 @@ export function WeeklyPlan() {
       <>
         <PageHeading
           title={c("Lập kế hoạch tuần", "Plan your week")}
-          description={c(
-            "Đặt mục tiêu, chọn thời gian rảnh, xem đề xuất của Compass rồi duyệt.",
-            "Set a goal, choose free time, review Compass's proposal, then approve it.",
-          )}
+          action={
+            <button
+              className="primary"
+              onClick={() => {
+                const editor = document.getElementById(
+                  "weekly-plan-editor",
+                ) as HTMLDetailsElement | null;
+                if (editor) {
+                  editor.open = true;
+                  editor.scrollIntoView({ behavior: "smooth", block: "start" });
+                  editor.querySelector("summary")?.focus();
+                }
+              }}
+            >
+              {c("Tạo lịch tuần", "Create schedule")}
+            </button>
+          }
         />
-        <PlanWizard onApproved={() => setApproved(true)} />
+        <TicketWorkspace view="week" />
+        <details className="panel" id="weekly-plan-editor" open>
+          <summary>
+            {c("Tạo và duyệt lịch tuần", "Create and approve weekly schedule")}
+          </summary>
+          <PlanWizard
+            onApproved={() => setApproved(true)}
+            autoPreview={assistantReview}
+          />
+        </details>
       </>
     );
   return (
     <>
       <PageHeading
         title={t("plan.title")}
-        description={t("plan.description")}
         action={
           !adapting && (
             <button className="primary" onClick={() => setAdapting(true)}>
@@ -599,8 +138,15 @@ export function WeeklyPlan() {
           </Link>
         </div>
       )}
+      {context.mode === "simulated_canvas_workspace" && (
+        <LearningPreferences period={context.period} vi={language === "vi"} />
+      )}
       {adapting ? (
-        <AdaptFlow plan={plan} onDone={() => setAdapting(false)} />
+        <AdaptFlow
+          plan={plan}
+          onDone={() => setAdapting(false)}
+          autoPreview={assistantReview}
+        />
       ) : (
         <>
           <div className="plan-toolbar">
@@ -645,7 +191,13 @@ export function WeeklyPlan() {
               {t("plan.attention")}
             </span>
           </div>
-          <PlanDays plan={plan} tasks={context.tasks} />
+          <TicketWorkspace view="week" />
+          <details className="panel">
+            <summary>
+              {c("Lịch các phiên học đã duyệt", "Approved study schedule")}
+            </summary>
+            <PlanDays plan={plan} tasks={context.tasks} />
+          </details>
           <Attention plan={plan} tasks={context.tasks} />
           {revision && revision.plan.record_id === plan.record_id && (
             <ChangeReview
@@ -735,7 +287,7 @@ function ChangeReview({
           </div>
         ))
       ) : (
-        <p className="muted">{t("plan.reflectionInfo")}</p>
+        <></>
       )}
       {baseline && (
         <details className="preserved-blocks">
@@ -756,14 +308,8 @@ function ChangeReview({
                 task={context.tasks.find((task) => task.id === block.task_id)}
               />
             ))}
-          <p className="fine-print">{t("plan.exactMatches")}</p>
         </details>
       )}
-      <p className="fine-print">
-        {result.informational_reflection_signals.length
-          ? t("plan.reflectionInfo")
-          : t("plan.backendReasons")}
-      </p>
     </section>
   );
 }
@@ -859,10 +405,7 @@ export function Reflect() {
   }
   return (
     <>
-      <PageHeading
-        title={t("reflection.title")}
-        description={t("reflection.description")}
-      />
+      <PageHeading title={t("reflection.title")} />
       <WeeklySummary />
       <div className="reflection-grid focused-reflection">
         <ol
@@ -931,7 +474,7 @@ export function Reflect() {
               </summary>
               <fieldset>
                 <legend>{t("reflection.deferred")}</legend>
-                <p className="fine-print">{t("reflection.deferredHint")}</p>
+
                 {ctx.tasks.map((t) => (
                   <label className="choice" key={t.id}>
                     <input name="deferred" type="checkbox" value={t.id} />
@@ -996,7 +539,6 @@ export function Reflect() {
                     : t("reflection.saveConfirmed")}
                   <Icon name="check" size={16} />
                 </button>
-                <p className="fine-print">{t("reflection.unselected")}</p>
               </>
             ) : (
               <Empty title={t("reflection.insightsHere")}>
@@ -1040,10 +582,7 @@ export function History() {
   if (!context) return null;
   return (
     <>
-      <PageHeading
-        title={t("history.title")}
-        description={t("history.description")}
-      />
+      <PageHeading title={t("history.title")} />
       <section className="panel history-panel">
         <div className="section-heading">
           <h2>{t("history.revision")}</h2>
@@ -1091,9 +630,6 @@ export function History() {
                   </span>
                 </summary>
                 <div className="revision-content">
-                  <p className="fine-print">
-                    {t("plan.planner")} v{plan.planner_version}
-                  </p>
                   <PlanDays plan={plan} tasks={context.tasks} />
                   <Attention plan={plan} tasks={context.tasks} />
                 </div>

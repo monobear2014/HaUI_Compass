@@ -1,0 +1,40 @@
+{
+  "result": "PASS",
+  "url": "https://haui-compass-g923m05tl-nam-4b71.vercel.app",
+  "checks": [
+    {
+      "check": "initial-live-aggregate",
+      "result": "PASS"
+    },
+    {
+      "check": "student-full-week",
+      "result": "PASS"
+    },
+    {
+      "check": "aggregate-changes-after-student-actions",
+      "result": "PASS"
+    },
+    {
+      "check": "student-role-isolation",
+      "result": "PASS"
+    },
+    {
+      "check": "hosted-ai-boundaries",
+      "result": "PASS"
+    }
+  ],
+  "aggregateBefore": {
+    "tasks": 25,
+    "completed_tasks": 0,
+    "study_minutes": 0,
+    "learners_with_plan": 0,
+    "learners_reflected": 0
+  },
+  "aggregateAfter": {
+    "tasks": 26,
+    "completed_tasks": 1,
+    "study_minutes": 80,
+    "learners_with_plan": 1,
+    "learners_reflected": 1
+  }
+}

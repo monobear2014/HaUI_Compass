@@ -5,9 +5,18 @@ from dataclasses import dataclass
 from enum import StrEnum
 from typing import Literal
 
+from haui_compass.application.abbreviations import (
+    ABBREVIATIONS,
+    abbreviation_notes,
+    english_expansion,
+    expand_abbreviations,
+)
+from haui_compass.application.academic_integrity import GUIDANCE, requires_guidance
 from haui_compass.application.ports.knowledge import (
+    KNOWLEDGE_COURSES,
     AnswerSource,
     CitationEvidence,
+    ConversationTurn,
     GroundedAnswerInput,
     GroundedAnswerProvider,
     KnowledgeRetriever,
@@ -45,6 +54,9 @@ class KnowledgeQueryRequest:
     scope: KnowledgeScope
     course_id: str | None = None
     top_k: int = 5
+    public_only: bool = False
+    history: tuple[ConversationTurn, ...] = ()
+    preferences: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -97,19 +109,44 @@ class QueryKnowledge:
     async def execute(self, request: KnowledgeQueryRequest) -> KnowledgeQueryResult:
         question = request.question.strip()
         _validate_request(request, question)
+        if requires_guidance(
+            question, tuple(t.content for t in request.history if t.role == "user")
+        ):
+            return KnowledgeQueryResult(
+                answer=GUIDANCE,
+                status="abstained",
+                citations=(),
+                retrieved=(),
+                source="template",
+                fallback_reason="academic_integrity",
+            )
+        retrieval_question = question
+        if request.history and re.search(
+            r"\b(nó|tiếp|vừa rồi|khái niệm này|ví dụ|giải thích thêm|nói rõ hơn)\b", question, re.I
+        ):
+            prior = next((t.content for t in reversed(request.history) if t.role == "user"), "")
+            retrieval_question = (prior[:350] + " " + question)[:500]
+        retrieval_question = expand_abbreviations(retrieval_question)
         retrieved = self._retriever.retrieve(
             RetrievalQuery(
-                query=question,
+                query=retrieval_question,
                 scope=request.scope,
                 course_id=request.course_id,
                 top_k=request.top_k,
+                source_type="open_educational" if request.public_only else None,
             )
         )
         relevant = tuple(row for row in retrieved if row.relevance >= self._minimum_relevance)
         if not relevant or not _required_anchors_are_present(question, relevant):
             return _abstained(retrieved=retrieved, reason="insufficient_evidence")
         evidence = tuple(_evidence(index, row) for index, row in enumerate(relevant, start=1))
-        answer_request = GroundedAnswerInput(question=question, evidence=evidence)
+        notes = abbreviation_notes(question)
+        answer_request = GroundedAnswerInput(
+            question=question + (f" (viết tắt: {'; '.join(notes)})" if notes else ""),
+            evidence=evidence,
+            history=request.history[-6:],
+            preferences=request.preferences[:20],
+        )
 
         generated = await GroundedAnswerService(
             template=self._template,
@@ -178,10 +215,10 @@ def _validate_request(request: KnowledgeQueryRequest, question: str) -> None:
             KnowledgeQueryErrorCode.INVALID_COURSE,
             "institutional scope must not include course_id",
         )
-    if request.scope == "course" and request.course_id not in {"db", "ml", "se"}:
+    if request.scope == "course" and request.course_id not in KNOWLEDGE_COURSES:
         raise KnowledgeQueryError(
             KnowledgeQueryErrorCode.INVALID_COURSE,
-            "course scope requires one of: db, ml, se",
+            f"course scope requires one of: {', '.join(KNOWLEDGE_COURSES)}",
         )
     if not 1 <= request.top_k <= 10:
         raise KnowledgeQueryError(
@@ -207,7 +244,12 @@ def _evidence(index: int, row: RetrievedChunk) -> CitationEvidence:
 
 def _abstained(*, retrieved: tuple[RetrievedChunk, ...], reason: str) -> KnowledgeQueryResult:
     return KnowledgeQueryResult(
-        answer=ABSTENTION_MESSAGE,
+        answer=(
+            "Đã tìm thấy tài liệu liên quan nhưng chưa tạo được câu trả lời đã kiểm chứng. "
+            "Bạn có thể thử lại hoặc mở tài liệu gốc để tra cứu."
+            if reason in {"invalid_output", "invalid_citations", "provider_error", "timeout"}
+            else ABSTENTION_MESSAGE
+        ),
         status="abstained",
         citations=(),
         retrieved=retrieved,
@@ -225,7 +267,26 @@ def _required_anchors_are_present(question: str, retrieved: tuple[RetrievedChunk
     anchors = {
         token.casefold()
         for token in re.findall(r"\b[\w_]+\b", question)
-        if len(token) >= 3
+        if token.casefold()
+        not in {
+            "trong",
+            "khong",
+            "nhung",
+            "which",
+            "explain",
+            "please",
+            "about",
+            "using",
+            "should",
+            "would",
+            "could",
+            "their",
+            "these",
+            "those",
+            "there",
+            "where",
+        }
+        and len(token) >= 3
         and any(character.isalpha() for character in token)
         and (
             token.isupper()
@@ -245,4 +306,13 @@ def _required_anchors_are_present(question: str, retrieved: tuple[RetrievedChunk
         )
         for row in retrieved
     ).casefold()
-    return anchors <= set(re.findall(r"\b[\w_]+\b", evidence))
+    words = set(re.findall(r"\b[\w_]+\b", evidence))
+    return all(
+        anchor in words
+        or (
+            anchor in ABBREVIATIONS
+            and bool(english_expansion(anchor))
+            and english_expansion(anchor).casefold() in evidence
+        )
+        for anchor in anchors
+    )

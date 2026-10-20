@@ -28,3 +28,22 @@ def obligations(size: int) -> list[tuple[datetime | None, datetime | None]]:
         )
         rows.extend(((due, submitted), (AS_OF + timedelta(days=3), None)))
     return rows
+
+
+def baseline_obligations(size: int) -> list[tuple[datetime | None, datetime | None]]:
+    """Same synthetic enrollment size, earlier assignment; deliberately worse baseline.
+
+    This hand-authored difference demonstrates arithmetic, not an observed intervention.
+    """
+    due = AS_OF - timedelta(days=8)
+    return [
+        (
+            due,
+            due - timedelta(hours=2)
+            if i % 4 == 0
+            else due + timedelta(hours=3)
+            if i % 4 == 1
+            else None,
+        )
+        for i in range(size)
+    ]

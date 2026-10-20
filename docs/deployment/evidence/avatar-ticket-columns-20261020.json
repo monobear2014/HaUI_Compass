@@ -1,0 +1,28 @@
+{
+  "result": "PASS",
+  "url": "https://haui-compass-9ncxr1da1-nam-4b71.vercel.app",
+  "checks": [
+    {
+      "check": "avatar-formats-and-persistence",
+      "result": "PASS"
+    },
+    {
+      "check": "avatar-validation-and-reset",
+      "result": "PASS"
+    },
+    {
+      "check": "reversible-ticket-columns",
+      "result": "PASS"
+    },
+    {
+      "check": "editable-ticket-details-persistence",
+      "result": "PASS"
+    }
+  ],
+  "date": "2026-10-20",
+  "web_schema_revision": 6,
+  "aliases": [
+    "https://haui-compass.vercel.app",
+    "https://haui-compass-preview-nam-4b71.vercel.app"
+  ]
+}

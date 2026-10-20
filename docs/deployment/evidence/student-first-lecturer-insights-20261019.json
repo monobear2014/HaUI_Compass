@@ -1,0 +1,73 @@
+{
+  "result": "PASS",
+  "url": "https://haui-compass-k2wq9zdat-nam-4b71.vercel.app",
+  "checks": [
+    {
+      "check": "student-owned-submissions-and-context",
+      "result": "PASS"
+    },
+    {
+      "check": "teacher-assignment-detail-and-summary-agree",
+      "result": "PASS"
+    },
+    {
+      "check": "small-cohort-and-role-isolation",
+      "result": "PASS"
+    },
+    {
+      "check": "student-submission-updates-teacher-assignment-detail",
+      "result": "PASS"
+    },
+    {
+      "check": "approaching-deadline-support-is-live",
+      "result": "PASS"
+    }
+  ],
+  "supportBefore": {
+    "learners_overdue": 2,
+    "learners_due_soon": 1,
+    "learners_without_plan": 4
+  },
+  "supportAfter": {
+    "learners_overdue": 2,
+    "learners_due_soon": 2,
+    "learners_without_plan": 4
+  },
+  "assignmentCount": 5,
+  "earlySubmissionDelta": 1,
+  "deployment": {
+    "id": "dpl_A5wz3RGJmCXjmqsA5caisnoQkHFm",
+    "state": "READY",
+    "environment": "Preview",
+    "stableUrl": "https://haui-compass.vercel.app",
+    "compatibilityUrl": "https://haui-compass-preview-nam-4b71.vercel.app",
+    "schemaChanged": false
+  },
+  "localChecks": {
+    "backendUnitAndApiPassed": 1620,
+    "postgresInsightAcrossInstances": "PASS",
+    "lecturerUiDesktopMobilePassed": 24,
+    "finalStudentStatisticsReminderCsvPassed": 30,
+    "productionPostgresStudentFlowsPassed": 4,
+    "configAndEvidencePassed": 32,
+    "build": "PASS",
+    "typecheck": "PASS",
+    "eslint": "PASS",
+    "ruff": "PASS",
+    "mypy": "PASS"
+  },
+  "browserChecks": {
+    "normalRoleLoginLogout": "PASS",
+    "assignedClassSelection": "PASS",
+    "liveSupportAndAssignmentDetail": "PASS",
+    "courseAttentionSortFilters": "PASS",
+    "csvExportInitiated": "PASS",
+    "csvDownloadedContentsLocalTests": "PASS",
+    "hostedDownloadEvent": "UNVERIFIED",
+    "smallCohortDetailHidden": "PASS",
+    "studentCourseStatusFiltersAndEmptyState": "PASS",
+    "personalUnknownDenominator": "PASS",
+    "submittedRemovedFromOpenDeadlines": "PASS",
+    "mobile390pxStudentAndLecturerNoOverflow": "PASS"
+  }
+}

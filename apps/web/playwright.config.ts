@@ -8,7 +8,8 @@ const webUrl = `http://127.0.0.1:${webPort}`;
 export default defineConfig({
   testDir: "./tests",
   // Needs the PostgreSQL production-build stack; see playwright.staging.config.ts.
-  testIgnore: /(staging-weekly-cycle|preview-lecturer|lecturer)\.spec\.ts/,
+  testIgnore:
+    /(staging-weekly-cycle|staging-submissions|staging-preferences|staging-account|preview-lecturer|lecturer)\.spec\.ts/,
   fullyParallel: false,
   workers: 1,
   timeout: 45000,
@@ -48,6 +49,11 @@ export default defineConfig({
         COMPASS_API_URL: apiUrl,
         COMPASS_TEST_STORAGE: "1",
         COMPASS_DEMO_AUTH: "1",
+        // Synthetic credentials test initiation/state handling only. Provider
+        // token exchange is tested offline with synthetic keys, never a Google account.
+        GOOGLE_CLIENT_ID: "synthetic-client.apps.googleusercontent.com",
+        GOOGLE_CLIENT_SECRET: "synthetic-secret",
+        GOOGLE_REDIRECT_URI: `${webUrl}/api/auth/google/callback`,
         COMPASS_SERVICE_KEY: "playwright-compass-service-key",
         ...(process.env.HAUI_COMPASS_WEB_DATABASE_URL
           ? {

@@ -28,6 +28,8 @@ class TaskDecompositionInput:
     deadline: datetime
     course_name: str
     course_code: str | None
+    assignment_instructions: str | None = None
+    source_label: str | None = None
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)

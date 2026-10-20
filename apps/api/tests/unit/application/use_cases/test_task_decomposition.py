@@ -216,3 +216,28 @@ def test_all_edits_are_validated_before_any_task_is_created() -> None:
             )
         )
     assert container.task_repository.list_for_student(student_id_for(scenario.student)) == ()
+
+
+def test_mock_syllabus_reaches_decomposition_provider() -> None:
+    scenario = scenario_data(ScenarioId.WEEK, NOW)
+    provider = FakeProvider("valid")
+    container = build_container(
+        lms=MockLMSProvider({scenario.student: scenario.records}),
+        clock=DemoClock(),
+        task_decomposition_provider=provider,
+    )
+    assignment = scenario.records[1][0]
+    asyncio.run(
+        container.generate_task_decomposition.execute(
+            GenerateTaskDecompositionRequest(
+                session_id=TaskDecompositionSessionId(uuid4()),
+                student=scenario.student,
+                assignment=assignment.ref,
+            )
+        )
+    )
+    assert provider.context is not None
+    assert assignment.instructions
+    assert provider.context.assignment_instructions == assignment.instructions
+    assert provider.context.source_label == assignment.source_label
+    assert "giả lập" in (provider.context.source_label or "")

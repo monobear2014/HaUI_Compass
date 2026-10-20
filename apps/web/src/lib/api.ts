@@ -18,6 +18,9 @@ export type Assignment = {
   course: string;
   deadline: string;
   existing_task_count: number;
+  instructions?: string | null;
+  source_label?: string | null;
+  submitted_at?: string | null;
 };
 export type Context = {
   mode: string;

@@ -10,6 +10,7 @@ from haui_compass.application.ports.knowledge import (
     RetrievalQuery,
     RetrievedChunk,
 )
+from haui_compass.infrastructure.retrieval.course_terms import query_terms
 
 _STOP_WORDS = {
     "a",
@@ -49,13 +50,14 @@ class LocalLexicalKnowledgeRetriever:
             chunk
             for chunk in self._chunks
             if chunk.metadata.scope == request.scope
+            and (request.source_type is None or chunk.metadata.source_type == request.source_type)
             and (request.scope != "course" or chunk.metadata.course_id == request.course_id)
         )
         if not candidates:
             return ()
         # Explicit lexical expansion maps the demo's submission wording to the
         # authored deliverables phrase, while retaining the original query terms.
-        query_text = request.query
+        query_text = query_terms(request.query, request.course_id)
         if "nộp những" in query_text.casefold() or "deliverables" in query_text.casefold():
             query_text += " đầu ra dự kiến"
         query_tokens = _tokens(query_text)

@@ -14,6 +14,7 @@ type Props = {
   initialMessages: ChatMessage[];
   initialSessionId?: string;
   onCitation: (citation: MessageCitation) => void;
+  embedded?: boolean;
 };
 const actions = [
   [
@@ -51,6 +52,7 @@ export function AssistantPanel({
   initialMessages,
   initialSessionId,
   onCitation,
+  embedded = false,
 }: Props) {
   const [sessions, setSessions] = useState(initialSessions);
   const [sessionId, setSessionId] = useState(initialSessionId);
@@ -209,7 +211,10 @@ export function AssistantPanel({
       : null);
   function content(mobile: boolean) {
     return (
-      <section className={styles.panel} aria-label="Trợ lý Compass">
+      <section
+        className={`${styles.panel} ${embedded ? styles.embedded : ""}`}
+        aria-label="Trợ lý Compass"
+      >
         <header className={styles.header}>
           <div>
             <span className={styles.mark}>✦</span>
@@ -265,7 +270,7 @@ export function AssistantPanel({
           {!messages.length && (
             <div className={styles.intro}>
               <h3>Bạn muốn tìm hiểu gì?</h3>
-              <p>Hỏi, giải thích và ôn tập từ tài liệu bạn đang học.</p>
+
               <div className={styles.actions}>
                 {actions.map(([title, prompt]) => (
                   <button
@@ -369,16 +374,22 @@ export function AssistantPanel({
   }
   return (
     <>
-      <button
-        className={styles.mobileTrigger}
-        onClick={() => dialog.current?.showModal()}
-      >
-        ✦ Hỏi trợ lý
-      </button>
-      <div className={styles.desktop}>{content(false)}</div>
-      <dialog ref={dialog} className={styles.dialog}>
-        {content(true)}
-      </dialog>
+      {!embedded && (
+        <button
+          className={styles.mobileTrigger}
+          onClick={() => dialog.current?.showModal()}
+        >
+          ✦ Hỏi trợ lý
+        </button>
+      )}
+      <div className={embedded ? styles.embeddedDock : styles.desktop}>
+        {content(false)}
+      </div>
+      {!embedded && (
+        <dialog ref={dialog} className={styles.dialog}>
+          {content(true)}
+        </dialog>
+      )}
     </>
   );
 }

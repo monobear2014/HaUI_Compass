@@ -16,9 +16,15 @@ import auth from "./auth.module.css";
 export function CompassAuth({
   mode,
   nextPath,
+  googleEnabled = false,
+  initialError = "",
+  demoEnabled = false,
 }: {
   mode: "login" | "register";
   nextPath: string;
+  googleEnabled?: boolean;
+  initialError?: string;
+  demoEnabled?: boolean;
 }) {
   const { language, theme } = usePreferences();
   const vi = language === "vi";
@@ -30,8 +36,14 @@ export function CompassAuth({
   const [detailsStep, setDetailsStep] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState(initialError);
   const messages: Record<string, string> = {
+    google_unavailable: vi
+      ? "Đăng nhập Google hiện chưa khả dụng. Bạn vẫn có thể dùng tài khoản HaUI Compass."
+      : "Google sign-in is currently unavailable. You can still use your HaUI Compass account.",
+    google_failed: vi
+      ? "Chưa thể đăng nhập bằng Google. Vui lòng thử lại."
+      : "Google sign-in did not complete. Please try again.",
     invalid_input: vi
       ? "Thông tin chưa hợp lệ. Vui lòng kiểm tra lại."
       : "Invalid input. Please check your details.",
@@ -89,7 +101,7 @@ export function CompassAuth({
       window.location.assign(
         result.role === "lecturer" || nextPath === "/lecturer"
           ? "/lecturer"
-          : `/onboarding?next=${encodeURIComponent(nextPath)}`,
+          : nextPath,
       );
     } catch {
       setError("unavailable");
@@ -131,31 +143,48 @@ export function CompassAuth({
                   : "Sign in"
             }
           >
-            {registering ? (
-              <Link
+            {googleEnabled ? (
+              <a
                 className={auth.demoButton}
-                href={`/login?next=${encodeURIComponent(nextPath)}`}
+                href={`/api/auth/google?next=${encodeURIComponent(nextPath)}`}
               >
-                <CompassMark size={22} />
-                {vi
-                  ? "Dùng tài khoản demo có sẵn"
-                  : "Use the existing demo account"}
-              </Link>
+                {vi ? "Tiếp tục với Google" : "Continue with Google"}
+              </a>
             ) : (
-              <button
-                className={auth.demoButton}
-                type="button"
-                disabled={busy}
-                onClick={() => {
-                  setUsername("demo");
-                  setPassword("haui123");
-                  setError("");
-                }}
-              >
-                <CompassMark size={22} />
-                {vi ? "Điền tài khoản demo" : "Fill demo account"}
-              </button>
+              <>
+                <p>
+                  {vi
+                    ? "Đăng nhập Google hiện chưa khả dụng."
+                    : "Google sign-in is currently unavailable."}
+                </p>
+              </>
             )}
+            {demoEnabled &&
+              (registering ? (
+                <Link
+                  className={auth.demoButton}
+                  href={`/login?next=${encodeURIComponent(nextPath)}`}
+                >
+                  <CompassMark size={22} />
+                  {vi
+                    ? "Dùng tài khoản demo có sẵn"
+                    : "Use the existing demo account"}
+                </Link>
+              ) : (
+                <button
+                  className={auth.demoButton}
+                  type="button"
+                  disabled={busy}
+                  onClick={() => {
+                    setUsername("demo");
+                    setPassword("haui123");
+                    setError("");
+                  }}
+                >
+                  <CompassMark size={22} />
+                  {vi ? "Điền tài khoản demo" : "Fill demo account"}
+                </button>
+              ))}
             <div className={auth.divider}>
               <span>{vi ? "hoặc" : "or"}</span>
             </div>
@@ -336,16 +365,13 @@ export function CompassAuth({
               </Link>
             </p>
           </section>
-          <details className={auth.demoNote}>
-            <summary>
-              DEMO · <code>demo / haui123</code>
-            </summary>
-            <p>
-              {vi
-                ? "Các tài khoản dùng chung dữ liệu học tập giả lập. Chỉ dùng tên và mật khẩu thử nghiệm, không dùng mật khẩu thật."
-                : "Accounts share fictional learning data. Use a test name and password, not your real credentials."}
-            </p>
-          </details>
+          {demoEnabled && (
+            <details className={auth.demoNote}>
+              <summary>
+                DEMO · <code>demo / haui123</code>
+              </summary>
+            </details>
+          )}
         </div>
       </section>
       <aside
@@ -378,11 +404,7 @@ export function CompassAuth({
             </>
           )}
         </h3>
-        <p className={auth.caption}>
-          {vi
-            ? "Một không gian học tập dành cho sinh viên"
-            : "One study space, built around students"}
-        </p>
+
         <div className={auth.pillars}>
           <span>
             <CIcon name="plan" size={24} />
@@ -397,12 +419,6 @@ export function CompassAuth({
             {vi ? "Điều chỉnh" : "Adapt"}
           </span>
         </div>
-        <p className={auth.project}>
-          HaUI Compass ·{" "}
-          {vi
-            ? "Đồ án tốt nghiệp · Dữ liệu demo"
-            : "Graduation project · Demo data"}
-        </p>
       </aside>
     </main>
   );

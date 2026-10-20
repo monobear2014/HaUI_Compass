@@ -10,10 +10,13 @@ from haui_compass.application.academic_import import (
     ImportedAcademicDataProvider,
 )
 from haui_compass.application.ports.clock import Clock
+from haui_compass.application.ports.companion import AgentAdviceProvider, CompanionRepository
+from haui_compass.application.ports.courseware import PublicCourseware
 from haui_compass.application.ports.documents import PdfTextExtractor
 from haui_compass.application.ports.executions import TaskExecutionRepository
 from haui_compass.application.ports.explanation import RecommendationExplanationProvider
 from haui_compass.application.ports.knowledge import GroundedAnswerProvider
+from haui_compass.application.ports.learning_preferences import LearningPreferenceRepository
 from haui_compass.application.ports.lms import LMSProvider
 from haui_compass.application.ports.reflections import ConfirmedReflectionRepository
 from haui_compass.application.ports.study_plans import StudyPlanRepository
@@ -22,6 +25,7 @@ from haui_compass.application.ports.task_decomposition import (
     TaskDecompositionSessionStore,
 )
 from haui_compass.application.ports.tasks import TaskRepository
+from haui_compass.application.ports.ticket_board import TicketBoardRepository
 from haui_compass.application.ports.transactions import PersistenceTransactionManager
 from haui_compass.application.ports.weekly_goals import WeeklyGoalRepository
 from haui_compass.application.use_cases.confirm_reflection_signals import ConfirmReflectionSignals
@@ -60,8 +64,12 @@ from haui_compass.infrastructure.llm.openai_responses import (
     ResponsesTransport,
 )
 from haui_compass.infrastructure.lms.mock import MockLMSProvider
+from haui_compass.infrastructure.persistence.memory.companion import InMemoryCompanionRepository
 from haui_compass.infrastructure.persistence.memory.executions import (
     InMemoryTaskExecutionRepository,
+)
+from haui_compass.infrastructure.persistence.memory.learning_preferences import (
+    InMemoryLearningPreferenceRepository,
 )
 from haui_compass.infrastructure.persistence.memory.reflections import (
     InMemoryConfirmedReflectionRepository,
@@ -71,6 +79,9 @@ from haui_compass.infrastructure.persistence.memory.task_decompositions import (
     InMemoryTaskDecompositionSessionStore,
 )
 from haui_compass.infrastructure.persistence.memory.tasks import InMemoryTaskRepository
+from haui_compass.infrastructure.persistence.memory.ticket_board import (
+    InMemoryTicketBoardRepository,
+)
 from haui_compass.infrastructure.persistence.memory.transactions import (
     InMemoryPersistenceTransactionManager,
 )
@@ -78,6 +89,7 @@ from haui_compass.infrastructure.persistence.memory.weekly_goals import (
     InMemoryWeeklyGoalRepository,
 )
 from haui_compass.infrastructure.reflection_coach.template import TemplateReflectionCoachProvider
+from haui_compass.infrastructure.retrieval.catalog import LocalPublicCourseware
 from haui_compass.infrastructure.retrieval.ingestion import ingest_manifest
 from haui_compass.infrastructure.retrieval.lexical import LocalLexicalKnowledgeRetriever
 from haui_compass.infrastructure.retrieval.pdf import PypdfTextExtractor
@@ -111,6 +123,12 @@ class AppContainer:
     weekly_goal_repository: WeeklyGoalRepository
     weekly_cycle: WeeklyCycle
     coach_weekly_reflection: CoachWeeklyReflection
+    ticket_boards: TicketBoardRepository
+    companion_repository: CompanionRepository
+    agent_advice: AgentAdviceProvider | None
+    agent_timeout: float
+    learning_preferences: LearningPreferenceRepository
+    public_courseware: PublicCourseware
 
 
 def build_container(
@@ -180,6 +198,12 @@ def build_container(
     corpus_root = knowledge_root or Path(__file__).resolve().parents[5] / "data"
     knowledge_retriever = LocalLexicalKnowledgeRetriever(ingest_manifest(corpus_root))
     return AppContainer(
+        ticket_boards=InMemoryTicketBoardRepository(),
+        companion_repository=InMemoryCompanionRepository(),
+        agent_advice=llm_adapter,
+        agent_timeout=core_flow_timeout,
+        learning_preferences=InMemoryLearningPreferenceRepository(),
+        public_courseware=LocalPublicCourseware(corpus_root),
         pdf_text_extractor=PypdfTextExtractor(),
         compass_answer=GroundedAnswerService(
             template=TemplateGroundedAnswerProvider(),

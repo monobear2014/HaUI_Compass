@@ -37,3 +37,23 @@ def submission_progress(
         "on_time_due": on_time_due,
         "on_time_rate": round(on_time_due / matured * 100, 1) if matured else None,
     }
+
+
+def submission_comparison(
+    before: Iterable[tuple[datetime | None, datetime | None]],
+    after: Iterable[tuple[datetime | None, datetime | None]],
+    *,
+    as_of: datetime,
+) -> dict[str, object]:
+    """Descriptive comparison only; no causal claim or imputation for empty periods."""
+    baseline = submission_progress(before, as_of=as_of)
+    followup = submission_progress(after, as_of=as_of)
+    before_rate = baseline["on_time_rate"]
+    after_rate = followup["on_time_rate"]
+    return {
+        "before": baseline,
+        "after": followup,
+        "change_percentage_points": round(after_rate - before_rate, 1)
+        if isinstance(before_rate, (float, int)) and isinstance(after_rate, (float, int))
+        else None,
+    }

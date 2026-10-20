@@ -4,6 +4,7 @@ import asyncio
 import logging
 from dataclasses import dataclass
 
+from haui_compass.application.academic_integrity import GUIDANCE, requires_guidance
 from haui_compass.application.ports.knowledge import (
     AnswerSource,
     CitationEvidence,
@@ -38,6 +39,16 @@ class GroundedAnswerService:
         self.unavailable_reason = unavailable_reason
 
     async def generate(self, request: GroundedAnswerInput) -> GeneratedAnswer:
+        if requires_guidance(
+            request.question, tuple(turn.content for turn in request.history if turn.role == "user")
+        ):
+            return GeneratedAnswer(
+                ProviderGroundedAnswer(answer=GUIDANCE, citation_handles=(), abstained=True),
+                "template",
+                "academic_integrity",
+            )
+        if not request.evidence and not (request.conversational and self.provider is not None):
+            return GeneratedAnswer(None, "template", "insufficient_evidence")
         if self.provider is None:
             return GeneratedAnswer(
                 await self.template.answer(request), "template", self.unavailable_reason

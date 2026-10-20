@@ -6,13 +6,11 @@ import type { StudyDocument, DocumentStudyProgress } from "@/lib/documents";
 import { fileSize } from "@/lib/documents";
 import { usePreferences } from "../preferences";
 import { Icon } from "../icons";
-import { ToolArtwork } from "./document-journey";
 import styles from "./learning-home.module.css";
 
 type LearningDocument = StudyDocument & { progress: DocumentStudyProgress };
 
 export function LearningHome({
-  name,
   documents,
 }: {
   name: string;
@@ -31,24 +29,11 @@ export function LearningHome({
       ),
     [documents, query, filter],
   );
-  const recent = [...documents].sort((a, b) =>
-    (b.progress.updatedAt || b.createdAt).localeCompare(
-      a.progress.updatedAt || a.createdAt,
-    ),
-  )[0];
   return (
     <div className={styles.page}>
       <header className={styles.welcome}>
         <div>
-          <p className={styles.eyebrow}>
-            {vi ? "MỘT CHÚT MỖI NGÀY" : "A LITTLE EVERY DAY"}
-          </p>
           <h1>{vi ? "Hôm nay, mình học gì?" : "What will you learn today?"}</h1>
-          <p>
-            {vi
-              ? `Chào ${name}. Bắt đầu từ tài liệu của bạn, theo nhịp của bạn.`
-              : `Hi ${name}. Your materials, your pace.`}
-          </p>
         </div>
         <span className={styles.welcomeArt}>
           <Icon name="compass" size={54} />
@@ -56,59 +41,49 @@ export function LearningHome({
         </span>
       </header>
       <section
-        className={styles.start}
-        aria-label={vi ? "Điểm bắt đầu" : "Start here"}
+        className={styles.connections}
+        aria-label={vi ? "Chu trình học tập" : "Learning cycle"}
       >
+        <h2>Plan → Do → Reflect</h2>
+
         <div>
-          <span className={styles.eyebrow}>
-            {recent
-              ? vi
-                ? "TIẾP NỐI VIỆC HỌC"
-                : "PICK UP WHERE YOU LEFT OFF"
-              : vi
-                ? "GÓC HỌC TẬP CỦA BẠN"
-                : "YOUR STUDY CORNER"}
-          </span>
-          <h2>
-            {recent?.name ||
-              (vi
-                ? "Mang tài liệu vào. Bắt đầu học."
-                : "Bring a file. Start learning.")}
-          </h2>
-          <p>
-            {recent
-              ? vi
-                ? recent.kind === "pdf"
-                  ? "Mở bản gốc để tiếp tục đọc tài liệu của bạn."
-                  : "Đọc, ôn thẻ và tự kiểm tra trong cùng một bộ học tập."
-                : recent.kind === "pdf"
-                  ? "Open the original file to continue reading."
-                  : "Read, review flashcards and recall in one study set."
-              : vi
-                ? "Thêm bài giảng hoặc ghi chú để tạo bộ học tập đầu tiên."
-                : "Add lecture notes or a reading to create your first study set."}
-          </p>
-          <Link
-            className="primary"
-            href={
-              recent
-                ? `/study-set/${recent.id}`
-                : "/onboarding/upload?next=%2Flearn"
-            }
-          >
-            {recent
-              ? vi
-                ? "Tiếp tục học"
-                : "Continue learning"
-              : vi
-                ? "Thêm tài liệu"
-                : "Add materials"}
-            <Icon name="arrow" size={17} />
-          </Link>
+          {[
+            {
+              href: "/plan",
+              icon: "plan",
+              title: vi ? "1. Lên kế hoạch" : "1. Plan your week",
+              detail: vi
+                ? "Sắp xếp thời gian và chia nhỏ nhiệm vụ."
+                : "Arrange study time and break down assignments.",
+            },
+            {
+              href: "/today",
+              icon: "today",
+              title: vi ? "2. Bắt tay vào làm" : "2. Take action",
+              detail: vi
+                ? "Chọn việc tiếp theo và ghi nhận tiến độ."
+                : "Choose your next task and record progress.",
+            },
+            {
+              href: "/reflect",
+              icon: "reflect",
+              title: vi ? "3. Nhìn lại việc học" : "3. Reflect and adjust",
+              detail: vi
+                ? "Nhìn lại khó khăn để điều chỉnh kế hoạch."
+                : "Review difficulties and adjust your plan.",
+            },
+          ].map((item) => (
+            <Link key={item.href} href={item.href}>
+              <span>
+                <Icon name={item.icon} size={23} />
+              </span>
+              <div>
+                <h3>{item.title}</h3>
+              </div>
+              <Icon name="arrow" size={17} />
+            </Link>
+          ))}
         </div>
-        <span className={styles.startArt}>
-          <ToolArtwork kind="book" />
-        </span>
       </section>
       <div className={styles.sectionHead}>
         <h2>{vi ? "Bộ học tập của bạn" : "Your study sets"}</h2>
@@ -140,23 +115,30 @@ export function LearningHome({
           <option value="text">TXT / Markdown</option>
           <option value="pdf">PDF</option>
         </select>
-        <Link className="secondary" href="/onboarding/upload?next=%2Flearn">
-          <Icon name="plus" size={16} />
-          {vi ? "Thêm tài liệu" : "Add materials"}
-        </Link>
+        {documents.length > 0 && (
+          <Link className="secondary" href="/documents/upload?next=%2Flearn">
+            <Icon name="plus" size={16} />
+            {vi ? "Thêm tài liệu" : "Add materials"}
+          </Link>
+        )}
       </div>
       <div className={styles.sets}>
-        <Link className={styles.create} href="/onboarding/upload?next=%2Flearn">
-          <span>
-            <Icon name="plus" size={25} />
-          </span>
-          <strong>{vi ? "Tạo bộ học tập" : "Create a study set"}</strong>
-          <small>
-            {vi
-              ? "Bắt đầu với PDF, TXT hoặc Markdown"
-              : "Start with PDF, TXT or Markdown"}
-          </small>
-        </Link>
+        {documents.length === 0 && (
+          <Link
+            className={styles.create}
+            href="/documents/upload?next=%2Flearn"
+          >
+            <span>
+              <Icon name="plus" size={25} />
+            </span>
+            <strong>{vi ? "Tạo bộ học tập" : "Create a study set"}</strong>
+            <small>
+              {vi
+                ? "Bắt đầu với PDF, TXT hoặc Markdown"
+                : "Start with PDF, TXT or Markdown"}
+            </small>
+          </Link>
+        )}
         {visible.map((doc, index) => {
           const total =
             doc.kind === "text" ? Math.max(doc.headings.length, 1) : 0;
@@ -169,7 +151,7 @@ export function LearningHome({
                 <span className={styles.setIcon} data-color={index % 4}>
                   <Icon name="book" size={25} />
                 </span>
-                <h3>{doc.name}</h3>
+                <h3 title={doc.name}>{doc.name}</h3>
                 <p>
                   {doc.kind === "pdf" ? "PDF" : "TXT / Markdown"} ·{" "}
                   {fileSize(doc.size)} ·{" "}
@@ -186,6 +168,13 @@ export function LearningHome({
                 <div className={styles.track}>
                   <span style={{ width: `${percent || 0}%` }} />
                 </div>
+              </Link>
+              <Link
+                className={styles.roadmapLink}
+                href={`/onboarding/ready?next=%2Flearn&ids=${encodeURIComponent(doc.id)}`}
+              >
+                {vi ? "Lộ trình học" : "Learning roadmap"}
+                <Icon name="arrow" size={14} />
               </Link>
               <div className={styles.setActions}>
                 <Link href={`/documents/${doc.id}`}>
@@ -207,51 +196,6 @@ export function LearningHome({
             : "No matching materials. Try another name."}
         </p>
       )}
-      <section
-        className={styles.connections}
-        aria-label={vi ? "Sắp xếp việc học" : "Organize your learning"}
-      >
-        <h2>{vi ? "Để việc học nhẹ nhàng hơn" : "Make room for learning"}</h2>
-        <div>
-          {[
-            {
-              href: "/today",
-              icon: "today",
-              title: vi ? "Việc hôm nay" : "Today's focus",
-              detail: vi
-                ? "Chọn việc cần làm trước."
-                : "Find your next priority.",
-            },
-            {
-              href: "/plan",
-              icon: "plan",
-              title: vi ? "Kế hoạch tuần" : "Weekly plan",
-              detail: vi
-                ? "Dành thời gian cho từng việc."
-                : "Make time for each task.",
-            },
-            {
-              href: "/knowledge",
-              icon: "ask",
-              title: vi ? "Hỏi tài liệu" : "Ask with sources",
-              detail: vi
-                ? "Tra cứu kho tài liệu mẫu, có nguồn."
-                : "Ask the demo library with citations.",
-            },
-          ].map((item) => (
-            <Link key={item.href} href={item.href}>
-              <span>
-                <Icon name={item.icon} size={23} />
-              </span>
-              <div>
-                <h3>{item.title}</h3>
-                <p>{item.detail}</p>
-              </div>
-              <Icon name="arrow" size={17} />
-            </Link>
-          ))}
-        </div>
-      </section>
       <details className={styles.notice}>
         <summary>
           {vi ? "Về dữ liệu trong bản demo" : "About this demo's data"}

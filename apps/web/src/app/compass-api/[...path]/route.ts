@@ -1,4 +1,7 @@
 import { NextRequest } from "next/server";
+import { attachDocumentContext } from "@/lib/companion-document-context";
+import { DocumentError } from "@/lib/document-store";
+import { clearLegacyChatHistory } from "@/lib/compass-chat-store";
 import { isLecturer } from "@/lib/lecturer-access";
 import { getSessionUser, sameOrigin, SESSION_COOKIE } from "@/lib/demo-auth";
 import {
@@ -45,13 +48,15 @@ async function forward(
   // attaches the service key, so it must not forward to them at all.
   if (path[0] === "internal")
     return Response.json({ error: { code: "forbidden" } }, { status: 403 });
+  if (path.join("/") === "companion/import-document-history")
+    return Response.json({ error: { code: "forbidden" } }, { status: 403 });
   const target = new URL(
     `/api/v1/${path.map(encodeURIComponent).join("/")}`,
     resolveCompassApiUrl(),
   );
   target.search = request.nextUrl.search;
   try {
-    const body = ["GET", "HEAD"].includes(request.method)
+    let body = ["GET", "HEAD"].includes(request.method)
       ? undefined
       : await request.arrayBuffer();
     if (body && body.byteLength > 10 * 1024 * 1024)
@@ -70,6 +75,38 @@ async function forward(
     // The API trusts the account only together with the shared service key, so a
     // browser can never choose whose learning data it reads or writes.
     const serviceKey = process.env.COMPASS_SERVICE_KEY;
+    if (
+      request.method === "POST" &&
+      path.join("/") === "companion/messages" &&
+      body
+    ) {
+      const input = JSON.parse(new TextDecoder().decode(body));
+      if (!input || typeof input !== "object" || Array.isArray(input))
+        return Response.json(
+          { error: { code: "invalid_input" } },
+          { status: 400 },
+        );
+      await attachDocumentContext(user.id, input, async (id) => {
+        if (!/^[a-f0-9-]{36}$/i.test(id))
+          throw new DocumentError("invalid_input", 400);
+        const history = await fetch(
+          new URL(`/api/v1/companion/conversations/${id}`, target),
+          {
+            headers: {
+              "X-Compass-User": user.id,
+              "X-Compass-Service-Key": serviceKey || "",
+            },
+            cache: "no-store",
+            redirect: "error",
+            signal: AbortSignal.timeout(10000),
+          },
+        );
+        if (!history.ok)
+          throw new DocumentError("conversation_unavailable", history.status);
+        return history.json();
+      });
+      body = new TextEncoder().encode(JSON.stringify(input)).buffer;
+    }
     const response = await fetch(target, {
       method: request.method,
       headers: {
@@ -83,6 +120,12 @@ async function forward(
       redirect: "manual",
       signal: AbortSignal.timeout(60_000),
     });
+    if (
+      response.ok &&
+      request.method === "DELETE" &&
+      path.join("/") === "companion/history"
+    )
+      await clearLegacyChatHistory(user.id);
     return new Response(response.body, {
       status: response.status,
       headers: {
@@ -91,7 +134,17 @@ async function forward(
         "Cache-Control": "no-store",
       },
     });
-  } catch {
+  } catch (error) {
+    if (error instanceof DocumentError)
+      return Response.json(
+        { error: { code: error.code } },
+        { status: error.status },
+      );
+    if (error instanceof SyntaxError)
+      return Response.json(
+        { error: { code: "invalid_input" } },
+        { status: 400 },
+      );
     return Response.json(
       {
         error: {

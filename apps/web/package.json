@@ -18,11 +18,16 @@
     "db:migrate": "node scripts/migrate-web-postgres.mjs"
   },
   "dependencies": {
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^10.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
     "@vercel/blob": "^2.8.1",
+    "google-auth-library": "^11.3.1",
     "next": "^16.3.6",
     "pg": "^8.23.1",
     "react": "^19.2.0",
-    "react-dom": "^19.2.0"
+    "react-dom": "^19.2.0",
+    "sharp": "^0.34.5"
   },
   "devDependencies": {
     "@playwright/test": "^1.56.0",

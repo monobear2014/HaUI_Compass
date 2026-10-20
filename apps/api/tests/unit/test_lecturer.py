@@ -4,7 +4,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from haui_compass.api.app_factory import create_app
-from haui_compass.domain.lecturer import submission_progress
+from haui_compass.domain.lecturer import submission_comparison, submission_progress
 
 
 def test_submission_semantics() -> None:
@@ -36,6 +36,7 @@ def test_submission_semantics() -> None:
 
 
 def test_role_and_class_isolation(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("COMPASS_LECTURER_FIXTURE", "1")
     monkeypatch.setenv("COMPASS_SERVICE_KEY", "test-only-service")
     monkeypatch.setenv(
         "COMPASS_LECTURER_GRANTS",
@@ -61,6 +62,12 @@ def test_role_and_class_isolation(monkeypatch: pytest.MonkeyPatch) -> None:
     assert main["progress"]["on_time_rate"] == 50
     assert small["suppressed"] and small["progress"] is None
     assert small["enrollment_count"] is None
+    assert small["comparison"] is None
+    comparison = main["comparison"]
+    assert comparison["simulated"] is True
+    assert comparison["before"]["on_time_rate"] == 25
+    assert comparison["after"]["on_time_rate"] == 50
+    assert comparison["change_percentage_points"] == 25
     assert "student_id" not in response.text and "submitted_at" not in response.text
     for identifier in ("canvas-demo-other", "unknown"):
         assert client.get(f"{url}/{identifier}/progress", headers=headers).status_code == 404
@@ -74,3 +81,13 @@ def test_invalid_grants_fail_closed(monkeypatch: pytest.MonkeyPatch) -> None:
     for value in ("[]", "{", '{"teacher": "lecturer"}', '{"teacher": [1]}'):
         monkeypatch.setenv("COMPASS_LECTURER_GRANTS", value)
         assert lecturer_classes("teacher") is None
+
+
+def test_comparison_uses_percentage_points_and_keeps_missing_period_unknown() -> None:
+    now = datetime(2026, 10, 18, tzinfo=UTC)
+    before = [(now, now), (now, None)]
+    after = [(now, now)]
+    assert submission_comparison(before, after, as_of=now)["change_percentage_points"] == 50
+    assert submission_comparison(after, before, as_of=now)["change_percentage_points"] == -50
+    assert submission_comparison([], after, as_of=now)["change_percentage_points"] is None
+    assert submission_comparison(before, [], as_of=now)["change_percentage_points"] is None

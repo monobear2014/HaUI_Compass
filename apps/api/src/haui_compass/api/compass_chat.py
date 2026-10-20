@@ -16,6 +16,7 @@ from pydantic import BaseModel, Field
 
 from haui_compass.api.dependencies import AppContainer
 from haui_compass.api.v1.routes import container_from_app
+from haui_compass.application.academic_integrity import GUIDANCE, requires_guidance
 from haui_compass.application.ports.documents import PdfExtractionError
 from haui_compass.application.ports.evaluation import (
     evaluation_events,
@@ -71,10 +72,14 @@ async def generate_answer(
     container: Annotated[AppContainer, Depends(container_from_app)],
     request_id: Annotated[str | None, Header(alias="X-Compass-Request-Id")] = None,
 ) -> dict[str, object]:
-    if not request.evidence:
-        return {"answer": ABSTENTION_MESSAGE, "citations": [], "status": "abstained"}
+    if requires_guidance(
+        request.message, tuple(turn.content for turn in request.history if turn.role == "user")
+    ):
+        return {"answer": GUIDANCE, "citations": [], "status": "abstained"}
     # A disabled provider is an operational error, not a fabricated AI answer.
     if container.compass_answer.provider is None:
+        if not request.evidence:
+            return {"answer": ABSTENTION_MESSAGE, "citations": [], "status": "abstained"}
         raise HTTPException(503, "llm_unavailable")
     evidence = tuple(
         CitationEvidence(
@@ -102,6 +107,7 @@ async def generate_answer(
                 history=tuple(
                     ConversationTurn(role=row.role, content=row.content) for row in request.history
                 ),
+                conversational=True,
             )
         )
         record_provider_metadata({"failure_reason": generated.fallback_reason})
@@ -116,7 +122,11 @@ async def generate_answer(
                 logger.warning("Compass evaluation trace unavailable")
     if generated.output is None:
         raise HTTPException(503, generated.fallback_reason)
-    validated = validate_grounded_answer(generated.output, evidence)
+    output = generated.output
+    if output.abstained and not output.citation_handles and output.answer.strip():
+        # Uncited conversational reply: shown as-is, never persisted with sources.
+        return {"answer": output.answer.strip()[:4000], "citations": [], "status": "abstained"}
+    validated = validate_grounded_answer(output, evidence)
     if validated is None:
         if not generated.output.abstained:
             logger.warning("Compass citation validation failed")

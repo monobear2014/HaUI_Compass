@@ -1,0 +1,55 @@
+{
+  "result": "PASS",
+  "url": "https://haui-compass-b3pjnu1c4-nam-4b71.vercel.app",
+  "state": "READY",
+  "target": null,
+  "backend": {
+    "passed": 1695
+  },
+  "workbench_ui": {
+    "passed": 6
+  },
+  "document_dock_regression": {
+    "passed": 21
+  },
+  "online": [
+    {
+      "check": "memory-confirmation-and-account-isolation",
+      "result": "PASS"
+    },
+    {
+      "check": "reflection-planning-handoff-read-only",
+      "result": "PASS"
+    },
+    {
+      "check": "idempotent-retry-and-role-boundaries",
+      "result": "PASS"
+    },
+    {
+      "check": "durable-memory-and-history-after-new-login",
+      "result": "PASS"
+    },
+    {
+      "check": "public-tutor-source-and-integrity",
+      "result": "PASS"
+    },
+    {
+      "check": "edit-delete-and-separate-history-controls",
+      "result": "PASS"
+    }
+  ],
+  "limitations": [
+    "Bounded custom agent orchestration, not LangGraph.",
+    "Live specialist responses can fall back on timeout; one reflection response was verified as AI."
+  ],
+  "aliases": [
+    {
+      "alias": "haui-compass.vercel.app",
+      "result": "PASS"
+    },
+    {
+      "alias": "haui-compass-preview-nam-4b71.vercel.app",
+      "result": "PASS"
+    }
+  ]
+}

@@ -5,13 +5,14 @@ import base from "./playwright.config";
 export default defineConfig({
   ...base,
   testIgnore: [],
-  testMatch: /lecturer\.spec\.ts/,
+  testMatch: /(^|\/)lecturer\.spec\.ts$/,
   webServer: (Array.isArray(base.webServer) ? base.webServer : []).map(
     (server) => ({
       ...server,
       reuseExistingServer: false,
       env: {
         ...server.env,
+        COMPASS_LECTURER_FIXTURE: "1",
         COMPASS_LECTURER_GRANTS:
           '{"student-demo":["canvas-demo-ai","canvas-demo-small"]}',
       },

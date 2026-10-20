@@ -25,6 +25,7 @@ import {
   WeeklyReview,
   Window,
 } from "@/lib/api";
+import { LearningPreferences } from "./learning-preferences";
 import { Icon } from "./icons";
 import { usePreferences } from "./preferences";
 import { TaskDecomposition } from "./task-decomposition";
@@ -263,7 +264,13 @@ function adjustmentText(
 
 /* ---------------- PLAN: goal → proposal → approve ---------------- */
 
-export function PlanWizard({ onApproved }: { onApproved: () => void }) {
+export function PlanWizard({
+  onApproved,
+  autoPreview = false,
+}: {
+  onApproved: () => void;
+  autoPreview?: boolean;
+}) {
   const { context, refresh } = useWorkspace();
   const c = useCopy();
   const { language } = usePreferences();
@@ -277,6 +284,8 @@ export function PlanWizard({ onApproved }: { onApproved: () => void }) {
   const [error, setError] = useState("");
   const recordId = useRef(crypto.randomUUID());
   const loadedFor = useRef("");
+  const autoPreviewStarted = useRef(false);
+  const formRef = useRef<HTMLFormElement | null>(null);
 
   useEffect(() => {
     if (!context) return;
@@ -295,6 +304,12 @@ export function PlanWizard({ onApproved }: { onApproved: () => void }) {
       })
       .catch((err) => setError(message(err)));
   }, [context]);
+
+  useEffect(() => {
+    if (!autoPreview || !draft || autoPreviewStarted.current) return;
+    autoPreviewStarted.current = true;
+    formRef.current?.requestSubmit();
+  }, [autoPreview, draft]);
 
   if (!context) return null;
   const ctx = context;
@@ -422,13 +437,30 @@ export function PlanWizard({ onApproved }: { onApproved: () => void }) {
   }
 
   return (
-    <form className="weekly-step" onSubmit={preview}>
+    <form ref={formRef} className="weekly-step" onSubmit={preview}>
       <ol className="weekly-progress" aria-label={c("Các bước", "Steps")}>
         <li aria-current="step">
           {c("Mục tiêu & thời gian rảnh", "Goal & free time")}
         </li>
         <li>{c("Xem & duyệt", "Review & approve")}</li>
       </ol>
+      {ctx.mode === SIMULATED_MODE && (
+        <LearningPreferences
+          period={ctx.period}
+          vi={language === "vi"}
+          onApply={(windows, targetMinutes, topics) => {
+            setRows(toRows(windows));
+            setTarget(targetMinutes);
+            if (topics.length)
+              setGoal((current) =>
+                current.trim()
+                  ? current
+                  : c("Ôn tập: ", "Revise: ") + topics.join(", ").slice(0, 470),
+              );
+            setProposal(null);
+          }}
+        />
+      )}
       {draft && draft.adjustments.length > 0 && (
         <section className="panel weekly-suggestions">
           <div className="section-heading">
@@ -528,12 +560,7 @@ export function PlanWizard({ onApproved }: { onApproved: () => void }) {
       </section>
       <section className="panel">
         <h2>{c("3. Thời gian rảnh của bạn", "3. Your free time")}</h2>
-        <p className="muted">
-          {c(
-            "Compass chỉ xếp lịch vào các khung giờ này.",
-            "Compass only schedules inside these windows.",
-          )}
-        </p>
+
         <FreeTimeEditor
           rows={rows}
           onChange={setRows}
@@ -575,9 +602,11 @@ function blockText(
 export function AdaptFlow({
   plan,
   onDone,
+  autoPreview = false,
 }: {
   plan: Plan;
   onDone: () => void;
+  autoPreview?: boolean;
 }) {
   const { context, refresh, setRevision } = useWorkspace();
   const c = useCopy();
@@ -601,6 +630,13 @@ export function AdaptFlow({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const recordId = useRef(crypto.randomUUID());
+  const autoPreviewStarted = useRef(false);
+  const formRef = useRef<HTMLFormElement | null>(null);
+  useEffect(() => {
+    if (!autoPreview || !context || autoPreviewStarted.current) return;
+    autoPreviewStarted.current = true;
+    formRef.current?.requestSubmit();
+  }, [autoPreview, context]);
   if (!context) return null;
   const ctx = context;
   const missed = missedBlocks(plan, ctx);
@@ -779,7 +815,7 @@ export function AdaptFlow({
   }
 
   return (
-    <form className="weekly-step" onSubmit={preview}>
+    <form ref={formRef} className="weekly-step" onSubmit={preview}>
       <section className="panel form-stack">
         <div className="section-heading">
           <h2>{c("Điều gì đã thay đổi?", "What changed?")}</h2>
@@ -800,12 +836,7 @@ export function AdaptFlow({
             </p>
           </div>
         )}
-        <p className="muted">
-          {c(
-            "Bấm “Tôi bận” ở khung giờ bạn không thể học, hoặc thêm khung giờ mới.",
-            "Mark windows you can no longer use as busy, or add new free time.",
-          )}
-        </p>
+
         <FreeTimeEditor
           rows={rows}
           onChange={setRows}
@@ -876,13 +907,12 @@ export function WeekAlerts({ plan }: { plan?: Plan }) {
   const now = Date.parse(context.now);
   const soon = (context.assignments || []).filter((a) => {
     const due = Date.parse(a.deadline);
-    const open = context.tasks.some(
-      (t) => t.assignment_id === a.assignment_id && t.status !== "completed",
-    );
     const high = recommendation?.assignment_risks.some(
       (r) => r.assignment_id === a.assignment_id && r.level === "high",
     );
-    return open && due > now && (due - now <= 48 * 3600000 || high);
+    // Task completion is not an authoritative LMS submission. Remind even when
+    // no tasks exist or all tasks are marked completed; do not claim overdue status.
+    return !a.submitted_at && (due - now <= 48 * 3600000 || high);
   });
   if (!missed.length && !soon.length) return null;
   return (
@@ -905,7 +935,10 @@ export function WeekAlerts({ plan }: { plan?: Plan }) {
         <div className="weekly-alert danger" key={a.assignment_id}>
           <Icon name="plan" size={18} />
           <p>
-            <strong>{a.title}</strong> · {c("hạn", "due")}{" "}
+            <strong>{a.title}</strong> ·{" "}
+            {Date.parse(a.deadline) <= now
+              ? c("Quá hạn chưa nộp", "Overdue, not submitted")
+              : c("hạn", "due")}{" "}
             {date(
               a.deadline,
               {
@@ -918,6 +951,9 @@ export function WeekAlerts({ plan }: { plan?: Plan }) {
               locale,
             )}
           </p>
+          <Link className="secondary small" href="/academic">
+            {c("Xem bài tập", "View assignment")}
+          </Link>
         </div>
       ))}
     </div>
@@ -1066,12 +1102,6 @@ export function FinishTask({
           {busy ? c("Đang lưu…", "Saving…") : c("Lưu", "Save")}
           <Icon name="check" size={16} />
         </button>
-        <p className="fine-print">
-          {c(
-            "Thời gian thực tế giúp Compass ước lượng sát hơn ở tuần sau.",
-            "Actual time helps Compass estimate better next week.",
-          )}
-        </p>
       </form>
     </dialog>
   );

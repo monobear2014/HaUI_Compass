@@ -130,6 +130,11 @@ class Provider:
         (None, "template", "not_configured"),
         (Provider(CoachText("Tuần ổn.", ("Bạn muốn giữ điều gì?",))), "ai", None),
         (Provider(CoachText("planned_minutes=300", ("?",))), "template", "invalid_output"),
+        (
+            Provider(CoachText("Cần cải thiện missed_sessions.", ("Bạn muốn đổi gì?",))),
+            "template",
+            "invalid_output",
+        ),
         (Provider(CoachText("ok", ())), "template", "invalid_output"),
         (Provider(error=RuntimeError("boom")), "template", "provider_error"),
         (Provider(CoachText("ok", ("?",)), delay=0.2), "template", "timeout"),

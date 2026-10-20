@@ -13,7 +13,7 @@ const serviceKey = "staging-e2e-service-key";
 
 export default defineConfig({
   testDir: "./tests",
-  testMatch: /staging-weekly-cycle\.spec\.ts/,
+  testMatch: /staging-(weekly-cycle|submissions|preferences|account)\.spec\.ts/,
   fullyParallel: false,
   workers: 1,
   timeout: 180000,
