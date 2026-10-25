@@ -91,6 +91,19 @@ def test_corrupt_spoofed_and_oversized_images_make_no_provider_call() -> None:
     transport.post_json.assert_not_called()
 
 
+def test_transparency_is_flattened_on_white_and_exif_is_removed() -> None:
+    source = Image.new("RGBA", (32, 32), (0, 0, 0, 0))
+    source.putpixel((16, 16), (0, 0, 0, 255))
+    exif = Image.Exif()
+    exif[0x010E] = "Synthetic private metadata must not reach provider"
+    stream = io.BytesIO()
+    source.save(stream, format="PNG", exif=exif)
+    with Image.open(io.BytesIO(normalize_image(stream.getvalue(), "image/png"))) as image:
+        assert image.getpixel((0, 0)) == (255, 255, 255)
+        assert image.getpixel((16, 16)) == (0, 0, 0)
+        assert not image.getexif()
+
+
 def test_provider_contract_is_stateless_structured_and_image_only() -> None:
     transport = AsyncMock()
     transport.post_json.return_value = response(GOLD)

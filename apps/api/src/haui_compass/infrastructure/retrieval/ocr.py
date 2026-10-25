@@ -91,7 +91,16 @@ def normalize_image(content: bytes, content_type: str) -> bytes:
                 ):
                     raise PdfExtractionError("image_limits_exceeded")
                 source.load()
-                image = ImageOps.exif_transpose(source).convert("RGB")
+                oriented = ImageOps.exif_transpose(source)
+                if "A" in oriented.getbands() or "transparency" in oriented.info:
+                    # Dropping alpha directly turns transparent black pixels into black
+                    # backgrounds and makes transparent diagrams/formulas unreadable.
+                    rgba = oriented.convert("RGBA")
+                    background = Image.new("RGBA", rgba.size, "white")
+                    image = Image.alpha_composite(background, rgba).convert("RGB")
+                else:
+                    image = oriented.convert("RGB")
+                image.info.clear()
                 image.thumbnail((MAX_SIDE, MAX_SIDE))
                 output = io.BytesIO()
                 image.save(output, format="PNG")
