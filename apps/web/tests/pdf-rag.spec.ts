@@ -149,17 +149,19 @@ test("real PDF ingestion, page citation navigation, original bytes, dedup and ow
   await page.goto(`/study-set/${document.id}?session=${session.id}`);
   if ((page.viewportSize()?.width ?? 1280) < 600)
     await page.getByRole("button", { name: "✦ Hỏi trợ lý" }).click();
-  await page
-    .getByRole("button", { name: /\[1\] ml-pages.pdf · Trang 2/ })
-    .filter({ visible: true })
-    .click();
-  await expect(page).toHaveURL(
+  // Unified Compass keeps sources collapsed and opens citations in a new tab.
+  await page.locator("summary").filter({ hasText: /Sources|Nguồn tham khảo/ }).click();
+  const opened = page.waitForEvent("popup");
+  await page.getByRole("link", { name: /ml-pages.pdf · (page|trang) 2/ }).click();
+  const reader = await opened;
+  await expect(reader).toHaveURL(
     new RegExp(`/documents/${document.id}\\?page=2$`),
   );
-  await expect(page.locator("iframe")).toHaveAttribute(
+  await expect(reader.locator("iframe")).toHaveAttribute(
     "src",
     `/api/documents/${document.id}#page=2`,
   );
+  await reader.close();
 });
 
 test("corrupt PDFs reject and valid empty/image PDFs remain unsupported", async ({

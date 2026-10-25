@@ -4,6 +4,8 @@ import { notFound, redirect } from "next/navigation";
 import { StudySet } from "@/components/compass/study-set";
 import { getSessionUser, SESSION_COOKIE } from "@/lib/demo-auth";
 import { findDocument, getDocumentStudyProgress } from "@/lib/document-store";
+import { extractedDocumentPages } from "@/lib/document-extracted-text";
+import { isImageDocument } from "@/lib/documents";
 
 export const metadata: Metadata = { title: "Bộ học tập · HaUI Compass" };
 
@@ -29,7 +31,15 @@ export default async function Page({
     <StudySet
       key={id}
       document={metadata}
-      text={document.kind === "text" ? content.toString("utf8") : null}
+      text={
+        isImageDocument(document.name)
+          ? (await extractedDocumentPages(user.id, id))
+              ?.map((page) => page.text)
+              .join("\n\n") || null
+          : document.kind === "text"
+            ? content.toString("utf8")
+            : null
+      }
       initialProgress={progress}
       initialMode={mode}
       initialChunk={chunk}

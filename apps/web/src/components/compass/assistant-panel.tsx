@@ -78,7 +78,7 @@ export function AssistantPanel({
   const ready = document.ingestionStatus === "ready";
   const statusText =
     document.ingestionStatus === "unsupported"
-      ? "PDF không có văn bản trích xuất được, rỗng hoặc được mã hóa. Trợ lý chưa hỗ trợ OCR; hãy tải bản PDF có văn bản hoặc TXT/Markdown."
+      ? "Chưa đọc được nội dung PDF. Hãy kiểm tra tệp, dùng bản rõ hơn hoặc tách tài liệu thành tối đa 4 trang cần OCR."
       : document.ingestionStatus === "failed"
         ? "Chưa xử lý được tài liệu. Hãy kiểm tra nội dung và tải lại."
         : !ready

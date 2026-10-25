@@ -1,0 +1,255 @@
+{
+  "dataset": "ocr-ai-vi-v1",
+  "dataset_sha256": "e4d79c7af325aa8d8946ac3373a4ff0d57efcdd5c215b9b1292aa848eda862d4",
+  "manifest_sha256": "c8ec2e906cdb17104a2c379d6433012dcaca7578f3dd1ad22bcd8d1e3b0f667d",
+  "ocr_implementation_sha256": "fadaa24ee4a114afe398c6c8e75ea6ed50cbba77784dd3f42b0b2156255e7fd5",
+  "mode": "live",
+  "split": "test",
+  "input_format": "pdf",
+  "model": "gpt-5-mini-2025-08-07",
+  "ocr_accuracy_measured": true,
+  "human_review_status": "not independently reviewed",
+  "qa_enabled": true,
+  "total": 10,
+  "passed": 10,
+  "categories": {
+    "vietnamese_text": 2,
+    "table": 3,
+    "math": 4,
+    "mixed": 1
+  },
+  "cases": [
+    {
+      "id": "OCR-VI-002",
+      "category": "vietnamese_text",
+      "split": "test",
+      "cer": 0.0,
+      "wer": 0.0,
+      "table_exact": true,
+      "table_cells_correct": 0,
+      "table_cells_total": 0,
+      "formulas_correct": 0,
+      "formulas_total": 0,
+      "formula_exact": true,
+      "passed": true,
+      "qa": [
+        {
+          "answer_matches_label": true,
+          "valid_citation": true,
+          "passed": true
+        }
+      ],
+      "latency_ms": 7216
+    },
+    {
+      "id": "OCR-VI-004",
+      "category": "vietnamese_text",
+      "split": "test",
+      "cer": 0.0,
+      "wer": 0.0,
+      "table_exact": true,
+      "table_cells_correct": 0,
+      "table_cells_total": 0,
+      "formulas_correct": 0,
+      "formulas_total": 0,
+      "formula_exact": true,
+      "passed": true,
+      "qa": [
+        {
+          "answer_matches_label": true,
+          "valid_citation": true,
+          "passed": true
+        }
+      ],
+      "latency_ms": 7343
+    },
+    {
+      "id": "OCR-VI-006",
+      "category": "table",
+      "split": "test",
+      "cer": 0.0,
+      "wer": 0.0,
+      "table_exact": true,
+      "table_cells_correct": 12,
+      "table_cells_total": 12,
+      "formulas_correct": 0,
+      "formulas_total": 0,
+      "formula_exact": true,
+      "passed": true,
+      "qa": [
+        {
+          "answer_matches_label": true,
+          "valid_citation": true,
+          "passed": true
+        }
+      ],
+      "latency_ms": 8548
+    },
+    {
+      "id": "OCR-VI-008",
+      "category": "table",
+      "split": "test",
+      "cer": 0.0,
+      "wer": 0.0,
+      "table_exact": true,
+      "table_cells_correct": 9,
+      "table_cells_total": 9,
+      "formulas_correct": 0,
+      "formulas_total": 0,
+      "formula_exact": true,
+      "passed": true,
+      "qa": [
+        {
+          "answer_matches_label": true,
+          "valid_citation": true,
+          "passed": true
+        }
+      ],
+      "latency_ms": 9296
+    },
+    {
+      "id": "OCR-VI-010",
+      "category": "math",
+      "split": "test",
+      "cer": 0.0,
+      "wer": 0.0,
+      "table_exact": true,
+      "table_cells_correct": 0,
+      "table_cells_total": 0,
+      "formulas_correct": 1,
+      "formulas_total": 1,
+      "formula_exact": true,
+      "passed": true,
+      "qa": [
+        {
+          "answer_matches_label": true,
+          "valid_citation": true,
+          "passed": true
+        }
+      ],
+      "latency_ms": 11662
+    },
+    {
+      "id": "OCR-VI-012",
+      "category": "math",
+      "split": "test",
+      "cer": 0.0,
+      "wer": 0.0,
+      "table_exact": true,
+      "table_cells_correct": 0,
+      "table_cells_total": 0,
+      "formulas_correct": 1,
+      "formulas_total": 1,
+      "formula_exact": true,
+      "passed": true,
+      "qa": [
+        {
+          "answer_matches_label": true,
+          "valid_citation": true,
+          "passed": true
+        }
+      ],
+      "latency_ms": 11486
+    },
+    {
+      "id": "OCR-VI-014",
+      "category": "math",
+      "split": "test",
+      "cer": 0.0,
+      "wer": 0.0,
+      "table_exact": true,
+      "table_cells_correct": 0,
+      "table_cells_total": 0,
+      "formulas_correct": 1,
+      "formulas_total": 1,
+      "formula_exact": true,
+      "passed": true,
+      "qa": [
+        {
+          "answer_matches_label": true,
+          "valid_citation": true,
+          "passed": true
+        }
+      ],
+      "latency_ms": 11095
+    },
+    {
+      "id": "OCR-VI-016",
+      "category": "mixed",
+      "split": "test",
+      "cer": 0.0,
+      "wer": 0.0,
+      "table_exact": true,
+      "table_cells_correct": 9,
+      "table_cells_total": 9,
+      "formulas_correct": 1,
+      "formulas_total": 1,
+      "formula_exact": true,
+      "passed": true,
+      "qa": [
+        {
+          "answer_matches_label": true,
+          "valid_citation": true,
+          "passed": true
+        }
+      ],
+      "latency_ms": 11150
+    },
+    {
+      "id": "OCR-VI-018",
+      "category": "table",
+      "split": "test",
+      "cer": 0.0,
+      "wer": 0.0,
+      "table_exact": true,
+      "table_cells_correct": 12,
+      "table_cells_total": 12,
+      "formulas_correct": 0,
+      "formulas_total": 0,
+      "formula_exact": true,
+      "passed": true,
+      "qa": [
+        {
+          "answer_matches_label": true,
+          "valid_citation": true,
+          "passed": true
+        }
+      ],
+      "latency_ms": 9079
+    },
+    {
+      "id": "OCR-VI-020",
+      "category": "math",
+      "split": "test",
+      "cer": 0.0,
+      "wer": 0.0,
+      "table_exact": true,
+      "table_cells_correct": 0,
+      "table_cells_total": 0,
+      "formulas_correct": 2,
+      "formulas_total": 2,
+      "formula_exact": true,
+      "passed": true,
+      "qa": [
+        {
+          "answer_matches_label": true,
+          "valid_citation": true,
+          "passed": true
+        }
+      ],
+      "latency_ms": 13281
+    }
+  ],
+  "metrics": {
+    "extracted_cases": 10,
+    "operational_failures": 0,
+    "mean_cer": 0.0,
+    "mean_wer": 0.0,
+    "table_cells_correct": 42,
+    "table_cells_total": 42,
+    "formulas_correct": 6,
+    "formulas_total": 6,
+    "qa_correct_with_citation": 10,
+    "qa_total": 10
+  }
+}

@@ -7,6 +7,7 @@ import { usePreferences } from "../preferences";
 import { CIcon } from "./primitives";
 import styles from "./study-set.module.css";
 import { ToolArtwork } from "./document-journey";
+import { DocumentMarkdown } from "../document-markdown";
 
 type Topic = { id: string; title: string; content: string };
 type Mode = "read" | "cards" | "recall";
@@ -275,7 +276,7 @@ export function StudySet({
               aria-label="Đoạn nguồn được trích dẫn"
             >
               <h2>{source.heading ?? document.name}</h2>
-              <pre className={styles.sourceText}>{source.content}</pre>
+              <DocumentMarkdown text={source.content} />
               <button
                 className={styles.secondary}
                 onClick={() => setSource(null)}
@@ -385,12 +386,14 @@ export function StudySet({
                 {mode === "read" ? (
                   <>
                     <h2>{topic.title}</h2>
-                    <pre className={styles.sourceText}>
-                      {topic.content ||
+                    <DocumentMarkdown
+                      text={
+                        topic.content ||
                         (vi
-                          ? "Mục này chưa có nội dung bên dưới tiêu đề."
-                          : "There is no text under this heading yet.")}
-                    </pre>
+                          ? "Mục này chưa có nội dung."
+                          : "This section has no text.")
+                      }
+                    />
                     <button
                       className={styles.primary}
                       disabled={saving}

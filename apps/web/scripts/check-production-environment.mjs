@@ -17,6 +17,8 @@ export function productionEnvironmentProblems(environment) {
   const problems = required.filter((name) => !environment[name]?.trim());
   if (environment.HAUI_COMPASS_SIMULATED_WORKSPACES !== "1")
     problems.push("HAUI_COMPASS_SIMULATED_WORKSPACES=1");
+  if (!/^(1|true|yes|on)$/i.test(environment.HAUI_COMPASS_OCR_ENABLED?.trim() || ""))
+    problems.push("HAUI_COMPASS_OCR_ENABLED=true");
   if (!/^(1|true|yes|on)$/i.test(environment.HAUI_COMPASS_LLM_ENABLED?.trim() || ""))
     problems.push("HAUI_COMPASS_LLM_ENABLED=true");
   if (!environment.BLOB_READ_WRITE_TOKEN?.trim() && !environment.VERCEL_OIDC_TOKEN?.trim())

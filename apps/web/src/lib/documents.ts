@@ -1,6 +1,16 @@
 // Shared UI contract for owner-scoped uploads and learning.
 export const MAX_DOCUMENT_BYTES = 5 * 1024 * 1024;
 export const MAX_DOCUMENT_FILES = 3;
+// Keep binary OCR requests below the serverless request-body bound.
+export const MAX_IMAGE_BYTES = 3 * 1024 * 1024;
+export function isImageDocument(name: string) {
+  return /\.(png|jpe?g|webp)$/i.test(name);
+}
+export function imageContentType(name: string) {
+  if (/\.png$/i.test(name)) return "image/png";
+  if (/\.webp$/i.test(name)) return "image/webp";
+  return "image/jpeg";
+}
 export type StudyDocument = {
   id: string;
   name: string;
@@ -9,12 +19,7 @@ export type StudyDocument = {
   createdAt: string;
   headings: string[];
   ingestionStatus?:
-    | "pending"
-    | "uploaded"
-    | "ingesting"
-    | "ready"
-    | "failed"
-    | "unsupported";
+    "pending" | "uploaded" | "ingesting" | "ready" | "failed" | "unsupported";
 };
 export type DocumentStudyProgress = {
   covered: string[];

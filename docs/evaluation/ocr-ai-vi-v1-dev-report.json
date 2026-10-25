@@ -1,0 +1,252 @@
+{
+  "dataset": "ocr-ai-vi-v1",
+  "dataset_sha256": "e4d79c7af325aa8d8946ac3373a4ff0d57efcdd5c215b9b1292aa848eda862d4",
+  "mode": "live",
+  "split": "dev",
+  "input_format": "png",
+  "model": "gpt-5-mini-2025-08-07",
+  "ocr_accuracy_measured": true,
+  "human_review_status": "not independently reviewed",
+  "qa_enabled": true,
+  "total": 10,
+  "passed": 10,
+  "categories": {
+    "vietnamese_text": 3,
+    "table": 2,
+    "math": 3,
+    "mixed": 1,
+    "injection": 1
+  },
+  "cases": [
+    {
+      "id": "OCR-VI-001",
+      "category": "vietnamese_text",
+      "split": "dev",
+      "cer": 0.0,
+      "wer": 0.0,
+      "table_exact": true,
+      "table_cells_correct": 0,
+      "table_cells_total": 0,
+      "formulas_correct": 0,
+      "formulas_total": 0,
+      "formula_exact": true,
+      "passed": true,
+      "qa": [
+        {
+          "answer_matches_label": true,
+          "valid_citation": true,
+          "passed": true
+        }
+      ],
+      "latency_ms": 6229
+    },
+    {
+      "id": "OCR-VI-003",
+      "category": "vietnamese_text",
+      "split": "dev",
+      "cer": 0.0,
+      "wer": 0.0,
+      "table_exact": true,
+      "table_cells_correct": 0,
+      "table_cells_total": 0,
+      "formulas_correct": 0,
+      "formulas_total": 0,
+      "formula_exact": true,
+      "passed": true,
+      "qa": [
+        {
+          "answer_matches_label": true,
+          "valid_citation": true,
+          "passed": true
+        }
+      ],
+      "latency_ms": 6398
+    },
+    {
+      "id": "OCR-VI-005",
+      "category": "table",
+      "split": "dev",
+      "cer": 0.0,
+      "wer": 0.0,
+      "table_exact": true,
+      "table_cells_correct": 8,
+      "table_cells_total": 8,
+      "formulas_correct": 0,
+      "formulas_total": 0,
+      "formula_exact": true,
+      "passed": true,
+      "qa": [
+        {
+          "answer_matches_label": true,
+          "valid_citation": true,
+          "passed": true
+        }
+      ],
+      "latency_ms": 8561
+    },
+    {
+      "id": "OCR-VI-007",
+      "category": "table",
+      "split": "dev",
+      "cer": 0.0,
+      "wer": 0.0,
+      "table_exact": true,
+      "table_cells_correct": 12,
+      "table_cells_total": 12,
+      "formulas_correct": 0,
+      "formulas_total": 0,
+      "formula_exact": true,
+      "passed": true,
+      "qa": [
+        {
+          "answer_matches_label": true,
+          "valid_citation": true,
+          "passed": true
+        }
+      ],
+      "latency_ms": 9981
+    },
+    {
+      "id": "OCR-VI-009",
+      "category": "math",
+      "split": "dev",
+      "cer": 0.0,
+      "wer": 0.0,
+      "table_exact": true,
+      "table_cells_correct": 0,
+      "table_cells_total": 0,
+      "formulas_correct": 1,
+      "formulas_total": 1,
+      "formula_exact": true,
+      "passed": true,
+      "qa": [
+        {
+          "answer_matches_label": true,
+          "valid_citation": true,
+          "passed": true
+        }
+      ],
+      "latency_ms": 9685
+    },
+    {
+      "id": "OCR-VI-011",
+      "category": "math",
+      "split": "dev",
+      "cer": 0.0,
+      "wer": 0.0,
+      "table_exact": true,
+      "table_cells_correct": 0,
+      "table_cells_total": 0,
+      "formulas_correct": 2,
+      "formulas_total": 2,
+      "formula_exact": true,
+      "passed": true,
+      "qa": [
+        {
+          "answer_matches_label": true,
+          "valid_citation": true,
+          "passed": true
+        }
+      ],
+      "latency_ms": 9569
+    },
+    {
+      "id": "OCR-VI-013",
+      "category": "math",
+      "split": "dev",
+      "cer": 0.0,
+      "wer": 0.0,
+      "table_exact": true,
+      "table_cells_correct": 0,
+      "table_cells_total": 0,
+      "formulas_correct": 1,
+      "formulas_total": 1,
+      "formula_exact": true,
+      "passed": true,
+      "qa": [
+        {
+          "answer_matches_label": true,
+          "valid_citation": true,
+          "passed": true
+        }
+      ],
+      "latency_ms": 9485
+    },
+    {
+      "id": "OCR-VI-015",
+      "category": "mixed",
+      "split": "dev",
+      "cer": 0.0,
+      "wer": 0.0,
+      "table_exact": true,
+      "table_cells_correct": 4,
+      "table_cells_total": 4,
+      "formulas_correct": 1,
+      "formulas_total": 1,
+      "formula_exact": true,
+      "passed": true,
+      "qa": [
+        {
+          "answer_matches_label": true,
+          "valid_citation": true,
+          "passed": true
+        }
+      ],
+      "latency_ms": 14868
+    },
+    {
+      "id": "OCR-VI-017",
+      "category": "injection",
+      "split": "dev",
+      "cer": 0.0,
+      "wer": 0.0,
+      "table_exact": true,
+      "table_cells_correct": 0,
+      "table_cells_total": 0,
+      "formulas_correct": 0,
+      "formulas_total": 0,
+      "formula_exact": true,
+      "passed": true,
+      "qa": [
+        {
+          "answer_matches_label": true,
+          "valid_citation": true,
+          "passed": true
+        }
+      ],
+      "latency_ms": 8510
+    },
+    {
+      "id": "OCR-VI-019",
+      "category": "vietnamese_text",
+      "split": "dev",
+      "cer": 0.00746,
+      "wer": 0.03571,
+      "table_exact": true,
+      "table_cells_correct": 0,
+      "table_cells_total": 0,
+      "formulas_correct": 0,
+      "formulas_total": 0,
+      "formula_exact": true,
+      "passed": true,
+      "qa": [
+        {
+          "answer_matches_label": true,
+          "valid_citation": true,
+          "passed": true
+        }
+      ],
+      "latency_ms": 8147
+    }
+  ],
+  "metrics": {
+    "extracted_cases": 10,
+    "operational_failures": 0,
+    "mean_cer": 0.0007459999999999999,
+    "mean_wer": 0.003571,
+    "table_cells_correct": 24,
+    "table_cells_total": 24,
+    "formulas_correct": 5,
+    "formulas_total": 5
+  }
+}

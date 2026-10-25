@@ -4,6 +4,8 @@ import { notFound, redirect } from "next/navigation";
 import { DocumentReader } from "@/components/compass/document-journey";
 import { getSessionUser, SESSION_COOKIE } from "@/lib/demo-auth";
 import { documentDeliveryUrl, findDocument } from "@/lib/document-store";
+import { extractedDocumentPages } from "@/lib/document-extracted-text";
+import { isImageDocument } from "@/lib/documents";
 
 export const metadata: Metadata = { title: "Đọc tài liệu · HaUI Compass" };
 export default async function Page({
@@ -29,7 +31,16 @@ export default async function Page({
       document={metadata}
       initialPage={Number.isInteger(page) && page > 0 && page <= 200 ? page : 1}
       sourceUrl={sourceUrl}
-      text={document.kind === "text" ? content.toString("utf8") : null}
+      text={
+        document.kind === "text" && !isImageDocument(document.name)
+          ? content.toString("utf8")
+          : null
+      }
+      extractedPages={
+        document.kind === "pdf" || isImageDocument(document.name)
+          ? (await extractedDocumentPages(user.id, id)) || []
+          : []
+      }
     />
   );
 }

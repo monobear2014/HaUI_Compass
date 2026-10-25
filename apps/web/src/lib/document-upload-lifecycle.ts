@@ -2,7 +2,7 @@ import "server-only";
 import { createHash, randomUUID } from "node:crypto";
 import { chunkText } from "./document-chunks";
 import { chunkPages, type PdfPage } from "./document-chunking.cjs";
-import { extractPdf } from "./pdf-extraction";
+import { extractImage, extractPdf } from "./pdf-extraction";
 import { DocumentError } from "./document-store";
 import {
   documentContentHead,
@@ -15,6 +15,9 @@ import {
 import {
   MAX_DOCUMENT_BYTES,
   MAX_DOCUMENT_FILES,
+  MAX_IMAGE_BYTES,
+  isImageDocument,
+  imageContentType,
   type StudyDocument,
 } from "./documents";
 import {
@@ -29,6 +32,10 @@ const CONTENT_TYPES = {
   txt: ["text/plain"],
   md: ["text/markdown", "text/plain"],
   markdown: ["text/markdown", "text/plain"],
+  png: ["image/png"],
+  jpg: ["image/jpeg"],
+  jpeg: ["image/jpeg"],
+  webp: ["image/webp"],
 } as const;
 
 type UploadKind = "pdf" | "text";
@@ -72,11 +79,17 @@ type TrustedCompletion = {
 };
 
 function extension(name: string) {
-  return /\.(pdf|txt|md|markdown)$/i.exec(name)?.[1].toLowerCase() as
+  return /\.(pdf|txt|md|markdown|png|jpg|jpeg|webp)$/i
+    .exec(name)?.[1]
+    .toLowerCase() as
     | "pdf"
     | "txt"
     | "md"
     | "markdown"
+    | "png"
+    | "jpg"
+    | "jpeg"
+    | "webp"
     | undefined;
 }
 
@@ -95,6 +108,8 @@ function descriptorParts(descriptor: UploadDescriptor) {
   if (!ext) throw new DocumentError("unsupported_format");
   if (!descriptor.size || descriptor.size > MAX_DOCUMENT_BYTES)
     throw new DocumentError("file_size", 413);
+  if (isImageDocument(name) && descriptor.size > MAX_IMAGE_BYTES)
+    throw new DocumentError("image_size", 413);
   const allowed = CONTENT_TYPES[ext];
   if (!allowed.includes(descriptor.contentType as never))
     throw new DocumentError("invalid_content_type");
@@ -139,7 +154,8 @@ export async function createUploadIntents(
     const usage = usageResult.rows[0];
     if (
       Number(usage?.count ?? 0) + prepared.length > 100 ||
-      Number(usage?.bytes ?? 0) + prepared.reduce((sum, file) => sum + file.size, 0) >
+      Number(usage?.bytes ?? 0) +
+        prepared.reduce((sum, file) => sum + file.size, 0) >
         50 * 1024 * 1024
     )
       throw new DocumentError("storage_full", 413);
@@ -187,7 +203,11 @@ export async function createUploadIntents(
         id,
         documentId,
         pathname,
-        clientPayload: JSON.stringify({ intentId: id, owner, storageKey: pathname }),
+        clientPayload: JSON.stringify({
+          intentId: id,
+          owner,
+          storageKey: pathname,
+        }),
         name: file.name,
         kind: file.kind,
         contentType: file.contentType,
@@ -263,12 +283,19 @@ function headingMetadata(text: string) {
     const marker = /^\s{0,3}(`{3,}|~{3,})/.exec(line)?.[1];
     if (marker) {
       if (!fence) fence = marker;
-      else if (marker[0] === fence[0] && marker.length >= fence.length) fence = null;
+      else if (marker[0] === fence[0] && marker.length >= fence.length)
+        fence = null;
       continue;
     }
     if (!fence) {
       const heading = /^ {0,3}#{1,6}[\t ]+(.+)$/.exec(line)?.[1];
-      if (heading) headings.push(heading.replace(/[\t ]+#+[\t ]*$/, "").trim().slice(0, 160));
+      if (heading)
+        headings.push(
+          heading
+            .replace(/[\t ]+#+[\t ]*$/, "")
+            .trim()
+            .slice(0, 160),
+        );
       if (headings.length === 12) break;
     }
   }
@@ -278,10 +305,23 @@ function headingMetadata(text: string) {
 async function validateActualContent(intent: UploadIntentRow, content: Buffer) {
   if (content.byteLength !== intent.expected_size)
     throw new DocumentError("file_size", 413);
+  if (isImageDocument(intent.name)) {
+    const pages = await extractImage(content, imageContentType(intent.name));
+    return {
+      headings: headingMetadata(pages.map((page) => page.text).join("\n\n")),
+      pages,
+    };
+  }
   if (intent.kind === "pdf") {
     if (!content.subarray(0, 5).equals(Buffer.from("%PDF-")))
       throw new DocumentError("invalid_pdf");
-    return { headings: [], pages: await extractPdf(content) };
+    const pages = await extractPdf(content);
+    return {
+      headings: headingMetadata(
+        pages?.map((page) => page.text).join("\n\n") || "",
+      ),
+      pages,
+    };
   }
   let text: string;
   try {
@@ -292,7 +332,9 @@ async function validateActualContent(intent: UploadIntentRow, content: Buffer) {
   if (!text.trim() || /[\u0000-\u0008\u000e-\u001f]/.test(text))
     throw new DocumentError("invalid_text");
   return {
-    headings: /\.(md|markdown)$/i.test(intent.name) ? headingMetadata(text) : [],
+    headings: /\.(md|markdown)$/i.test(intent.name)
+      ? headingMetadata(text)
+      : [],
     pages: undefined,
   };
 }
@@ -310,7 +352,9 @@ async function persistChunks(
         new TextDecoder("utf-8", { fatal: true }).decode(content),
         /\.(md|markdown)$/i.test(document.name),
       );
-  await client.query("DELETE FROM web.document_chunks WHERE document_id = $1", [documentId]);
+  await client.query("DELETE FROM web.document_chunks WHERE document_id = $1", [
+    documentId,
+  ]);
   for (const chunk of chunks) {
     await client.query(
       `INSERT INTO web.document_chunks
@@ -363,7 +407,12 @@ export async function completeUploadIntent(
       );
       throw new DocumentError("expired_upload_intent", 409);
     }
-    if (blob.size !== row.expected_size || !CONTENT_TYPES[row.kind === "pdf" ? "pdf" : extension(row.name)!].includes(blob.contentType as never))
+    if (
+      blob.size !== row.expected_size ||
+      !CONTENT_TYPES[
+        row.kind === "pdf" ? "pdf" : extension(row.name)!
+      ].includes(blob.contentType as never)
+    )
       throw new DocumentError("invalid_upload_completion", 400);
     const now = new Date().toISOString();
     await client.query(
@@ -379,7 +428,8 @@ export async function completeUploadIntent(
   });
   if (!transition) return { status: "ingesting" as const };
   const intent = transition as UploadIntentRow;
-  if (intent.status === "ready") return { status: "ready" as const, documentId: intent.document_id };
+  if (intent.status === "ready")
+    return { status: "ready" as const, documentId: intent.document_id };
 
   const claimed = await withWebPostgresTransaction(async (client) => {
     const result = await client.query<UploadIntentRow>(
@@ -416,7 +466,8 @@ export async function completeUploadIntent(
     content = await readDocumentContent(claimedIntent.storage_key);
     ({ headings, pages } = await validateActualContent(claimedIntent, content));
   } catch (error) {
-    const code = error instanceof DocumentError ? error.code : "ingestion_failed";
+    const code =
+      error instanceof DocumentError ? error.code : "ingestion_failed";
     await withWebPostgresTransaction(async (client) => {
       await client.query(
         `UPDATE web.document_upload_intents SET status = 'failed', error_code = $1,
@@ -455,12 +506,24 @@ export async function completeUploadIntent(
         );
         return;
       }
-      const count = await persistChunks(client, claimedIntent.document_id, claimedIntent, content, pages);
+      const count = await persistChunks(
+        client,
+        claimedIntent.document_id,
+        claimedIntent,
+        content,
+        pages,
+      );
       void count;
       await client.query(
         `UPDATE web.documents SET name = $1, size = $2, headings = $3::jsonb, hash = $4,
          ingestion_status = 'ready' WHERE id = $5`,
-        [claimedIntent.name, content.byteLength, JSON.stringify(headings), hash, claimedIntent.document_id],
+        [
+          claimedIntent.name,
+          content.byteLength,
+          JSON.stringify(headings),
+          hash,
+          claimedIntent.document_id,
+        ],
       );
       await client.query(
         `UPDATE web.document_upload_intents SET status = 'ready', updated_at = $1,
@@ -499,12 +562,20 @@ export async function reconcileUploadIntent(owner: string, intentId: string) {
   requireDirectUploadRuntime();
   const intent = await findIntent(owner, intentId);
   if (!intent) return null;
-  if (intent.status === "ready" || intent.status === "failed" || intent.status === "expired")
+  if (
+    intent.status === "ready" ||
+    intent.status === "failed" ||
+    intent.status === "expired"
+  )
     return intent;
   if (intent.expires_at <= Date.now()) {
     await completeUploadIntent(
       JSON.stringify({ intentId, owner, storageKey: intent.storage_key }),
-      { pathname: intent.storage_key, size: 0, contentType: intent.content_type },
+      {
+        pathname: intent.storage_key,
+        size: 0,
+        contentType: intent.content_type,
+      },
     ).catch(() => undefined);
     return findIntent(owner, intentId);
   }
@@ -513,7 +584,11 @@ export async function reconcileUploadIntent(owner: string, intentId: string) {
   try {
     await completeUploadIntent(
       JSON.stringify({ intentId, owner, storageKey: intent.storage_key }),
-      { pathname: intent.storage_key, size: object.size, contentType: object.contentType },
+      {
+        pathname: intent.storage_key,
+        size: object.size,
+        contentType: object.contentType,
+      },
     );
   } catch {
     // The durable failed state is written by completeUploadIntent when validation or ingestion fails.
@@ -570,7 +645,11 @@ export async function retryUploadIntent(owner: string, intentId: string) {
   if (!object) throw new DocumentError("storage_read_failed", 503);
   await completeUploadIntent(
     JSON.stringify({ intentId, owner, storageKey: intent.storage_key }),
-    { pathname: intent.storage_key, size: object.size, contentType: object.contentType },
+    {
+      pathname: intent.storage_key,
+      size: object.size,
+      contentType: object.contentType,
+    },
   );
   return getUploadIntentStatus(owner, intentId);
 }

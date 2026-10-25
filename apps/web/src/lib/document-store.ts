@@ -1,5 +1,6 @@
 import "server-only";
-import { extractPdf } from "./pdf-extraction";
+import { extractImage, extractPdf } from "./pdf-extraction";
+import { imageContentType, isImageDocument, MAX_IMAGE_BYTES } from "./documents";
 import {
   ingestDocument,
   migrateCompassChat,
@@ -33,7 +34,7 @@ import {
 } from "./web-database";
 
 // Local demo storage, separated by authenticated owner (unlike the shared learning API).
-// PDF text extraction is internal only; no OCR or generated study plan is implied.
+// Text extraction/OCR is internal; original files retain owner-scoped storage.
 let connection: DatabaseSync | undefined;
 export function documentDatabase() {
   if (isWebPostgresConfigured())
@@ -249,7 +250,7 @@ export async function saveDocumentStudyProgress(
   const document = await findDocument(owner, documentId, false);
   if (!document) return null;
   const count =
-    document.kind === "pdf" ? 0 : Math.max(document.headings.length, 1);
+    document.ingestionStatus === "ready" ? Math.max(document.headings.length, 1) : 0;
   const validIds = new Set(
     Array.from({ length: count }, (_, i) => `topic-${i}`),
   );
@@ -302,17 +303,21 @@ export async function saveDocuments(owner: string, files: File[]) {
   // Validate the complete batch before saving anything.
   const prepared = await Promise.all(
     files.map(async (file) => {
-      const extension = /\.(pdf|txt|md|markdown)$/i
+      const extension = /\.(pdf|txt|md|markdown|png|jpg|jpeg|webp)$/i
         .exec(file.name)?.[1]
         .toLowerCase();
       if (!extension) throw new DocumentError("unsupported_format");
       if (!file.size || file.size > MAX_DOCUMENT_BYTES)
         throw new DocumentError("file_size", 413);
+      if (isImageDocument(file.name) && file.size > MAX_IMAGE_BYTES)
+        throw new DocumentError("image_size", 413);
       const content = Buffer.from(await file.arrayBuffer());
       const kind = extension === "pdf" ? ("pdf" as const) : ("text" as const);
       const headings: string[] = [];
       let pages: PdfPage[] | undefined;
-      if (kind === "pdf") {
+      if (isImageDocument(file.name)) {
+        pages = await extractImage(content, imageContentType(file.name));
+      } else if (kind === "pdf") {
         if (!content.subarray(0, 5).equals(Buffer.from("%PDF-")))
           throw new DocumentError("invalid_pdf");
         pages = await extractPdf(content);

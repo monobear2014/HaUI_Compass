@@ -5,6 +5,7 @@ import { usePreferences } from "./preferences";
 import styles from "./companion-rail.module.css";
 import { PublicCourseMaterials } from "./public-course-materials";
 import { ChatSourcePicker } from "./chat-source-picker";
+import { DocumentMarkdown } from "./document-markdown";
 import type { StudyDocument } from "@/lib/documents";
 
 type Memory = {
@@ -828,7 +829,7 @@ export function CompanionRail({
                               )
                             : c("Dữ liệu học của bạn", "Your learning records")}
                   </span>
-                  <p>{row.response.answer}</p>
+                  <DocumentMarkdown text={row.response.answer} />
                   {row.response.citations.length > 0 && (
                     <details>
                       <summary>

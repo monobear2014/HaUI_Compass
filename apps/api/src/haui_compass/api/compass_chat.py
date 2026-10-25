@@ -156,8 +156,43 @@ async def extract_pdf(
         reason = str(exc)
         if reason in {"pdf_no_text", "pdf_empty", "pdf_encrypted"}:
             return {"status": "unsupported", "reason": reason, "pages": []}
-        raise HTTPException(503 if reason == "pdf_extraction_timeout" else 400, reason) from None
+        raise HTTPException(
+            503
+            if reason
+            in {"pdf_extraction_timeout", "ocr_timeout", "ocr_provider_error", "ocr_unavailable"}
+            else 400,
+            reason,
+        ) from None
     return {
         "status": "ready",
         "pages": [{"page_number": page.page_number, "text": page.text} for page in pages],
+    }
+
+
+@router.post("/internal/compass/extract-image", dependencies=[Depends(require_service_key)])
+async def extract_image(request: Request) -> dict[str, object]:
+    from haui_compass.infrastructure.config.llm import LLMSettings
+    from haui_compass.infrastructure.retrieval.ocr import IMAGE_TYPES, OCRSettings, VisionOCR
+
+    media_type = request.headers.get("content-type", "").split(";")[0].strip()
+    if media_type not in IMAGE_TYPES:
+        raise HTTPException(415, "unsupported_format")
+    content = bytearray()
+    async for part in request.stream():
+        content.extend(part)
+        if len(content) > 5 * 1024 * 1024:
+            raise HTTPException(413, "file_size")
+    llm = LLMSettings.from_env()
+    try:
+        pages = await VisionOCR(llm, OCRSettings.from_env(llm)).extract_image(
+            bytes(content), media_type
+        )
+    except PdfExtractionError as error:
+        code = str(error)
+        raise HTTPException(
+            503 if code.startswith("ocr_") and code != "ocr_invalid_output" else 400, code
+        ) from None
+    return {
+        "status": "ready",
+        "pages": [{"page_number": p.page_number, "text": p.text} for p in pages],
     }

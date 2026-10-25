@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import type { StudyDocument, DocumentStudyProgress } from "@/lib/documents";
-import { fileSize } from "@/lib/documents";
+import { fileSize, isImageDocument } from "@/lib/documents";
 import { usePreferences } from "../preferences";
 import { Icon } from "../icons";
 import styles from "./learning-home.module.css";
@@ -134,8 +134,8 @@ export function LearningHome({
             <strong>{vi ? "Tạo bộ học tập" : "Create a study set"}</strong>
             <small>
               {vi
-                ? "Bắt đầu với PDF, TXT hoặc Markdown"
-                : "Start with PDF, TXT or Markdown"}
+                ? "Bắt đầu với PDF, TXT, Markdown hoặc ảnh"
+                : "Start with PDF, TXT, Markdown or images"}
             </small>
           </Link>
         )}
@@ -153,8 +153,12 @@ export function LearningHome({
                 </span>
                 <h3 title={doc.name}>{doc.name}</h3>
                 <p>
-                  {doc.kind === "pdf" ? "PDF" : "TXT / Markdown"} ·{" "}
-                  {fileSize(doc.size)} ·{" "}
+                  {isImageDocument(doc.name)
+                    ? "Ảnh / OCR"
+                    : doc.kind === "pdf"
+                      ? "PDF"
+                      : "TXT / Markdown"}{" "}
+                  · {fileSize(doc.size)} ·{" "}
                   {total
                     ? `${total} ${vi ? "chủ đề" : "topics"}`
                     : vi
@@ -202,8 +206,8 @@ export function LearningHome({
         </summary>
         <p>
           {vi
-            ? "Tài liệu và tiến độ tự đánh giá được lưu riêng theo tài khoản. Kế hoạch, bài tập và thống kê sử dụng kịch bản học tập mẫu. Trợ lý Compass trong bộ học tập trả lời từ tệp TXT/Markdown đã tải lên và dẫn nguồn để đối chiếu. PDF hỗ trợ đọc bản gốc; chưa trích xuất văn bản."
-            : "Your materials and self-reported progress belong to your account. Planning, assignments and statistics use sample learning scenarios. Compass in each study set answers from that uploaded TXT/Markdown file with citations. PDF supports reading the original; text extraction is not connected."}
+            ? "Tài liệu và tiến độ được lưu riêng theo tài khoản. Kế hoạch, bài tập và thống kê sử dụng kịch bản học tập mẫu. Trợ lý trả lời từ tài liệu đã tải lên và dẫn nguồn để đối chiếu. Ảnh/PDF scan hỗ trợ OCR, bảng và công thức; hãy kiểm tra kết quả với bản gốc."
+            : "Your materials and self-reported progress belong to your account. Planning, assignments and statistics use sample learning scenarios. Compass answers from uploaded documents with citations. Images and scanned PDFs support OCR, tables and mathematical formulas; verify extracted content against the original."}
         </p>
       </details>
     </div>

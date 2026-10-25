@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import { getSessionUser, sameOrigin, SESSION_COOKIE } from "@/lib/demo-auth";
+import { imageContentType, isImageDocument } from "@/lib/documents";
 import { deleteDocument, streamDocument } from "@/lib/document-store";
 
 export const runtime = "nodejs";
@@ -20,9 +21,12 @@ export async function GET(
   return new Response(doc.stream, {
     headers: {
       ...headers,
-      "Content-Type":
-        doc.kind === "pdf" ? "application/pdf" : "text/plain; charset=utf-8",
-      "Content-Disposition": `inline; filename="document.${doc.kind === "pdf" ? "pdf" : "txt"}"`,
+      "Content-Type": isImageDocument(doc.name)
+        ? imageContentType(doc.name)
+        : doc.kind === "pdf"
+          ? "application/pdf"
+          : "text/plain; charset=utf-8",
+      "Content-Disposition": `inline; filename="document.${isImageDocument(doc.name) ? imageContentType(doc.name).split("/")[1] : doc.kind === "pdf" ? "pdf" : "txt"}"`,
       "Content-Security-Policy":
         "default-src 'none'; frame-ancestors 'self'; sandbox",
     },

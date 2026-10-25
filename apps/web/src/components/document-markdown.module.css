@@ -1,0 +1,31 @@
+.content {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  line-height: 1.7;
+}
+.content p {
+  white-space: pre-wrap;
+}
+.content table {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+  border-collapse: collapse;
+  margin: 1rem 0;
+}
+.content th,
+.content td {
+  border: 1px solid currentColor;
+  padding: 0.5rem 0.8rem;
+  text-align: left;
+}
+.content pre {
+  max-width: 100%;
+  overflow: auto;
+  white-space: pre;
+}
+.content :global(.katex-display) {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0.25rem 0;
+}

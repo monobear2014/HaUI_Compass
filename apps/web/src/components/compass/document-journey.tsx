@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
+import { DocumentMarkdown } from "../document-markdown";
 import { uploadPresigned } from "@vercel/blob/client";
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -9,6 +11,9 @@ import { CIcon, CompassPreferences } from "./primitives";
 import {
   MAX_DOCUMENT_BYTES,
   MAX_DOCUMENT_FILES,
+  MAX_IMAGE_BYTES,
+  imageContentType,
+  isImageDocument,
   SAMPLE_DOCUMENT,
   fileSize,
   type StudyDocument,
@@ -78,6 +83,35 @@ function JourneyDrawing() {
 }
 
 const errorMessages: Record<string, [string, string]> = {
+  image_size: ["Ảnh tối đa 3 MB.", "Images must be at most 3 MB."],
+  invalid_image: [
+    "Tệp ảnh không hợp lệ hoặc bị hỏng.",
+    "The image is invalid or corrupt.",
+  ],
+  image_limits_exceeded: [
+    "Ảnh quá lớn hoặc có nhiều khung hình. Hãy giảm kích thước ảnh.",
+    "The image is too large or animated. Resize it and retry.",
+  ],
+  ocr_unavailable: [
+    "OCR chưa được cấu hình. Vui lòng thử lại sau.",
+    "OCR is not configured yet. Please retry later.",
+  ],
+  ocr_timeout: [
+    "OCR hết thời gian xử lý. Hãy tải ít trang hơn hoặc thử lại.",
+    "OCR timed out. Upload fewer pages or retry.",
+  ],
+  ocr_page_limit: [
+    "Mỗi PDF hỗ trợ tối đa 4 trang cần OCR. Hãy tách tài liệu.",
+    "Split this PDF into files with at most 4 OCR pages each.",
+  ],
+  ocr_provider_error: [
+    "Dịch vụ OCR chưa phản hồi được. Vui lòng thử lại.",
+    "The OCR service is unavailable. Please retry.",
+  ],
+  ocr_invalid_output: [
+    "Chưa đọc chắc chắn được ảnh. Hãy dùng bản rõ hơn.",
+    "The image could not be read reliably. Upload a clearer version.",
+  ],
   file_empty: [
     "Tệp đang rỗng (0 byte). Hãy lưu nội dung vào tệp rồi chọn lại.",
     "The file is empty (0 bytes). Save content to the file and select it again.",
@@ -95,8 +129,8 @@ const errorMessages: Record<string, [string, string]> = {
     "Document ingestion failed. Check the content and upload again.",
   ],
   unsupported_format: [
-    "Chỉ hỗ trợ PDF, TXT và Markdown (.md, .markdown).",
-    "Only PDF, TXT and Markdown (.md, .markdown) are supported.",
+    "Hỗ trợ PDF, TXT, Markdown và ảnh PNG/JPG/WebP.",
+    "PDF, TXT, Markdown and PNG/JPG/WebP images are supported.",
   ],
   invalid_pdf: [
     "Tệp này không có định dạng PDF hợp lệ. Hãy chọn lại.",
@@ -148,13 +182,17 @@ export function DocumentUpload({ nextPath }: { nextPath: string }) {
     setRejectedFile(null);
     const combined = [...files];
     for (const file of selected) {
-      if (!/\.(pdf|txt|md|markdown)$/i.test(file.name)) {
+      if (!/\.(pdf|txt|md|markdown|png|jpg|jpeg|webp)$/i.test(file.name)) {
         setError("unsupported_format");
         return;
       }
       if (!file.size || file.size > MAX_DOCUMENT_BYTES) {
         setRejectedFile(file);
         setError(file.size === 0 ? "file_empty" : "file_size");
+        return;
+      }
+      if (isImageDocument(file.name) && file.size > MAX_IMAGE_BYTES) {
+        setError("image_size");
         return;
       }
       if (
@@ -192,6 +230,7 @@ export function DocumentUpload({ nextPath }: { nextPath: string }) {
             // supported type, so send the canonical type for that extension.
             contentType: (() => {
               const name = file.name.toLowerCase();
+              if (isImageDocument(name)) return imageContentType(name);
               if (name.endsWith(".pdf")) return "application/pdf";
               if (name.endsWith(".md") || name.endsWith(".markdown"))
                 return "text/markdown";
@@ -229,7 +268,7 @@ export function DocumentUpload({ nextPath }: { nextPath: string }) {
             errorCode: string | null;
             document: StudyDocument | null;
           } | null = null;
-          for (let attempt = 0; attempt < 30; attempt++) {
+          for (let attempt = 0; attempt < 120; attempt++) {
             const poll = await fetch(
               `/api/documents/upload-intent/${intent.id}`,
               {
@@ -319,7 +358,7 @@ export function DocumentUpload({ nextPath }: { nextPath: string }) {
             tabIndex={-1}
             aria-hidden="true"
             multiple
-            accept=".pdf,.txt,.md,.markdown"
+            accept=".pdf,.txt,.md,.markdown,.png,.jpg,.jpeg,.webp"
             disabled={busy}
             aria-label={vi ? "Tệp cần tải lên" : "Files to upload"}
             onChange={(event) => {
@@ -337,8 +376,10 @@ export function DocumentUpload({ nextPath }: { nextPath: string }) {
             {vi ? "Chọn tài liệu" : "Choose files"}
           </button>
           <span className={styles.hint}>
-            PDF, TXT, MD ·{" "}
-            {vi ? "Tối đa 3 tệp, 5 MB/tệp" : "Up to 3 files, 5 MB each"}
+            PDF, TXT, MD, PNG, JPG, WebP ·{" "}
+            {vi
+              ? "Tối đa 3 tệp · tài liệu 5 MB · ảnh 3 MB · tối đa 4 trang OCR/PDF"
+              : "Up to 3 files · documents 5 MB · images 3 MB · up to 4 OCR pages/PDF"}
           </span>
         </div>
         {files.length > 0 && (
@@ -717,11 +758,13 @@ export function DocumentReader({
   text,
   initialPage = 1,
   sourceUrl,
+  extractedPages = [],
 }: {
   document: StudyDocument;
   text: string | null;
   initialPage?: number;
   sourceUrl: string;
+  extractedPages?: { page_number: number; text: string }[];
 }) {
   const { language } = usePreferences();
   const vi = language === "vi";
@@ -742,7 +785,16 @@ export function DocumentReader({
           <CIcon name="arrow" size={17} />
         </Link>
       )}
-      {text !== null ? (
+      {isImageDocument(document.name) ? (
+        <Image
+          src={sourceUrl}
+          alt={document.name}
+          width={1200}
+          height={1200}
+          unoptimized
+          style={{ width: "100%", height: "auto", objectFit: "contain" }}
+        />
+      ) : text !== null ? (
         <ReadingContent
           text={text}
           markdown={/\.(md|markdown)$/i.test(document.name)}
@@ -760,6 +812,28 @@ export function DocumentReader({
               : "If your browser cannot display the PDF, open or download the file below."}
           </p>
         </>
+      )}
+      {extractedPages.length > 0 && (
+        <details open>
+          <summary>
+            {vi
+              ? "Nội dung trích xuất / OCR — đối chiếu với bản gốc"
+              : "Extracted text / OCR — check against the original"}
+          </summary>
+          <p>
+            {vi
+              ? "OCR có thể nhận sai ký tự, ô bảng hoặc công thức. Vùng không rõ cần được kiểm tra lại."
+              : "OCR may misread characters, table cells or formulas. Verify uncertain regions."}
+          </p>
+          {extractedPages.map((page) => (
+            <section key={page.page_number}>
+              <h2>
+                {vi ? "Trang" : "Page"} {page.page_number}
+              </h2>
+              <DocumentMarkdown text={page.text} />
+            </section>
+          ))}
+        </details>
       )}
       <a
         className="secondary"

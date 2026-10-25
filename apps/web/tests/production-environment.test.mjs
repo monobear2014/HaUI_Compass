@@ -15,6 +15,7 @@ const complete = {
   HAUI_COMPASS_LLM_MODEL: "synthetic-model",
   HAUI_COMPASS_LLM_ENABLED: "true",
   HAUI_COMPASS_SIMULATED_WORKSPACES: "1",
+  HAUI_COMPASS_OCR_ENABLED: "true",
 };
 
 test("local and Preview builds keep their own environment contract", () => {

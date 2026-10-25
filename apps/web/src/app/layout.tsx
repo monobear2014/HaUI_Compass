@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { PreferencesProvider } from "@/components/preferences";
 import { ApplicationFrame } from "@/components/application-frame";
 import "./globals.css";
+import "katex/dist/katex.min.css";
 
 export const metadata: Metadata = {
   title: "HaUI Compass · Know what to do next.",

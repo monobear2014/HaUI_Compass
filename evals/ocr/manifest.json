@@ -1,0 +1,245 @@
+{
+  "dataset_sha256": "e4d79c7af325aa8d8946ac3373a4ff0d57efcdd5c215b9b1292aa848eda862d4",
+  "fixtures": [
+    {
+      "id": "OCR-VI-001",
+      "split": "dev",
+      "file": "OCR-VI-001.png",
+      "sha256": "35546b12af91d227ae698846bb9690f6c7431bb7dc47f75f8ef0b6169999242c"
+    },
+    {
+      "id": "OCR-VI-001",
+      "split": "dev",
+      "file": "OCR-VI-001.pdf",
+      "sha256": "d92011da7331c009622461d8c73d3ccc08fb23a8e2bf93f3c482f1c02e0a4f96"
+    },
+    {
+      "id": "OCR-VI-002",
+      "split": "test",
+      "file": "OCR-VI-002.png",
+      "sha256": "a11d99dfed03af143b913256243a7f89d7a71427fd135d644ea671b9270f6bd2"
+    },
+    {
+      "id": "OCR-VI-002",
+      "split": "test",
+      "file": "OCR-VI-002.pdf",
+      "sha256": "5bc13d3de6989fbe1557ee3de073ad80fdd283e6b332ce1dab31990264164cc1"
+    },
+    {
+      "id": "OCR-VI-003",
+      "split": "dev",
+      "file": "OCR-VI-003.png",
+      "sha256": "a198303e28e1f6f364ed9709ee39a74c5047e7516e184b0f66be6770499afb11"
+    },
+    {
+      "id": "OCR-VI-003",
+      "split": "dev",
+      "file": "OCR-VI-003.pdf",
+      "sha256": "922650fcb38232f277f47f88febe6bc0eb3ce36e9cb0c5861659f0a463d4793d"
+    },
+    {
+      "id": "OCR-VI-004",
+      "split": "test",
+      "file": "OCR-VI-004.png",
+      "sha256": "b7e070e87df3d2b7029554f30906f6984fca4e7ba549cfa57239f0a677cd9868"
+    },
+    {
+      "id": "OCR-VI-004",
+      "split": "test",
+      "file": "OCR-VI-004.pdf",
+      "sha256": "e0a8ace59a91ebfa94fd30580880ba2b55de14844a59c1360fe7f85cec69e683"
+    },
+    {
+      "id": "OCR-VI-005",
+      "split": "dev",
+      "file": "OCR-VI-005.png",
+      "sha256": "00752f74c41675e0d2111b846060770333ffa9f9d26ad0a2217d783443865122"
+    },
+    {
+      "id": "OCR-VI-005",
+      "split": "dev",
+      "file": "OCR-VI-005.pdf",
+      "sha256": "aaa62715373f4decf9cad8af38e7d05822d66439b75c1785e0afbf76cf1bc1ee"
+    },
+    {
+      "id": "OCR-VI-006",
+      "split": "test",
+      "file": "OCR-VI-006.png",
+      "sha256": "7f1222768520e0e55d03b251323fb4498f6188b5140797411cb4481643e6b0a9"
+    },
+    {
+      "id": "OCR-VI-006",
+      "split": "test",
+      "file": "OCR-VI-006.pdf",
+      "sha256": "f3319707635a574ed34f5f84c5e2427ba7eb9187ef2555d7fa28f3d0242a0eef"
+    },
+    {
+      "id": "OCR-VI-007",
+      "split": "dev",
+      "file": "OCR-VI-007.png",
+      "sha256": "94cfccbc5fa94e76ac7555070e32875fc0abecc24527d6bd0b3d52f945ecdaae"
+    },
+    {
+      "id": "OCR-VI-007",
+      "split": "dev",
+      "file": "OCR-VI-007.pdf",
+      "sha256": "1bef8c53523296a0fa8e961a3cb087f175ce804503b59a64b43b1fe1c86ee0b7"
+    },
+    {
+      "id": "OCR-VI-008",
+      "split": "test",
+      "file": "OCR-VI-008.png",
+      "sha256": "3636d0942026940c3d44c52cf888a3c9f95c7cdfad3d9925014d2cec9b4c27b8"
+    },
+    {
+      "id": "OCR-VI-008",
+      "split": "test",
+      "file": "OCR-VI-008.pdf",
+      "sha256": "a83db4af10461e691ffaf35dfc9834a9579d30c3256d07e3c5038723455fc003"
+    },
+    {
+      "id": "OCR-VI-009",
+      "split": "dev",
+      "file": "OCR-VI-009.png",
+      "sha256": "43b97d1450ed0565aba2e0f68c867a268f3e0200a6a6a3236595d192a170a977"
+    },
+    {
+      "id": "OCR-VI-009",
+      "split": "dev",
+      "file": "OCR-VI-009.pdf",
+      "sha256": "bf8f201fa2b601b8919af8ccc0bd66ac1da7e7dc6aec2f58169bc752b75f0a44"
+    },
+    {
+      "id": "OCR-VI-010",
+      "split": "test",
+      "file": "OCR-VI-010.png",
+      "sha256": "4537ec3071438f95a8382dca938db510c7e0b29a3c97887eb7a5d4306c283dd2"
+    },
+    {
+      "id": "OCR-VI-010",
+      "split": "test",
+      "file": "OCR-VI-010.pdf",
+      "sha256": "201d3ee6358babb862cf1564aa046a5838a820b29ce4421c123ecd30ff98970f"
+    },
+    {
+      "id": "OCR-VI-011",
+      "split": "dev",
+      "file": "OCR-VI-011.png",
+      "sha256": "b13ddc8a35d511d2a93ee6ad6416d6010741d574b556261be7558453ac3afd0b"
+    },
+    {
+      "id": "OCR-VI-011",
+      "split": "dev",
+      "file": "OCR-VI-011.pdf",
+      "sha256": "2313f1ca061495a125fb1bbff55eeef4419523e113463c9f018e65f866325788"
+    },
+    {
+      "id": "OCR-VI-012",
+      "split": "test",
+      "file": "OCR-VI-012.png",
+      "sha256": "6ca93dfb57cdde69e3e0fe253385abdba22176be6bc5da09b8f7f5e4c8a5341c"
+    },
+    {
+      "id": "OCR-VI-012",
+      "split": "test",
+      "file": "OCR-VI-012.pdf",
+      "sha256": "5c6861e17cb148be23309292715955e8a017614a592b8a9dba5817696cfd51fa"
+    },
+    {
+      "id": "OCR-VI-013",
+      "split": "dev",
+      "file": "OCR-VI-013.png",
+      "sha256": "386743755a4c8bdc478d3e8763e5472e90929ce2e6664b1d8d0cfa276b0bc303"
+    },
+    {
+      "id": "OCR-VI-013",
+      "split": "dev",
+      "file": "OCR-VI-013.pdf",
+      "sha256": "c6dbe1221cbdec9b6090f580fb409b5e39982a3d4198423adf538d145de0371c"
+    },
+    {
+      "id": "OCR-VI-014",
+      "split": "test",
+      "file": "OCR-VI-014.png",
+      "sha256": "422810cfef1fa085ce7a890ab02a179b9f0fb608312b5109b93c56002b47c0e2"
+    },
+    {
+      "id": "OCR-VI-014",
+      "split": "test",
+      "file": "OCR-VI-014.pdf",
+      "sha256": "5ccd9459cea873d06ece7c719fd95839ae12dfd40c9e57a1b4d37b2c74c5d14e"
+    },
+    {
+      "id": "OCR-VI-015",
+      "split": "dev",
+      "file": "OCR-VI-015.png",
+      "sha256": "34b7d070e4284f9034d7e56c7745acdfb4ae6f809a6ecd01e3e7522c5977b35d"
+    },
+    {
+      "id": "OCR-VI-015",
+      "split": "dev",
+      "file": "OCR-VI-015.pdf",
+      "sha256": "87a8e97431c44ebb71a6605f7fabd663e65f4e9b742c36784f0268e9ea6c1ab2"
+    },
+    {
+      "id": "OCR-VI-016",
+      "split": "test",
+      "file": "OCR-VI-016.png",
+      "sha256": "4330e0d36f161ad2ddef49edb5dd890c6f0d2aa825e6c99cc923c813e8a08c79"
+    },
+    {
+      "id": "OCR-VI-016",
+      "split": "test",
+      "file": "OCR-VI-016.pdf",
+      "sha256": "d13215409b568ae1b193a148325ea80713db36208d4344d77db422e0f060b64e"
+    },
+    {
+      "id": "OCR-VI-017",
+      "split": "dev",
+      "file": "OCR-VI-017.png",
+      "sha256": "061bf9fe9889c10ea996a0dc6efab7c2263f5d6424bee0f4a59523d26577b512"
+    },
+    {
+      "id": "OCR-VI-017",
+      "split": "dev",
+      "file": "OCR-VI-017.pdf",
+      "sha256": "04740cce0defc3020034d969b32e49c3afe6206b6e476822fc245f0ffda41882"
+    },
+    {
+      "id": "OCR-VI-018",
+      "split": "test",
+      "file": "OCR-VI-018.png",
+      "sha256": "e5be9eb1f154f83aaa938291fdca98c57966d2ba0f8f24f9d21de4b0fbb823d5"
+    },
+    {
+      "id": "OCR-VI-018",
+      "split": "test",
+      "file": "OCR-VI-018.pdf",
+      "sha256": "639b95d9a4c6cb217bcabd02c560373eeba3bc6f2d4b4aba79c7a8b98670fa6c"
+    },
+    {
+      "id": "OCR-VI-019",
+      "split": "dev",
+      "file": "OCR-VI-019.png",
+      "sha256": "6eec6f8cee5ccb0339d98b38527920f93219d51c81c180cf65050ad107b88e75"
+    },
+    {
+      "id": "OCR-VI-019",
+      "split": "dev",
+      "file": "OCR-VI-019.pdf",
+      "sha256": "da929e2844010405dcf2028395b8aea9f9046c76807d8061da9a3e47dd0a0d1c"
+    },
+    {
+      "id": "OCR-VI-020",
+      "split": "test",
+      "file": "OCR-VI-020.png",
+      "sha256": "3795e35808ba82b96a2f2114b0a7e32d0d49d58f1b5baa9c71263150efae48b5"
+    },
+    {
+      "id": "OCR-VI-020",
+      "split": "test",
+      "file": "OCR-VI-020.pdf",
+      "sha256": "4d5be37236a834aa3d9cb9fe620f89c73ee075cde24a1aea227a36a267229d80"
+    }
+  ]
+}

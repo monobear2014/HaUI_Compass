@@ -92,7 +92,7 @@ from haui_compass.infrastructure.reflection_coach.template import TemplateReflec
 from haui_compass.infrastructure.retrieval.catalog import LocalPublicCourseware
 from haui_compass.infrastructure.retrieval.ingestion import ingest_manifest
 from haui_compass.infrastructure.retrieval.lexical import LocalLexicalKnowledgeRetriever
-from haui_compass.infrastructure.retrieval.pdf import PypdfTextExtractor
+from haui_compass.infrastructure.retrieval.ocr import build_pdf_extractor
 from haui_compass.infrastructure.retrieval.template_answer import TemplateGroundedAnswerProvider
 
 
@@ -204,7 +204,7 @@ def build_container(
         agent_timeout=core_flow_timeout,
         learning_preferences=InMemoryLearningPreferenceRepository(),
         public_courseware=LocalPublicCourseware(corpus_root),
-        pdf_text_extractor=PypdfTextExtractor(),
+        pdf_text_extractor=build_pdf_extractor(llm_settings),
         compass_answer=GroundedAnswerService(
             template=TemplateGroundedAnswerProvider(),
             provider=resolved_grounded_provider,

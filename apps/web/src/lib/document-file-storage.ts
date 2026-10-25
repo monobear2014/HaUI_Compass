@@ -46,7 +46,7 @@ function storageDirectory() {
 
 export function validateDocumentStorageKey(key: string) {
   if (
-    !/^documents\/[a-f0-9-]{36}(?:\/[a-f0-9-]{36}\.(?:pdf|txt|md|markdown))?$/.test(
+    !/^documents\/[a-f0-9-]{36}(?:\/[a-f0-9-]{36}\.(?:pdf|txt|md|markdown|png|jpg|jpeg|webp))?$/.test(
       key,
     )
   )
