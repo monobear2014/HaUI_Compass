@@ -30,6 +30,8 @@ _IMPORTED_ACADEMIC_TABLES = frozenset(
         "companion_memories",
         "companion_exchanges",
         "ticket_boards",
+        # Introduced by 0009; fresh installs must let that migration create it.
+        "companion_conversations",
     }
 )
 

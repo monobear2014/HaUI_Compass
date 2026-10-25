@@ -412,7 +412,14 @@ async def send_message(
             "action": None,
         }
     else:
-        facts = await run_in_threadpool(_facts, request, container, owner)
+        # Tutoring and conversation do not consume weekly learning records. Keep
+        # them available when Production has no simulated Canvas workspace.
+        roles = team.supervisor.delegate(body.text, body.mode)
+        facts = (
+            await run_in_threadpool(_facts, request, container, owner)
+            if any(role in {"plan", "do", "reflect"} for role in roles)
+            else {}
+        )
         result = await team.run(
             question=body.text,
             mode=body.mode,

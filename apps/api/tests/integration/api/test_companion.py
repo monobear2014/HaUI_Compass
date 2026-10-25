@@ -6,6 +6,7 @@ from uuid import uuid4
 import pytest
 from fastapi.testclient import TestClient
 
+from haui_compass.api.app_factory import create_app
 from haui_compass.api.dependencies import build_container
 from haui_compass.api.simulated_workspaces import create_simulated_workspace_app
 from haui_compass.application.ports.companion import AgentAdviceInput
@@ -21,6 +22,52 @@ from support.clocks import FixedClock
 
 KEY = "companion-test-key"
 PATH = "/api/v1/companion"
+
+
+@pytest.mark.parametrize("question", ["Xin chào bạn", "Tích vô hướng là gì?"])
+def test_chat_and_tutoring_work_without_a_simulated_workspace(
+    monkeypatch: pytest.MonkeyPatch, question: str
+) -> None:
+    monkeypatch.setenv("COMPASS_SERVICE_KEY", KEY)
+    monkeypatch.delenv("COMPASS_LECTURER_GRANTS", raising=False)
+    app = create_app(build_container())
+    headers = {"X-Compass-Service-Key": KEY, "X-Compass-User": "production-student"}
+    with TestClient(app, headers=headers) as client:
+        response = client.post(
+            PATH + "/messages",
+            json={
+                "request_id": str(uuid4()),
+                "text": question,
+                "mode": "auto",
+                "course_id": "la",
+            },
+        )
+        assert response.status_code == 200
+        assert response.json()["response"]["answer"]
+        assert client.get(PATH).json()["exchanges"] == [response.json()]
+        other = client.get(PATH, headers={**headers, "X-Compass-User": "other-student"})
+        assert other.json()["exchanges"] == []
+        assert (
+            client.get(PATH, headers={**headers, "X-Compass-Service-Key": "wrong"}).status_code
+            == 403
+        )
+
+
+def test_weekly_advice_requires_real_or_simulated_learning_context(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("COMPASS_SERVICE_KEY", KEY)
+    monkeypatch.delenv("COMPASS_LECTURER_GRANTS", raising=False)
+    with TestClient(
+        create_app(build_container()),
+        headers={"X-Compass-Service-Key": KEY, "X-Compass-User": "production-student"},
+    ) as client:
+        response = client.post(
+            PATH + "/messages",
+            json={"request_id": str(uuid4()), "text": "Lập kế hoạch tuần sau", "mode": "plan"},
+        )
+        assert response.status_code == 503
+        assert client.get(PATH).json()["exchanges"] == []
 
 
 class Provider:
