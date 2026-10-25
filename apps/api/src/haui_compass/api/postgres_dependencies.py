@@ -74,7 +74,7 @@ from haui_compass.infrastructure.reflection_coach.template import TemplateReflec
 from haui_compass.infrastructure.retrieval.catalog import LocalPublicCourseware
 from haui_compass.infrastructure.retrieval.ingestion import ingest_manifest
 from haui_compass.infrastructure.retrieval.lexical import LocalLexicalKnowledgeRetriever
-from haui_compass.infrastructure.retrieval.ocr import build_pdf_extractor
+from haui_compass.infrastructure.retrieval.ocr import OCRSettings, VisionOCR, build_pdf_extractor
 from haui_compass.infrastructure.retrieval.template_answer import TemplateGroundedAnswerProvider
 
 
@@ -145,6 +145,10 @@ def build_postgres_container(
         learning_preferences=PostgresLearningPreferenceRepository(provider),
         public_courseware=LocalPublicCourseware(corpus_root),
         pdf_text_extractor=build_pdf_extractor(llm_settings),
+        image_text_extractor=VisionOCR(
+            llm_settings or LLMSettings(),
+            OCRSettings.from_env(llm_settings or LLMSettings()),
+        ),
         compass_answer=GroundedAnswerService(
             template=TemplateGroundedAnswerProvider(),
             provider=llm_adapter,

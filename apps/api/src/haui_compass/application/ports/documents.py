@@ -1,4 +1,4 @@
-"""Backend-only PDF extraction contract; the web store retains document ownership."""
+"""Backend-only document extraction contracts; web storage retains ownership."""
 
 from dataclasses import dataclass
 from typing import Protocol
@@ -16,3 +16,9 @@ class PdfExtractionError(ValueError):
 
 class PdfTextExtractor(Protocol):
     async def extract(self, content: bytes) -> tuple[ExtractedPage, ...]: ...
+
+
+class ImageTextExtractor(Protocol):
+    async def extract_image(
+        self, content: bytes, content_type: str
+    ) -> tuple[ExtractedPage, ...]: ...

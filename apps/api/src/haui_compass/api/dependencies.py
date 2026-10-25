@@ -12,7 +12,7 @@ from haui_compass.application.academic_import import (
 from haui_compass.application.ports.clock import Clock
 from haui_compass.application.ports.companion import AgentAdviceProvider, CompanionRepository
 from haui_compass.application.ports.courseware import PublicCourseware
-from haui_compass.application.ports.documents import PdfTextExtractor
+from haui_compass.application.ports.documents import ImageTextExtractor, PdfTextExtractor
 from haui_compass.application.ports.executions import TaskExecutionRepository
 from haui_compass.application.ports.explanation import RecommendationExplanationProvider
 from haui_compass.application.ports.knowledge import GroundedAnswerProvider
@@ -92,13 +92,14 @@ from haui_compass.infrastructure.reflection_coach.template import TemplateReflec
 from haui_compass.infrastructure.retrieval.catalog import LocalPublicCourseware
 from haui_compass.infrastructure.retrieval.ingestion import ingest_manifest
 from haui_compass.infrastructure.retrieval.lexical import LocalLexicalKnowledgeRetriever
-from haui_compass.infrastructure.retrieval.ocr import build_pdf_extractor
+from haui_compass.infrastructure.retrieval.ocr import OCRSettings, VisionOCR, build_pdf_extractor
 from haui_compass.infrastructure.retrieval.template_answer import TemplateGroundedAnswerProvider
 
 
 @dataclass(frozen=True, slots=True)
 class AppContainer:
     pdf_text_extractor: PdfTextExtractor
+    image_text_extractor: ImageTextExtractor
     compass_answer: GroundedAnswerService
     query_knowledge: QueryKnowledge
     explain_recommendation: ExplainRecommendation
@@ -205,6 +206,10 @@ def build_container(
         learning_preferences=InMemoryLearningPreferenceRepository(),
         public_courseware=LocalPublicCourseware(corpus_root),
         pdf_text_extractor=build_pdf_extractor(llm_settings),
+        image_text_extractor=VisionOCR(
+            llm_settings or LLMSettings(),
+            OCRSettings.from_env(llm_settings or LLMSettings()),
+        ),
         compass_answer=GroundedAnswerService(
             template=TemplateGroundedAnswerProvider(),
             provider=resolved_grounded_provider,

@@ -170,23 +170,20 @@ async def extract_pdf(
 
 
 @router.post("/internal/compass/extract-image", dependencies=[Depends(require_service_key)])
-async def extract_image(request: Request) -> dict[str, object]:
-    from haui_compass.infrastructure.config.llm import LLMSettings
-    from haui_compass.infrastructure.retrieval.ocr import IMAGE_TYPES, OCRSettings, VisionOCR
-
+async def extract_image(
+    request: Request,
+    container: Annotated[AppContainer, Depends(container_from_app)],
+) -> dict[str, object]:
     media_type = request.headers.get("content-type", "").split(";")[0].strip()
-    if media_type not in IMAGE_TYPES:
+    if media_type not in {"image/png", "image/jpeg", "image/webp"}:
         raise HTTPException(415, "unsupported_format")
     content = bytearray()
     async for part in request.stream():
         content.extend(part)
         if len(content) > 5 * 1024 * 1024:
             raise HTTPException(413, "file_size")
-    llm = LLMSettings.from_env()
     try:
-        pages = await VisionOCR(llm, OCRSettings.from_env(llm)).extract_image(
-            bytes(content), media_type
-        )
+        pages = await container.image_text_extractor.extract_image(bytes(content), media_type)
     except PdfExtractionError as error:
         code = str(error)
         raise HTTPException(
