@@ -38,6 +38,91 @@ function tokens(text) {
   ];
 }
 
+// Search-only normalization: never alter stored text, offsets or citation IDs.
+// Keep tokens() stable for existing callers. Accented exact matches receive an
+// extra tie-break below; folding enables Vietnamese typed without diacritics.
+function folded(token) {
+  return token.normalize("NFD").replace(/\p{M}/gu, "").replace(/đ/g, "d");
+}
+const foldedStopWords = new Set([...stopWords].map(folded));
+for (const word of ["bao", "nhieu", "bang", "ghi"]) foldedStopWords.add(word);
+
+function searchSequence(text) {
+  return (
+    (
+      text
+        .normalize("NFC")
+        // a_{12} and a_12 are formatting variants, NOT a_21 or a_1_2.
+        .replace(/([A-Za-z])_\{(\d+)\}/g, "$1_$2")
+        .toLowerCase()
+        .match(/[\p{L}\p{N}_]+/gu) ?? []
+    )
+      .map(normalizedToken)
+      .map(folded)
+      .filter((token) => token.length > 1 && !foldedStopWords.has(token))
+  );
+}
+
+function searchTerms(text) {
+  text = text.normalize("NFC");
+  const labels = [
+    ...text
+      .normalize("NFC")
+      .matchAll(/(?<![\p{L}\p{N}_])([A-Z])(?![\p{L}\p{N}_])/gu),
+  ]
+    // English article/pronoun A/I are not identifiers unless an explicit table,
+    // math or model-label context is present.
+    .filter(
+      (match) =>
+        !/[AI]/.test(match[1]) ||
+        /(?:\||\(|\bmodel|mô hình|nhóm|điểm|hàng|cột)\s*$/iu.test(
+          text.slice(Math.max(0, match.index - 30), match.index),
+        ),
+    )
+    .map((match) => "label:" + match[1].toLowerCase());
+  const contextualLabels = [
+    ...text.matchAll(
+      /(?:mô hình|mo hinh|model|nhóm|nhom|hàng|hang|cột|cot|điểm|diem)\s+([a-z])(?=$|[^\p{L}\p{N}_])/giu,
+    ),
+  ].map((match) => "label:" + match[1].toLowerCase());
+  return [
+    ...new Set([...searchSequence(text), ...labels, ...contextualLabels]),
+  ];
+}
+
+function adjacentPhrases(sequence) {
+  return new Set(
+    sequence.slice(1).map((token, i) => sequence[i] + " " + token),
+  );
+}
+
+function tableContexts(rows) {
+  const contexts = new Map();
+  let prior = null;
+  for (const [index, row] of rows.entries()) {
+    // Chunks may start in the 180-character overlap/middle of a table row.
+    // Carry only actual table headers, only through contiguous table chunks,
+    // and never across source documents/pages. No generated/inferred cells.
+    if (
+      index &&
+      (row.document_id !== rows[index - 1].document_id ||
+        row.page_number !== rows[index - 1].page_number ||
+        row.chunk_index !== rows[index - 1].chunk_index + 1)
+    )
+      prior = null;
+    const header =
+      /^([ \t]*\|[^\n]+\|[ \t]*\r?\n[ \t]*\|[|:\- \t]+\|[ \t]*)$/m.exec(
+        row.content,
+      );
+    if (header) prior = { text: header[1], index };
+    else if (!/^[^\n]*\|[^\n]*(?:\r?\n[ \t]*\|[^\n]*){2}/.test(row.content))
+      prior = null;
+    if (prior && prior.index !== index) contexts.set(index, prior);
+    if (!row.content.trimEnd().split("\n").at(-1)?.includes("|")) prior = null;
+  }
+  return contexts;
+}
+
 function documentIntent(query) {
   return (
     /^(hãy )?(tóm tắt|summarize) (tài liệu|document)/i.test(query) ||
@@ -47,7 +132,9 @@ function documentIntent(query) {
 }
 
 function rankDocumentChunks(query, rows, limit = 6) {
-  const boundedLimit = Math.max(1, Math.min(limit, 6));
+  const boundedLimit = Number.isFinite(limit)
+    ? Math.max(1, Math.min(Math.trunc(limit), 6))
+    : 6;
   if (documentIntent(query)) {
     const count = Math.min(rows.length, boundedLimit);
     return Array.from({ length: count }, (_, i) => ({
@@ -62,16 +149,34 @@ function rankDocumentChunks(query, rows, limit = 6) {
   }
   // A page-location question uses "states" as a reporting verb, not the
   // technical noun "state". Keep that noun meaningful in other queries.
-  const terms = tokens(
-    query.replace(/\b(?:which|what)\s+page\s+states?\b/gi, "page"),
-  );
+  const searchQuery = query
+    .normalize("NFC")
+    .replace(/\b(?:which|what)\s+page\s+states?\b/gi, "page")
+    .replace(/\b(?:công thức|cong thuc)\b/gi, " ");
+  const terms = searchTerms(searchQuery);
   if (!terms.length) return [];
-  const tokenSets = rows.map(
-    (row) => new Set(tokens(`${row.heading ?? ""} ${row.content}`)),
+  const tables = tableContexts(rows);
+  const searchTexts = rows.map(
+    (row, index) =>
+      `${row.heading ?? ""} ${tables.get(index)?.text ?? ""} ${row.content}`,
   );
-  const anchors = terms.filter(
-    (term) => /^[a-z0-9_]{5,}$/i.test(term) && !stopWords.has(term),
-  );
+  const tokenSets = searchTexts.map((text) => new Set(searchTerms(text)));
+  // Decide which words are named anchors BEFORE accent folding: Vietnamese
+  // "trước" must not become an absent English-style mandatory "truoc" anchor.
+  const anchors = [
+    ...new Set([
+      ...tokens(searchQuery)
+        .filter((term) => /^[a-z0-9_]{5,}$/i.test(term))
+        .map(folded)
+        .filter((term) => !foldedStopWords.has(term)),
+      ...terms.filter(
+        (term) =>
+          /^label:/.test(term) ||
+          /^[a-z]_\d+$/.test(term) ||
+          /^\d{4,}$/.test(term),
+      ),
+    ]),
+  ];
   const union = new Set(tokenSets.flatMap((set) => [...set]));
   if (anchors.some((term) => !union.has(term))) return [];
   const weights = terms.map((term) =>
@@ -79,32 +184,67 @@ function rankDocumentChunks(query, rows, limit = 6) {
       1 + rows.length / (1 + tokenSets.filter((set) => set.has(term)).length),
     ),
   );
-  return rows
-    .map((row, i) => {
-      const matches = terms.filter((term) => tokenSets[i].has(term)).length;
-      const score = terms.reduce(
-        (sum, term, j) => sum + (tokenSets[i].has(term) ? weights[j] : 0),
-        0,
-      );
-      const headingTerms = new Set(tokens(row.heading ?? ""));
-      const headingScore = terms.reduce(
-        (sum, term, j) => sum + (headingTerms.has(term) ? weights[j] : 0),
-        0,
-      );
-      const anchored =
-        anchors.length > 0 && anchors.every((term) => tokenSets[i].has(term));
-      return {
-        chunk: row,
-        score: score + headingScore,
-        coverage: matches / terms.length,
-        anchored,
-      };
-    })
+  const queryPhrases = adjacentPhrases(searchSequence(searchQuery));
+  const exactTerms = tokens(searchQuery);
+  const scored = rows.map((row, i) => {
+    const matches = terms.filter((term) => tokenSets[i].has(term)).length;
+    const score = terms.reduce(
+      (sum, term, j) => sum + (tokenSets[i].has(term) ? weights[j] : 0),
+      0,
+    );
+    const headingTerms = new Set(searchTerms(row.heading ?? ""));
+    const headingScore = terms.reduce(
+      (sum, term, j) => sum + (headingTerms.has(term) ? weights[j] : 0),
+      0,
+    );
+    const anchored =
+      anchors.length > 0 && anchors.every((term) => tokenSets[i].has(term));
+    const phrases = adjacentPhrases(searchSequence(searchTexts[i]));
+    const phraseScore = [...queryPhrases].filter((phrase) =>
+      phrases.has(phrase),
+    ).length;
+    const exactSet = new Set(tokens(searchTexts[i]));
+    // Exact accented spelling wins ties, without disabling unaccented fallback.
+    const exactScore =
+      exactTerms.filter((term) => exactSet.has(term)).length /
+      Math.max(1, exactTerms.length);
+    return {
+      chunk: row,
+      score: score + headingScore + phraseScore + 0.1 * exactScore,
+      coverage: matches / terms.length,
+      anchored,
+    };
+  });
+  const ranked = scored
     .filter((item) => item.score > 0 && (item.coverage >= 0.3 || item.anchored))
     .sort(
-      (a, b) => b.score - a.score || a.chunk.chunk_index - b.chunk.chunk_index,
-    )
-    .slice(0, boundedLimit);
+      (a, b) =>
+        Number(b.anchored) - Number(a.anchored) ||
+        b.score - a.score ||
+        a.chunk.chunk_index - b.chunk.chunk_index,
+    );
+  // Return the ORIGINAL header chunk as separate evidence when selecting a
+  // continuation row. Source content/offsets/IDs are never rewritten or prefixed.
+  const selected = [];
+  const included = new Set();
+  const indexes = new Map(rows.map((row, index) => [row, index]));
+  for (const item of ranked) {
+    const index = indexes.get(item.chunk);
+    if (included.has(index)) continue;
+    if (selected.length >= boundedLimit) break;
+    selected.push(item);
+    included.add(index);
+    const header = tables.get(index);
+    if (
+      header &&
+      !included.has(header.index) &&
+      selected.length < boundedLimit
+    ) {
+      selected.push(scored[header.index]);
+      included.add(header.index);
+    }
+  }
+  return selected;
 }
 
 function resolveRetrievalQuery(query, history) {

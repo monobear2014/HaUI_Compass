@@ -1,0 +1,46 @@
+{
+  "version": "retrieval-vi-v2",
+  "annotation_origin": "Author-defined synthetic retrieval regression labels, not independently reviewed or a blind holdout",
+  "ocr_source": "evals/datasets/ocr-ai-vi-v1.json",
+  "description": "Use all 20 original labeled OCR QA questions unchanged against a combined 20-page synthetic book; add competitive tables, Unicode, identifiers and negative queries. OCR gold text isolates retrieval, not live OCR quality.",
+  "books": [
+    {"id":"tables","pages":[
+      {"id":"model-A","text":"Kết quả mô hình A\n\n| Mô hình | Precision | Recall |\n| --- | --- | --- |\n| A | 0,82 | 0,76 |"},
+      {"id":"model-B","text":"Kết quả mô hình B\n\n| Mô hình | Precision | Recall |\n| --- | --- | --- |\n| B | 0,79 | 0,88 |"},
+      {"id":"model-C","text":"Kết quả mô hình C\n\n| Mô hình | Precision | Recall |\n| --- | --- | --- |\n| C | 0,91 | 0,70 |"}
+    ]},
+    {"id":"technical","pages":[
+      {"id":"cache-distractor","text":"Bộ nhớ của máy tính và bộ đệm dữ liệu là hai phần được mô tả ở đây. Bộ đệm nhớ trạng thái kết nối mạng. Không trình bày cơ chế cache."},
+      {"id":"cache","text":"Bộ nhớ đệm lưu bản sao dữ liệu được dùng gần đây, giúp giảm số lần đọc từ nơi lưu trữ chậm hơn."},
+      {"id":"control-distractor","text":"Một bộ điều khiển xuất tín hiệu. Người vận hành phản hồi thông tin sau mỗi buổi thực hành."},
+      {"id":"feedback-control","text":"Điều khiển phản hồi sử dụng sai lệch giữa giá trị đặt và giá trị đo để điều chỉnh tín hiệu điều khiển."},
+      {"id":"accented","text":"Mã kiểm chứng của thí nghiệm là ĐỎ-815. Nhiệt độ đo được là 27,5 °C."},
+      {"id":"softmax","text":"Softmax chuyển logits thành phân phối xác suất. Đây không phải tài liệu về kiến trúc Transformer."}
+    ]},
+    {"id":"math","pages":[
+      {"id":"a21","text":"Phần tử ma trận\n\n$$\na_{21}=0.25\n$$"},
+      {"id":"a12","text":"Phần tử ma trận\n\n$$\na_{12}=-0.05\n$$"},
+      {"id":"a13","text":"Phần tử ma trận\n\n$$\na_{13}=0.75\n$$"}
+    ]}
+  ],
+  "cases": [
+    {"id":"VI-R-021","split":"dev","category":"unaccented","book":"ocr","question":"Phong nao dien ra buoi thao luan?","expected_pages":["OCR-VI-003"]},
+    {"id":"VI-R-022","split":"test","category":"unaccented","book":"ocr","question":"Ty le du lieu xac thuc?","expected_pages":["OCR-VI-002"]},
+    {"id":"VI-R-023","split":"dev","category":"unaccented","book":"ocr","question":"Ma kiem chung la gi?","expected_pages":["OCR-VI-019"]},
+    {"id":"VI-R-024","split":"test","category":"unaccented","book":"technical","question":"Bo nho dem luu du lieu nhu the nao?","expected_pages":["cache"]},
+    {"id":"VI-R-025","split":"dev","category":"phrase_ranking","book":"technical","question":"Bộ nhớ đệm là gì?","expected_pages":["cache"]},
+    {"id":"VI-R-026","split":"test","category":"phrase_ranking","book":"technical","question":"Điều khiển phản hồi là gì?","expected_pages":["feedback-control"]},
+    {"id":"VI-R-027","split":"dev","category":"table_identifier","book":"tables","question":"Recall của mô hình B là bao nhiêu?","expected_pages":["model-B"]},
+    {"id":"VI-R-028","split":"test","category":"table_identifier","book":"tables","question":"Precision mô hình C?","expected_pages":["model-C"]},
+    {"id":"VI-R-029","split":"test","category":"table_identifier","book":"tables","question":"Recall của mô hình A?","expected_pages":["model-A"]},
+    {"id":"VI-R-030","split":"dev","category":"math_identifier","book":"math","question":"Giá trị a_{12} là gì?","expected_pages":["a12"]},
+    {"id":"VI-R-031","split":"test","category":"math_identifier","book":"math","question":"Giá trị a_13?","expected_pages":["a13"]},
+    {"id":"VI-R-032","split":"test","category":"math_identifier","book":"math","question":"a_{21} bằng bao nhiêu?","expected_pages":["a21"]},
+    {"id":"VI-R-033","split":"dev","category":"negative","book":"tables","question":"Recall mô hình D?","expected_pages":[]},
+    {"id":"VI-R-034","split":"test","category":"negative","book":"math","question":"Giá trị a_{99}?","expected_pages":[]},
+    {"id":"VI-R-035","split":"dev","category":"negative","book":"tables","question":"Transformer architecture là gì?","expected_pages":[]},
+    {"id":"VI-R-036","split":"test","category":"negative","book":"technical","question":"Kubernetes deployment hoạt động thế nào?","expected_pages":[]},
+    {"id":"VI-R-037","split":"test","category":"unicode","book":"technical","question":"Mã kiểm chứng ĐỎ-815?","expected_pages":["accented"]},
+    {"id":"VI-R-038","split":"dev","category":"unicode_nfd","book":"technical","question":"Mã kiểm chứng là gì?","expected_pages":["accented"]}
+  ]
+}

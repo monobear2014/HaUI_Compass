@@ -1,0 +1,1860 @@
+{
+  "metadata": {
+    "timestamp": "2026-10-25T09:30:59.671982+00:00",
+    "git_commit": "bfd21df376b5ab18f379a1147edb462ad77203d1",
+    "dataset_version": "compass-rag-eval-v1-pdf-v2",
+    "dataset_sha256": "e234d9c4030021579e8f94df66b0c2e1a40e171091ecda325398bef6cb35597a",
+    "case_count": 57,
+    "turn_count": 63,
+    "mode": "retrieval",
+    "live": false,
+    "web_runtime": "development",
+    "model": null,
+    "retriever": {
+      "strategy": "lexical",
+      "implementation_sha256": "776bc9c5dadd32e16770694a24149bf794bf5ea7f7c3b7a96d7021c9ad300aad",
+      "top_k": 6,
+      "max_chunk_chars": 3000,
+      "overlap_chars": 180
+    }
+  },
+  "retrieval": {
+    "answerable_turns": 51,
+    "hit_at_1": 1.0,
+    "hit_at_3": 1.0,
+    "hit_at_5": 1.0,
+    "mrr": 1.0,
+    "source_recall_at_5": 1.0,
+    "no_evidence_empty_retrieval_rate": 0.75,
+    "by_category": {
+      "direct_factual": {
+        "answerable_turns": 12,
+        "hit_at_1": 1.0,
+        "hit_at_3": 1.0,
+        "hit_at_5": 1.0,
+        "mrr": 1.0,
+        "source_recall_at_5": 1.0
+      },
+      "paraphrased": {
+        "answerable_turns": 8,
+        "hit_at_1": 1.0,
+        "hit_at_3": 1.0,
+        "hit_at_5": 1.0,
+        "mrr": 1.0,
+        "source_recall_at_5": 1.0
+      },
+      "multi_section": {
+        "answerable_turns": 6,
+        "hit_at_1": 1.0,
+        "hit_at_3": 1.0,
+        "hit_at_5": 1.0,
+        "mrr": 1.0,
+        "source_recall_at_5": 1.0
+      },
+      "follow_up": {
+        "answerable_turns": 12,
+        "hit_at_1": 1.0,
+        "hit_at_3": 1.0,
+        "hit_at_5": 1.0,
+        "mrr": 1.0,
+        "source_recall_at_5": 1.0
+      },
+      "no_evidence": {
+        "answerable_turns": 0,
+        "hit_at_1": null,
+        "hit_at_3": null,
+        "hit_at_5": null,
+        "mrr": null,
+        "source_recall_at_5": null
+      },
+      "ambiguous": {
+        "answerable_turns": 2,
+        "hit_at_1": 1.0,
+        "hit_at_3": 1.0,
+        "hit_at_5": 1.0,
+        "mrr": 1.0,
+        "source_recall_at_5": 1.0
+      },
+      "adversarial": {
+        "answerable_turns": 4,
+        "hit_at_1": 1.0,
+        "hit_at_3": 1.0,
+        "hit_at_5": 1.0,
+        "mrr": 1.0,
+        "source_recall_at_5": 1.0
+      },
+      "pdf": {
+        "answerable_turns": 7,
+        "hit_at_1": 1.0,
+        "hit_at_3": 1.0,
+        "hit_at_5": 1.0,
+        "mrr": 1.0,
+        "source_recall_at_5": 1.0
+      }
+    },
+    "definitions": {
+      "hit_at_k": "1 when at least one expected semantic source identifier is in top K chunks",
+      "mrr": "mean of 1/rank for the first relevant chunk; zero when absent",
+      "source_recall_at_5": "expected source identifiers found in top 5 / expected source count"
+    }
+  },
+  "generation": null,
+  "latency_ms": {
+    "retrieval": {
+      "n": 63,
+      "mean": 0.23,
+      "p50": 0.121,
+      "p95": 0.409,
+      "max": 3.056
+    },
+    "generation": null,
+    "end_to_end": null
+  },
+  "token_usage": {
+    "status": "unavailable",
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "total_tokens": 0,
+    "responses_with_usage": 0
+  },
+  "decision": {
+    "signal": "lexical_adequate_on_v1_fixture",
+    "reason": "Hit@3 meets the v1 fixture thresholds; this does not prove production adequacy."
+  },
+  "cases": [
+    {
+      "case_id": "direct-001",
+      "turn_index": 0,
+      "category": "direct_factual",
+      "document": "ml-foundations",
+      "question": "Softmax biến logits thành gì?",
+      "resolved_query": "Softmax biến logits thành gì?",
+      "answerable": true,
+      "expected_sources": [
+        "softmax"
+      ],
+      "retrieval_ms": 3.056083000000001,
+      "retrieved": [
+        {
+          "rank": 1,
+          "chunk_id": "ml-foundations:chunk:0",
+          "document_id": "ml-foundations",
+          "heading": "Nền tảng Machine Learning",
+          "page_number": null,
+          "score": 1.6218604324326575,
+          "source_ids": [
+            "softmax",
+            "cross-entropy",
+            "gradient-descent",
+            "evaluation-split",
+            "regularization",
+            "kmeans"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "direct-002",
+      "turn_index": 0,
+      "category": "direct_factual",
+      "document": "ml-foundations",
+      "question": "Cross entropy được tính từ xác suất của nhãn nào?",
+      "resolved_query": "Cross entropy được tính từ xác suất của nhãn nào?",
+      "answerable": true,
+      "expected_sources": [
+        "cross-entropy"
+      ],
+      "retrieval_ms": 1.4689580000000149,
+      "retrieved": [
+        {
+          "rank": 1,
+          "chunk_id": "ml-foundations:chunk:0",
+          "document_id": "ml-foundations",
+          "heading": "Nền tảng Machine Learning",
+          "page_number": null,
+          "score": 2.8382557567571514,
+          "source_ids": [
+            "softmax",
+            "cross-entropy",
+            "gradient-descent",
+            "evaluation-split",
+            "regularization",
+            "kmeans"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "direct-003",
+      "turn_index": 0,
+      "category": "direct_factual",
+      "document": "ml-foundations",
+      "question": "Learning rate quá lớn gây ra điều gì?",
+      "resolved_query": "Learning rate quá lớn gây ra điều gì?",
+      "answerable": true,
+      "expected_sources": [
+        "gradient-descent"
+      ],
+      "retrieval_ms": 0.17462499999999181,
+      "retrieved": [
+        {
+          "rank": 1,
+          "chunk_id": "ml-foundations:chunk:0",
+          "document_id": "ml-foundations",
+          "heading": "Nền tảng Machine Learning",
+          "page_number": null,
+          "score": 2.8382557567571514,
+          "source_ids": [
+            "softmax",
+            "cross-entropy",
+            "gradient-descent",
+            "evaluation-split",
+            "regularization",
+            "kmeans"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "direct-004",
+      "turn_index": 0,
+      "category": "direct_factual",
+      "document": "ml-foundations",
+      "question": "Tập validation dùng để làm gì?",
+      "resolved_query": "Tập validation dùng để làm gì?",
+      "answerable": true,
+      "expected_sources": [
+        "evaluation-split"
+      ],
+      "retrieval_ms": 0.15183300000001054,
+      "retrieved": [
+        {
+          "rank": 1,
+          "chunk_id": "ml-foundations:chunk:0",
+          "document_id": "ml-foundations",
+          "heading": "Nền tảng Machine Learning",
+          "page_number": null,
+          "score": 1.2163953243244932,
+          "source_ids": [
+            "softmax",
+            "cross-entropy",
+            "gradient-descent",
+            "evaluation-split",
+            "regularization",
+            "kmeans"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "direct-005",
+      "turn_index": 0,
+      "category": "direct_factual",
+      "document": "ml-foundations",
+      "question": "L2 regularization phạt đại lượng nào?",
+      "resolved_query": "L2 regularization phạt đại lượng nào?",
+      "answerable": true,
+      "expected_sources": [
+        "regularization"
+      ],
+      "retrieval_ms": 0.1529999999999916,
+      "retrieved": [
+        {
+          "rank": 1,
+          "chunk_id": "ml-foundations:chunk:0",
+          "document_id": "ml-foundations",
+          "heading": "Nền tảng Machine Learning",
+          "page_number": null,
+          "score": 1.2163953243244932,
+          "source_ids": [
+            "softmax",
+            "cross-entropy",
+            "gradient-descent",
+            "evaluation-split",
+            "regularization",
+            "kmeans"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "direct-006",
+      "turn_index": 0,
+      "category": "direct_factual",
+      "document": "ml-foundations",
+      "question": "K-means cập nhật centroid như thế nào?",
+      "resolved_query": "K-means cập nhật centroid như thế nào?",
+      "answerable": true,
+      "expected_sources": [
+        "kmeans"
+      ],
+      "retrieval_ms": 0.14229199999999764,
+      "retrieved": [
+        {
+          "rank": 1,
+          "chunk_id": "ml-foundations:chunk:0",
+          "document_id": "ml-foundations",
+          "heading": "Nền tảng Machine Learning",
+          "page_number": null,
+          "score": 1.6218604324326575,
+          "source_ids": [
+            "softmax",
+            "cross-entropy",
+            "gradient-descent",
+            "evaluation-split",
+            "regularization",
+            "kmeans"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "direct-007",
+      "turn_index": 0,
+      "category": "direct_factual",
+      "document": "student-handbook",
+      "question": "Đợt học bổng Sao Mai yêu cầu GPA tối thiểu bao nhiêu?",
+      "resolved_query": "Đợt học bổng Sao Mai yêu cầu GPA tối thiểu bao nhiêu?",
+      "answerable": true,
+      "expected_sources": [
+        "scholarship"
+      ],
+      "retrieval_ms": 0.34995900000001257,
+      "retrieved": [
+        {
+          "rank": 1,
+          "chunk_id": "student-handbook:chunk:0",
+          "document_id": "student-handbook",
+          "heading": "Sổ tay sinh viên synthetic",
+          "page_number": null,
+          "score": 3.243720864865316,
+          "source_ids": [
+            "course-registration",
+            "scholarship",
+            "library",
+            "final-exam",
+            "attendance"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "direct-008",
+      "turn_index": 0,
+      "category": "direct_factual",
+      "document": "student-handbook",
+      "question": "Sinh viên được mượn tối đa bao nhiêu giáo trình?",
+      "resolved_query": "Sinh viên được mượn tối đa bao nhiêu giáo trình?",
+      "answerable": true,
+      "expected_sources": [
+        "library"
+      ],
+      "retrieval_ms": 0.1392500000000041,
+      "retrieved": [
+        {
+          "rank": 1,
+          "chunk_id": "student-handbook:chunk:0",
+          "document_id": "student-handbook",
+          "heading": "Sổ tay sinh viên synthetic",
+          "page_number": null,
+          "score": 3.64918597297348,
+          "source_ids": [
+            "course-registration",
+            "scholarship",
+            "library",
+            "final-exam",
+            "attendance"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "direct-009",
+      "turn_index": 0,
+      "category": "direct_factual",
+      "document": "student-handbook",
+      "question": "Phúc khảo điểm thi phải gửi trong bao lâu?",
+      "resolved_query": "Phúc khảo điểm thi phải gửi trong bao lâu?",
+      "answerable": true,
+      "expected_sources": [
+        "final-exam"
+      ],
+      "retrieval_ms": 0.13995800000000713,
+      "retrieved": [
+        {
+          "rank": 1,
+          "chunk_id": "student-handbook:chunk:0",
+          "document_id": "student-handbook",
+          "heading": "Sổ tay sinh viên synthetic",
+          "page_number": null,
+          "score": 2.4327906486489868,
+          "source_ids": [
+            "course-registration",
+            "scholarship",
+            "library",
+            "final-exam",
+            "attendance"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "direct-010",
+      "turn_index": 0,
+      "category": "direct_factual",
+      "document": "software-project",
+      "question": "Video demo được dài tối đa bao nhiêu phút?",
+      "resolved_query": "Video demo được dài tối đa bao nhiêu phút?",
+      "answerable": true,
+      "expected_sources": [
+        "deliverables"
+      ],
+      "retrieval_ms": 0.13954200000000583,
+      "retrieved": [
+        {
+          "rank": 1,
+          "chunk_id": "software-project:chunk:0",
+          "document_id": "software-project",
+          "heading": "Hướng dẫn đồ án phần mềm synthetic",
+          "page_number": null,
+          "score": 2.027325540540822,
+          "source_ids": [
+            "deliverables",
+            "architecture",
+            "testing",
+            "git-review",
+            "deployment"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "direct-011",
+      "turn_index": 0,
+      "category": "direct_factual",
+      "document": "software-project",
+      "question": "Ai phải review pull request trước khi merge?",
+      "resolved_query": "Ai phải review pull request trước khi merge?",
+      "answerable": true,
+      "expected_sources": [
+        "git-review"
+      ],
+      "retrieval_ms": 0.10808299999999349,
+      "retrieved": [
+        {
+          "rank": 1,
+          "chunk_id": "software-project:chunk:0",
+          "document_id": "software-project",
+          "heading": "Hướng dẫn đồ án phần mềm synthetic",
+          "page_number": null,
+          "score": 2.8382557567571514,
+          "source_ids": [
+            "deliverables",
+            "architecture",
+            "testing",
+            "git-review",
+            "deployment"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "direct-012",
+      "turn_index": 0,
+      "category": "direct_factual",
+      "document": "software-project",
+      "question": "Release cần có hai cơ chế vận hành nào?",
+      "resolved_query": "Release cần có hai cơ chế vận hành nào?",
+      "answerable": true,
+      "expected_sources": [
+        "deployment"
+      ],
+      "retrieval_ms": 0.11687499999999318,
+      "retrieved": [
+        {
+          "rank": 1,
+          "chunk_id": "software-project:chunk:0",
+          "document_id": "software-project",
+          "heading": "Hướng dẫn đồ án phần mềm synthetic",
+          "page_number": null,
+          "score": 1.2163953243244932,
+          "source_ids": [
+            "deliverables",
+            "architecture",
+            "testing",
+            "git-review",
+            "deployment"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "paraphrased-001",
+      "turn_index": 0,
+      "category": "paraphrased",
+      "document": "ml-foundations",
+      "question": "Làm sao biến điểm thô của các lớp thành các mức tin cậy cộng lại bằng một?",
+      "resolved_query": "Làm sao biến điểm thô của các lớp thành các mức tin cậy cộng lại bằng một?",
+      "answerable": true,
+      "expected_sources": [
+        "softmax"
+      ],
+      "retrieval_ms": 0.13958299999998758,
+      "retrieved": [
+        {
+          "rank": 1,
+          "chunk_id": "ml-foundations:chunk:0",
+          "document_id": "ml-foundations",
+          "heading": "Nền tảng Machine Learning",
+          "page_number": null,
+          "score": 3.243720864865316,
+          "source_ids": [
+            "softmax",
+            "cross-entropy",
+            "gradient-descent",
+            "evaluation-split",
+            "regularization",
+            "kmeans"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "paraphrased-002",
+      "turn_index": 0,
+      "category": "paraphrased",
+      "document": "ml-foundations",
+      "question": "Vì sao không nên dùng bộ dữ liệu đánh giá cuối để tinh chỉnh mô hình?",
+      "resolved_query": "Vì sao không nên dùng bộ dữ liệu đánh giá cuối để tinh chỉnh mô hình?",
+      "answerable": true,
+      "expected_sources": [
+        "evaluation-split"
+      ],
+      "retrieval_ms": 0.12983300000001918,
+      "retrieved": [
+        {
+          "rank": 1,
+          "chunk_id": "ml-foundations:chunk:0",
+          "document_id": "ml-foundations",
+          "heading": "Nền tảng Machine Learning",
+          "page_number": null,
+          "score": 3.6491859729734806,
+          "source_ids": [
+            "softmax",
+            "cross-entropy",
+            "gradient-descent",
+            "evaluation-split",
+            "regularization",
+            "kmeans"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "paraphrased-003",
+      "turn_index": 0,
+      "category": "paraphrased",
+      "document": "ml-foundations",
+      "question": "Biện pháp dừng huấn luyện lúc khả năng tổng quát không tăng nữa là gì?",
+      "resolved_query": "Biện pháp dừng huấn luyện lúc khả năng tổng quát không tăng nữa là gì?",
+      "answerable": true,
+      "expected_sources": [
+        "regularization"
+      ],
+      "retrieval_ms": 0.21049999999999613,
+      "retrieved": [
+        {
+          "rank": 1,
+          "chunk_id": "ml-foundations:chunk:0",
+          "document_id": "ml-foundations",
+          "heading": "Nền tảng Machine Learning",
+          "page_number": null,
+          "score": 2.8382557567571514,
+          "source_ids": [
+            "softmax",
+            "cross-entropy",
+            "gradient-descent",
+            "evaluation-split",
+            "regularization",
+            "kmeans"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "paraphrased-004",
+      "turn_index": 0,
+      "category": "paraphrased",
+      "document": "student-handbook",
+      "question": "Nếu lớp hết chỗ thì yêu cầu học của em được xử lý ra sao?",
+      "resolved_query": "Nếu lớp hết chỗ thì yêu cầu học của em được xử lý ra sao?",
+      "answerable": true,
+      "expected_sources": [
+        "course-registration"
+      ],
+      "retrieval_ms": 0.1397089999999821,
+      "retrieved": [
+        {
+          "rank": 1,
+          "chunk_id": "student-handbook:chunk:0",
+          "document_id": "student-handbook",
+          "heading": "Sổ tay sinh viên synthetic",
+          "page_number": null,
+          "score": 3.243720864865316,
+          "source_ids": [
+            "course-registration",
+            "scholarship",
+            "library",
+            "final-exam",
+            "attendance"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "paraphrased-005",
+      "turn_index": 0,
+      "category": "paraphrased",
+      "document": "student-handbook",
+      "question": "Sách không có người giữ chỗ thì em có thể kéo dài hạn trả không?",
+      "resolved_query": "Sách không có người giữ chỗ thì em có thể kéo dài hạn trả không?",
+      "answerable": true,
+      "expected_sources": [
+        "library"
+      ],
+      "retrieval_ms": 0.12708399999999642,
+      "retrieved": [
+        {
+          "rank": 1,
+          "chunk_id": "student-handbook:chunk:0",
+          "document_id": "student-handbook",
+          "heading": "Sổ tay sinh viên synthetic",
+          "page_number": null,
+          "score": 2.8382557567571514,
+          "source_ids": [
+            "course-registration",
+            "scholarship",
+            "library",
+            "final-exam",
+            "attendance"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "paraphrased-006",
+      "turn_index": 0,
+      "category": "paraphrased",
+      "document": "software-project",
+      "question": "Luật nghiệp vụ nên đứng ở đâu để không dính framework?",
+      "resolved_query": "Luật nghiệp vụ nên đứng ở đâu để không dính framework?",
+      "answerable": true,
+      "expected_sources": [
+        "architecture"
+      ],
+      "retrieval_ms": 0.10737499999999045,
+      "retrieved": [
+        {
+          "rank": 1,
+          "chunk_id": "software-project:chunk:0",
+          "document_id": "software-project",
+          "heading": "Hướng dẫn đồ án phần mềm synthetic",
+          "page_number": null,
+          "score": 0.8109302162163288,
+          "source_ids": [
+            "deliverables",
+            "architecture",
+            "testing",
+            "git-review",
+            "deployment"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "paraphrased-007",
+      "turn_index": 0,
+      "category": "paraphrased",
+      "document": "software-project",
+      "question": "Một lỗi tái xuất hiện cần được khóa lại bằng loại kiểm tra nào?",
+      "resolved_query": "Một lỗi tái xuất hiện cần được khóa lại bằng loại kiểm tra nào?",
+      "answerable": true,
+      "expected_sources": [
+        "testing"
+      ],
+      "retrieval_ms": 0.09958399999999301,
+      "retrieved": [
+        {
+          "rank": 1,
+          "chunk_id": "software-project:chunk:0",
+          "document_id": "software-project",
+          "heading": "Hướng dẫn đồ án phần mềm synthetic",
+          "page_number": null,
+          "score": 1.6218604324326575,
+          "source_ids": [
+            "deliverables",
+            "architecture",
+            "testing",
+            "git-review",
+            "deployment"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "paraphrased-008",
+      "turn_index": 0,
+      "category": "paraphrased",
+      "document": "injection-notes",
+      "question": "Cách hậu xử lý nào làm độ tin cậy mềm hơn mà không đổi lớp đứng đầu?",
+      "resolved_query": "Cách hậu xử lý nào làm độ tin cậy mềm hơn mà không đổi lớp đứng đầu?",
+      "answerable": true,
+      "expected_sources": [
+        "temperature-scaling"
+      ],
+      "retrieval_ms": 0.0857910000000004,
+      "retrieved": [
+        {
+          "rank": 1,
+          "chunk_id": "injection-notes:chunk:0",
+          "document_id": "injection-notes",
+          "heading": "Ghi chú an toàn mô hình synthetic",
+          "page_number": null,
+          "score": 3.243720864865316,
+          "source_ids": [
+            "temperature-scaling",
+            "document-injection",
+            "calibration-error"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "multi-001",
+      "turn_index": 0,
+      "category": "multi_section",
+      "document": "ml-foundations",
+      "question": "Phân biệt vai trò softmax và cross entropy trong mô hình phân loại.",
+      "resolved_query": "Phân biệt vai trò softmax và cross entropy trong mô hình phân loại.",
+      "answerable": true,
+      "expected_sources": [
+        "softmax",
+        "cross-entropy"
+      ],
+      "retrieval_ms": 0.13616700000000037,
+      "retrieved": [
+        {
+          "rank": 1,
+          "chunk_id": "ml-foundations:chunk:0",
+          "document_id": "ml-foundations",
+          "heading": "Nền tảng Machine Learning",
+          "page_number": null,
+          "score": 2.8382557567571514,
+          "source_ids": [
+            "softmax",
+            "cross-entropy",
+            "gradient-descent",
+            "evaluation-split",
+            "regularization",
+            "kmeans"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "multi-002",
+      "turn_index": 0,
+      "category": "multi_section",
+      "document": "ml-foundations",
+      "question": "Nêu cách learning rate và early stopping tác động đến huấn luyện.",
+      "resolved_query": "Nêu cách learning rate và early stopping tác động đến huấn luyện.",
+      "answerable": true,
+      "expected_sources": [
+        "gradient-descent",
+        "regularization"
+      ],
+      "retrieval_ms": 0.1244999999999834,
+      "retrieved": [
+        {
+          "rank": 1,
+          "chunk_id": "ml-foundations:chunk:0",
+          "document_id": "ml-foundations",
+          "heading": "Nền tảng Machine Learning",
+          "page_number": null,
+          "score": 3.6491859729734806,
+          "source_ids": [
+            "softmax",
+            "cross-entropy",
+            "gradient-descent",
+            "evaluation-split",
+            "regularization",
+            "kmeans"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "multi-003",
+      "turn_index": 0,
+      "category": "multi_section",
+      "document": "student-handbook",
+      "question": "So sánh mốc thời gian điều chỉnh đăng ký và phúc khảo điểm.",
+      "resolved_query": "So sánh mốc thời gian điều chỉnh đăng ký và phúc khảo điểm.",
+      "answerable": true,
+      "expected_sources": [
+        "course-registration",
+        "final-exam"
+      ],
+      "retrieval_ms": 0.18979199999998286,
+      "retrieved": [
+        {
+          "rank": 1,
+          "chunk_id": "student-handbook:chunk:0",
+          "document_id": "student-handbook",
+          "heading": "Sổ tay sinh viên synthetic",
+          "page_number": null,
+          "score": 3.6491859729734806,
+          "source_ids": [
+            "course-registration",
+            "scholarship",
+            "library",
+            "final-exam",
+            "attendance"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "multi-004",
+      "turn_index": 0,
+      "category": "multi_section",
+      "document": "student-handbook",
+      "question": "Tóm tắt cả điều kiện điểm và thành phần hồ sơ học bổng Sao Mai.",
+      "resolved_query": "Tóm tắt cả điều kiện điểm và thành phần hồ sơ học bổng Sao Mai.",
+      "answerable": true,
+      "expected_sources": [
+        "scholarship"
+      ],
+      "retrieval_ms": 0.12616699999998104,
+      "retrieved": [
+        {
+          "rank": 1,
+          "chunk_id": "student-handbook:chunk:0",
+          "document_id": "student-handbook",
+          "heading": "Sổ tay sinh viên synthetic",
+          "page_number": null,
+          "score": 3.6491859729734806,
+          "source_ids": [
+            "course-registration",
+            "scholarship",
+            "library",
+            "final-exam",
+            "attendance"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "multi-005",
+      "turn_index": 0,
+      "category": "multi_section",
+      "document": "software-project",
+      "question": "Liên hệ yêu cầu kiến trúc với các loại test cần nộp.",
+      "resolved_query": "Liên hệ yêu cầu kiến trúc với các loại test cần nộp.",
+      "answerable": true,
+      "expected_sources": [
+        "architecture",
+        "testing"
+      ],
+      "retrieval_ms": 0.10274999999998613,
+      "retrieved": [
+        {
+          "rank": 1,
+          "chunk_id": "software-project:chunk:0",
+          "document_id": "software-project",
+          "heading": "Hướng dẫn đồ án phần mềm synthetic",
+          "page_number": null,
+          "score": 3.243720864865316,
+          "source_ids": [
+            "deliverables",
+            "architecture",
+            "testing",
+            "git-review",
+            "deployment"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "multi-006",
+      "turn_index": 0,
+      "category": "multi_section",
+      "document": "software-project",
+      "question": "Checklist trước merge và trước deploy gồm những gì?",
+      "resolved_query": "Checklist trước merge và trước deploy gồm những gì?",
+      "answerable": true,
+      "expected_sources": [
+        "git-review",
+        "deployment"
+      ],
+      "retrieval_ms": 0.09379200000000765,
+      "retrieved": [
+        {
+          "rank": 1,
+          "chunk_id": "software-project:chunk:0",
+          "document_id": "software-project",
+          "heading": "Hướng dẫn đồ án phần mềm synthetic",
+          "page_number": null,
+          "score": 1.2163953243244932,
+          "source_ids": [
+            "deliverables",
+            "architecture",
+            "testing",
+            "git-review",
+            "deployment"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "followup-001",
+      "turn_index": 0,
+      "category": "follow_up",
+      "document": "ml-foundations",
+      "question": "Softmax là gì?",
+      "resolved_query": "Softmax là gì?",
+      "answerable": true,
+      "expected_sources": [
+        "softmax"
+      ],
+      "retrieval_ms": 0.40945899999999824,
+      "retrieved": [
+        {
+          "rank": 1,
+          "chunk_id": "ml-foundations:chunk:0",
+          "document_id": "ml-foundations",
+          "heading": "Nền tảng Machine Learning",
+          "page_number": null,
+          "score": 0.4054651081081644,
+          "source_ids": [
+            "softmax",
+            "cross-entropy",
+            "gradient-descent",
+            "evaluation-split",
+            "regularization",
+            "kmeans"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "followup-001",
+      "turn_index": 1,
+      "category": "follow_up",
+      "document": "ml-foundations",
+      "question": "Tại sao nó dùng exponential?",
+      "resolved_query": "Tại sao nó dùng exponential? Softmax là gì?",
+      "answerable": true,
+      "expected_sources": [
+        "softmax"
+      ],
+      "retrieval_ms": 0.12770799999998417,
+      "retrieved": [
+        {
+          "rank": 1,
+          "chunk_id": "ml-foundations:chunk:0",
+          "document_id": "ml-foundations",
+          "heading": "Nền tảng Machine Learning",
+          "page_number": null,
+          "score": 0.8109302162163288,
+          "source_ids": [
+            "softmax",
+            "cross-entropy",
+            "gradient-descent",
+            "evaluation-split",
+            "regularization",
+            "kmeans"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "followup-002",
+      "turn_index": 0,
+      "category": "follow_up",
+      "document": "ml-foundations",
+      "question": "Learning rate điều khiển gì?",
+      "resolved_query": "Learning rate điều khiển gì?",
+      "answerable": true,
+      "expected_sources": [
+        "gradient-descent"
+      ],
+      "retrieval_ms": 0.12087500000001228,
+      "retrieved": [
+        {
+          "rank": 1,
+          "chunk_id": "ml-foundations:chunk:0",
+          "document_id": "ml-foundations",
+          "heading": "Nền tảng Machine Learning",
+          "page_number": null,
+          "score": 2.027325540540822,
+          "source_ids": [
+            "softmax",
+            "cross-entropy",
+            "gradient-descent",
+            "evaluation-split",
+            "regularization",
+            "kmeans"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "followup-002",
+      "turn_index": 1,
+      "category": "follow_up",
+      "document": "ml-foundations",
+      "question": "Nếu nó quá nhỏ thì sao?",
+      "resolved_query": "Nếu nó quá nhỏ thì sao? Learning rate điều khiển gì?",
+      "answerable": true,
+      "expected_sources": [
+        "gradient-descent"
+      ],
+      "retrieval_ms": 0.12274999999999636,
+      "retrieved": [
+        {
+          "rank": 1,
+          "chunk_id": "ml-foundations:chunk:0",
+          "document_id": "ml-foundations",
+          "heading": "Nền tảng Machine Learning",
+          "page_number": null,
+          "score": 3.243720864865316,
+          "source_ids": [
+            "softmax",
+            "cross-entropy",
+            "gradient-descent",
+            "evaluation-split",
+            "regularization",
+            "kmeans"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "followup-003",
+      "turn_index": 0,
+      "category": "follow_up",
+      "document": "student-handbook",
+      "question": "Thời hạn mượn giáo trình là bao lâu?",
+      "resolved_query": "Thời hạn mượn giáo trình là bao lâu?",
+      "answerable": true,
+      "expected_sources": [
+        "library"
+      ],
+      "retrieval_ms": 0.18337500000001228,
+      "retrieved": [
+        {
+          "rank": 1,
+          "chunk_id": "student-handbook:chunk:0",
+          "document_id": "student-handbook",
+          "heading": "Sổ tay sinh viên synthetic",
+          "page_number": null,
+          "score": 2.027325540540822,
+          "source_ids": [
+            "course-registration",
+            "scholarship",
+            "library",
+            "final-exam",
+            "attendance"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "followup-003",
+      "turn_index": 1,
+      "category": "follow_up",
+      "document": "student-handbook",
+      "question": "Có thể gia hạn nó không?",
+      "resolved_query": "Có thể gia hạn nó không? Thời hạn mượn giáo trình là bao lâu?",
+      "answerable": true,
+      "expected_sources": [
+        "library"
+      ],
+      "retrieval_ms": 0.12295800000001122,
+      "retrieved": [
+        {
+          "rank": 1,
+          "chunk_id": "student-handbook:chunk:0",
+          "document_id": "student-handbook",
+          "heading": "Sổ tay sinh viên synthetic",
+          "page_number": null,
+          "score": 3.243720864865316,
+          "source_ids": [
+            "course-registration",
+            "scholarship",
+            "library",
+            "final-exam",
+            "attendance"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "followup-004",
+      "turn_index": 0,
+      "category": "follow_up",
+      "document": "student-handbook",
+      "question": "Mốc nộp phúc khảo là khi nào?",
+      "resolved_query": "Mốc nộp phúc khảo là khi nào?",
+      "answerable": true,
+      "expected_sources": [
+        "final-exam"
+      ],
+      "retrieval_ms": 0.11416700000000901,
+      "retrieved": [
+        {
+          "rank": 1,
+          "chunk_id": "student-handbook:chunk:0",
+          "document_id": "student-handbook",
+          "heading": "Sổ tay sinh viên synthetic",
+          "page_number": null,
+          "score": 1.6218604324326575,
+          "source_ids": [
+            "course-registration",
+            "scholarship",
+            "library",
+            "final-exam",
+            "attendance"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "followup-004",
+      "turn_index": 1,
+      "category": "follow_up",
+      "document": "student-handbook",
+      "question": "Sau đó khoa trả lời nó trong bao lâu?",
+      "resolved_query": "Sau đó khoa trả lời nó trong bao lâu? Mốc nộp phúc khảo là khi nào?",
+      "answerable": true,
+      "expected_sources": [
+        "final-exam"
+      ],
+      "retrieval_ms": 0.11458400000000779,
+      "retrieved": [
+        {
+          "rank": 1,
+          "chunk_id": "student-handbook:chunk:0",
+          "document_id": "student-handbook",
+          "heading": "Sổ tay sinh viên synthetic",
+          "page_number": null,
+          "score": 3.243720864865316,
+          "source_ids": [
+            "course-registration",
+            "scholarship",
+            "library",
+            "final-exam",
+            "attendance"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "followup-005",
+      "turn_index": 0,
+      "category": "follow_up",
+      "document": "software-project",
+      "question": "Kiến trúc đồ án là gì?",
+      "resolved_query": "Kiến trúc đồ án là gì?",
+      "answerable": true,
+      "expected_sources": [
+        "architecture"
+      ],
+      "retrieval_ms": 0.10416699999998968,
+      "retrieved": [
+        {
+          "rank": 1,
+          "chunk_id": "software-project:chunk:0",
+          "document_id": "software-project",
+          "heading": "Hướng dẫn đồ án phần mềm synthetic",
+          "page_number": null,
+          "score": 2.4327906486489863,
+          "source_ids": [
+            "deliverables",
+            "architecture",
+            "testing",
+            "git-review",
+            "deployment"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "followup-005",
+      "turn_index": 1,
+      "category": "follow_up",
+      "document": "software-project",
+      "question": "Tại sao nó giữ domain độc lập?",
+      "resolved_query": "Tại sao nó giữ domain độc lập? Kiến trúc đồ án là gì?",
+      "answerable": true,
+      "expected_sources": [
+        "architecture"
+      ],
+      "retrieval_ms": 0.09837500000000432,
+      "retrieved": [
+        {
+          "rank": 1,
+          "chunk_id": "software-project:chunk:0",
+          "document_id": "software-project",
+          "heading": "Hướng dẫn đồ án phần mềm synthetic",
+          "page_number": null,
+          "score": 3.2437208648653155,
+          "source_ids": [
+            "deliverables",
+            "architecture",
+            "testing",
+            "git-review",
+            "deployment"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "followup-006",
+      "turn_index": 0,
+      "category": "follow_up",
+      "document": "injection-notes",
+      "question": "Temperature scaling làm gì?",
+      "resolved_query": "Temperature scaling làm gì?",
+      "answerable": true,
+      "expected_sources": [
+        "temperature-scaling"
+      ],
+      "retrieval_ms": 0.07691600000001131,
+      "retrieved": [
+        {
+          "rank": 1,
+          "chunk_id": "injection-notes:chunk:0",
+          "document_id": "injection-notes",
+          "heading": "Ghi chú an toàn mô hình synthetic",
+          "page_number": null,
+          "score": 1.2163953243244932,
+          "source_ids": [
+            "temperature-scaling",
+            "document-injection",
+            "calibration-error"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "followup-006",
+      "turn_index": 1,
+      "category": "follow_up",
+      "document": "injection-notes",
+      "question": "Nó có đổi lớp dự đoán không?",
+      "resolved_query": "Nó có đổi lớp dự đoán không? Temperature scaling làm gì?",
+      "answerable": true,
+      "expected_sources": [
+        "temperature-scaling"
+      ],
+      "retrieval_ms": 0.06883300000001213,
+      "retrieved": [
+        {
+          "rank": 1,
+          "chunk_id": "injection-notes:chunk:0",
+          "document_id": "injection-notes",
+          "heading": "Ghi chú an toàn mô hình synthetic",
+          "page_number": null,
+          "score": 3.243720864865316,
+          "source_ids": [
+            "temperature-scaling",
+            "document-injection",
+            "calibration-error"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "negative-001",
+      "turn_index": 0,
+      "category": "no_evidence",
+      "document": "ml-foundations",
+      "question": "Transformer self-attention tạo Q, K, V như thế nào?",
+      "resolved_query": "Transformer self-attention tạo Q, K, V như thế nào?",
+      "answerable": false,
+      "expected_sources": [],
+      "retrieval_ms": 0.13787499999997976,
+      "retrieved": []
+    },
+    {
+      "case_id": "negative-002",
+      "turn_index": 0,
+      "category": "no_evidence",
+      "document": "ml-foundations",
+      "question": "CNN dùng kernel 3x3 để phát hiện cạnh ra sao?",
+      "resolved_query": "CNN dùng kernel 3x3 để phát hiện cạnh ra sao?",
+      "answerable": false,
+      "expected_sources": [],
+      "retrieval_ms": 2.465917000000019,
+      "retrieved": []
+    },
+    {
+      "case_id": "negative-003",
+      "turn_index": 0,
+      "category": "no_evidence",
+      "document": "student-handbook",
+      "question": "Mật khẩu Wi-Fi ký túc xá là gì?",
+      "resolved_query": "Mật khẩu Wi-Fi ký túc xá là gì?",
+      "answerable": false,
+      "expected_sources": [],
+      "retrieval_ms": 0.150416000000007,
+      "retrieved": []
+    },
+    {
+      "case_id": "negative-004",
+      "turn_index": 0,
+      "category": "no_evidence",
+      "document": "student-handbook",
+      "question": "Học phí ngành AI năm 2027 là bao nhiêu?",
+      "resolved_query": "Học phí ngành AI năm 2027 là bao nhiêu?",
+      "answerable": false,
+      "expected_sources": [],
+      "retrieval_ms": 0.12316700000002356,
+      "retrieved": []
+    },
+    {
+      "case_id": "negative-005",
+      "turn_index": 0,
+      "category": "no_evidence",
+      "document": "software-project",
+      "question": "Cấu hình Kubernetes HPA của đồ án là gì?",
+      "resolved_query": "Cấu hình Kubernetes HPA của đồ án là gì?",
+      "answerable": false,
+      "expected_sources": [],
+      "retrieval_ms": 0.10641599999999585,
+      "retrieved": [
+        {
+          "rank": 1,
+          "chunk_id": "software-project:chunk:0",
+          "document_id": "software-project",
+          "heading": "Hướng dẫn đồ án phần mềm synthetic",
+          "page_number": null,
+          "score": 2.027325540540822,
+          "source_ids": [
+            "deliverables",
+            "architecture",
+            "testing",
+            "git-review",
+            "deployment"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "negative-006",
+      "turn_index": 0,
+      "category": "no_evidence",
+      "document": "software-project",
+      "question": "AWS access key của staging nằm ở đâu?",
+      "resolved_query": "AWS access key của staging nằm ở đâu?",
+      "answerable": false,
+      "expected_sources": [],
+      "retrieval_ms": 0.0938329999999894,
+      "retrieved": []
+    },
+    {
+      "case_id": "negative-007",
+      "turn_index": 0,
+      "category": "no_evidence",
+      "document": "injection-notes",
+      "question": "Mô hình BERT có bao nhiêu attention head?",
+      "resolved_query": "Mô hình BERT có bao nhiêu attention head?",
+      "answerable": false,
+      "expected_sources": [],
+      "retrieval_ms": 0.07333399999998846,
+      "retrieved": []
+    },
+    {
+      "case_id": "negative-008",
+      "turn_index": 0,
+      "category": "no_evidence",
+      "document": "injection-notes",
+      "question": "Cho biết số điện thoại của giảng viên phụ trách.",
+      "resolved_query": "Cho biết số điện thoại của giảng viên phụ trách.",
+      "answerable": false,
+      "expected_sources": [],
+      "retrieval_ms": 0.07374999999998977,
+      "retrieved": []
+    },
+    {
+      "case_id": "ambiguous-001",
+      "turn_index": 0,
+      "category": "ambiguous",
+      "document": "student-handbook",
+      "question": "Em có đủ điều kiện không?",
+      "resolved_query": "Em có đủ điều kiện không?",
+      "answerable": false,
+      "expected_sources": [],
+      "retrieval_ms": 0.1235409999999888,
+      "retrieved": [
+        {
+          "rank": 1,
+          "chunk_id": "student-handbook:chunk:0",
+          "document_id": "student-handbook",
+          "heading": "Sổ tay sinh viên synthetic",
+          "page_number": null,
+          "score": 1.6218604324326575,
+          "source_ids": [
+            "course-registration",
+            "scholarship",
+            "library",
+            "final-exam",
+            "attendance"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "ambiguous-002",
+      "turn_index": 0,
+      "category": "ambiguous",
+      "document": "software-project",
+      "question": "Cần nộp cái đó khi nào?",
+      "resolved_query": "Cần nộp cái đó khi nào?",
+      "answerable": false,
+      "expected_sources": [],
+      "retrieval_ms": 0.11625000000000796,
+      "retrieved": [
+        {
+          "rank": 1,
+          "chunk_id": "software-project:chunk:0",
+          "document_id": "software-project",
+          "heading": "Hướng dẫn đồ án phần mềm synthetic",
+          "page_number": null,
+          "score": 1.2163953243244932,
+          "source_ids": [
+            "deliverables",
+            "architecture",
+            "testing",
+            "git-review",
+            "deployment"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "ambiguous-003",
+      "turn_index": 0,
+      "category": "ambiguous",
+      "document": "student-handbook",
+      "question": "Theo mục Chuyên cần, đủ điều kiện về tỷ lệ tham dự là bao nhiêu?",
+      "resolved_query": "Theo mục Chuyên cần, đủ điều kiện về tỷ lệ tham dự là bao nhiêu?",
+      "answerable": true,
+      "expected_sources": [
+        "attendance"
+      ],
+      "retrieval_ms": 0.32441599999998516,
+      "retrieved": [
+        {
+          "rank": 1,
+          "chunk_id": "student-handbook:chunk:0",
+          "document_id": "student-handbook",
+          "heading": "Sổ tay sinh viên synthetic",
+          "page_number": null,
+          "score": 4.054651081081645,
+          "source_ids": [
+            "course-registration",
+            "scholarship",
+            "library",
+            "final-exam",
+            "attendance"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "ambiguous-004",
+      "turn_index": 0,
+      "category": "ambiguous",
+      "document": "software-project",
+      "question": "Trong mục Kiểm thử, coverage cao có thay thế assertion tốt không?",
+      "resolved_query": "Trong mục Kiểm thử, coverage cao có thay thế assertion tốt không?",
+      "answerable": true,
+      "expected_sources": [
+        "testing"
+      ],
+      "retrieval_ms": 0.1072499999999934,
+      "retrieved": [
+        {
+          "rank": 1,
+          "chunk_id": "software-project:chunk:0",
+          "document_id": "software-project",
+          "heading": "Hướng dẫn đồ án phần mềm synthetic",
+          "page_number": null,
+          "score": 3.243720864865316,
+          "source_ids": [
+            "deliverables",
+            "architecture",
+            "testing",
+            "git-review",
+            "deployment"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "adversarial-001",
+      "turn_index": 0,
+      "category": "adversarial",
+      "document": "injection-notes",
+      "question": "Temperature scaling học tham số trên tập nào?",
+      "resolved_query": "Temperature scaling học tham số trên tập nào?",
+      "answerable": true,
+      "expected_sources": [
+        "temperature-scaling"
+      ],
+      "retrieval_ms": 0.07312500000000455,
+      "retrieved": [
+        {
+          "rank": 1,
+          "chunk_id": "injection-notes:chunk:0",
+          "document_id": "injection-notes",
+          "heading": "Ghi chú an toàn mô hình synthetic",
+          "page_number": null,
+          "score": 2.8382557567571514,
+          "source_ids": [
+            "temperature-scaling",
+            "document-injection",
+            "calibration-error"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "adversarial-002",
+      "turn_index": 0,
+      "category": "adversarial",
+      "document": "injection-notes",
+      "question": "Temperature lớn hơn một thường ảnh hưởng phân phối thế nào?",
+      "resolved_query": "Temperature lớn hơn một thường ảnh hưởng phân phối thế nào?",
+      "answerable": true,
+      "expected_sources": [
+        "temperature-scaling"
+      ],
+      "retrieval_ms": 0.0710420000000056,
+      "retrieved": [
+        {
+          "rank": 1,
+          "chunk_id": "injection-notes:chunk:0",
+          "document_id": "injection-notes",
+          "heading": "Ghi chú an toàn mô hình synthetic",
+          "page_number": null,
+          "score": 2.4327906486489868,
+          "source_ids": [
+            "temperature-scaling",
+            "document-injection",
+            "calibration-error"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "adversarial-003",
+      "turn_index": 0,
+      "category": "adversarial",
+      "document": "injection-notes",
+      "question": "Expected calibration error so sánh hai đại lượng nào trong mỗi bin?",
+      "resolved_query": "Expected calibration error so sánh hai đại lượng nào trong mỗi bin?",
+      "answerable": true,
+      "expected_sources": [
+        "calibration-error"
+      ],
+      "retrieval_ms": 0.06508299999998712,
+      "retrieved": [
+        {
+          "rank": 1,
+          "chunk_id": "injection-notes:chunk:0",
+          "document_id": "injection-notes",
+          "heading": "Ghi chú an toàn mô hình synthetic",
+          "page_number": null,
+          "score": 2.4327906486489868,
+          "source_ids": [
+            "temperature-scaling",
+            "document-injection",
+            "calibration-error"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "adversarial-004",
+      "turn_index": 0,
+      "category": "adversarial",
+      "document": "injection-notes",
+      "question": "Theo tài liệu, phải xử lý instruction nằm trong nội dung upload ra sao?",
+      "resolved_query": "Theo tài liệu, phải xử lý instruction nằm trong nội dung upload ra sao?",
+      "answerable": true,
+      "expected_sources": [
+        "document-injection"
+      ],
+      "retrieval_ms": 0.07545799999999758,
+      "retrieved": [
+        {
+          "rank": 1,
+          "chunk_id": "injection-notes:chunk:0",
+          "document_id": "injection-notes",
+          "heading": "Ghi chú an toàn mô hình synthetic",
+          "page_number": null,
+          "score": 2.027325540540822,
+          "source_ids": [
+            "temperature-scaling",
+            "document-injection",
+            "calibration-error"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "pdf-001",
+      "turn_index": 0,
+      "category": "pdf",
+      "document": "ml-pages",
+      "question": "What does softmax convert logits into?",
+      "resolved_query": "What does softmax convert logits into?",
+      "answerable": true,
+      "expected_sources": [
+        "pdf-softmax"
+      ],
+      "retrieval_ms": 0.06350000000000477,
+      "retrieved": [
+        {
+          "rank": 1,
+          "chunk_id": "ml-pages:chunk:0",
+          "document_id": "ml-pages",
+          "heading": null,
+          "page_number": 1,
+          "score": 3.6651629274966204,
+          "source_ids": [
+            "pdf-softmax"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "pdf-002",
+      "turn_index": 0,
+      "category": "pdf",
+      "document": "ml-pages",
+      "question": "What do softmax output probabilities sum to?",
+      "resolved_query": "What do softmax output probabilities sum to?",
+      "answerable": true,
+      "expected_sources": [
+        "pdf-softmax"
+      ],
+      "retrieval_ms": 0.04066699999998491,
+      "retrieved": [
+        {
+          "rank": 1,
+          "chunk_id": "ml-pages:chunk:0",
+          "document_id": "ml-pages",
+          "heading": null,
+          "page_number": 1,
+          "score": 3.6651629274966204,
+          "source_ids": [
+            "pdf-softmax"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "pdf-003",
+      "turn_index": 0,
+      "category": "pdf",
+      "document": "ml-pages",
+      "question": "How does a larger softmax temperature affect the distribution?",
+      "resolved_query": "How does a larger softmax temperature affect the distribution?",
+      "answerable": true,
+      "expected_sources": [
+        "pdf-softmax"
+      ],
+      "retrieval_ms": 0.04445900000001757,
+      "retrieved": [
+        {
+          "rank": 1,
+          "chunk_id": "ml-pages:chunk:0",
+          "document_id": "ml-pages",
+          "heading": null,
+          "page_number": 1,
+          "score": 3.6651629274966204,
+          "source_ids": [
+            "pdf-softmax"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "pdf-004",
+      "turn_index": 0,
+      "category": "pdf",
+      "document": "ml-pages",
+      "question": "What direction does gradient descent update parameters?",
+      "resolved_query": "What direction does gradient descent update parameters?",
+      "answerable": true,
+      "expected_sources": [
+        "pdf-gradient"
+      ],
+      "retrieval_ms": 0.04304199999998559,
+      "retrieved": [
+        {
+          "rank": 1,
+          "chunk_id": "ml-pages:chunk:1",
+          "document_id": "ml-pages",
+          "heading": null,
+          "page_number": 2,
+          "score": 3.6651629274966204,
+          "source_ids": [
+            "pdf-gradient"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "pdf-005",
+      "turn_index": 0,
+      "category": "pdf",
+      "document": "ml-pages",
+      "question": "What controls the gradient descent update step size?",
+      "resolved_query": "What controls the gradient descent update step size?",
+      "answerable": true,
+      "expected_sources": [
+        "pdf-gradient"
+      ],
+      "retrieval_ms": 0.03808300000000031,
+      "retrieved": [
+        {
+          "rank": 1,
+          "chunk_id": "ml-pages:chunk:1",
+          "document_id": "ml-pages",
+          "heading": null,
+          "page_number": 2,
+          "score": 5.497744391244931,
+          "source_ids": [
+            "pdf-gradient"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "pdf-006",
+      "turn_index": 0,
+      "category": "pdf",
+      "document": "ml-pages",
+      "question": "How is MRR defined in retrieval evaluation?",
+      "resolved_query": "How is MRR defined in retrieval evaluation?",
+      "answerable": true,
+      "expected_sources": [
+        "pdf-retrieval"
+      ],
+      "retrieval_ms": 0.2116670000000056,
+      "retrieved": [
+        {
+          "rank": 1,
+          "chunk_id": "ml-pages:chunk:2",
+          "document_id": "ml-pages",
+          "heading": null,
+          "page_number": 3,
+          "score": 2.392197251683733,
+          "source_ids": [
+            "pdf-retrieval"
+          ]
+        },
+        {
+          "rank": 2,
+          "chunk_id": "ml-pages:chunk:0",
+          "document_id": "ml-pages",
+          "heading": null,
+          "page_number": 1,
+          "score": 0.5596157879354227,
+          "source_ids": [
+            "pdf-softmax"
+          ]
+        },
+        {
+          "rank": 3,
+          "chunk_id": "ml-pages:chunk:1",
+          "document_id": "ml-pages",
+          "heading": null,
+          "page_number": 2,
+          "score": 0.5596157879354227,
+          "source_ids": [
+            "pdf-gradient"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "pdf-007",
+      "turn_index": 0,
+      "category": "pdf",
+      "document": "ml-pages",
+      "question": "How does Kubernetes configure autoscaling?",
+      "resolved_query": "How does Kubernetes configure autoscaling?",
+      "answerable": false,
+      "expected_sources": [],
+      "retrieval_ms": 0.031207999999992353,
+      "retrieved": []
+    },
+    {
+      "case_id": "pdf-008",
+      "turn_index": 0,
+      "category": "pdf",
+      "document": "ml-pages",
+      "question": "Which Transformer architecture is recommended?",
+      "resolved_query": "Which Transformer architecture is recommended?",
+      "answerable": false,
+      "expected_sources": [],
+      "retrieval_ms": 0.09983400000001552,
+      "retrieved": []
+    },
+    {
+      "case_id": "pdf-009",
+      "turn_index": 0,
+      "category": "pdf",
+      "document": "ml-pages",
+      "question": "Learning rate/gradient descent và temperature/softmax là gì?",
+      "resolved_query": "Learning rate/gradient descent và temperature/softmax là gì?",
+      "answerable": true,
+      "expected_sources": [
+        "pdf-gradient",
+        "pdf-softmax"
+      ],
+      "retrieval_ms": 0.10633400000000393,
+      "retrieved": [
+        {
+          "rank": 1,
+          "chunk_id": "ml-pages:chunk:1",
+          "document_id": "ml-pages",
+          "heading": null,
+          "page_number": 2,
+          "score": 3.6651629274966204,
+          "source_ids": [
+            "pdf-gradient"
+          ]
+        },
+        {
+          "rank": 2,
+          "chunk_id": "ml-pages:chunk:0",
+          "document_id": "ml-pages",
+          "heading": null,
+          "page_number": 1,
+          "score": 1.8325814637483102,
+          "source_ids": [
+            "pdf-softmax"
+          ]
+        }
+      ]
+    }
+  ]
+}

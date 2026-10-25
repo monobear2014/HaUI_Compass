@@ -1,0 +1,1322 @@
+{
+  "version": "retrieval-vi-v2",
+  "mode": "retrieval-only",
+  "model_calls": 0,
+  "annotation_origin": "Author-defined synthetic retrieval regression labels, not independently reviewed or a blind holdout",
+  "timestamp": "2026-10-25T09:39:06.947Z",
+  "git_commit": "bfd21df376b5ab18f379a1147edb462ad77203d1",
+  "dataset_sha256": "65cfaec331e60aa97fa44a35fd5c94ae0583b28764b9bb2e59e904b660b3dd00",
+  "ocr_labels_sha256": "e4d79c7af325aa8d8946ac3373a4ff0d57efcdd5c215b9b1292aa848eda862d4",
+  "ranker_sha256": "92ec497a4d44fcf62c43583a084b30cf1ab3f87a007727b3e35da5afd45062dd",
+  "chunker_sha256": "f8f2290c5d033edbbd14a0a1098f22c245151da63c2405c936347abafd9b83cf",
+  "evaluator_sha256": "091530f23787594fb3079445734f38d0390708597b9a8afc649cf10c7063b1ae",
+  "metrics": {
+    "cases": 38,
+    "answerable": 34,
+    "negative": 4,
+    "hit_at_1": 0.9411764705882353,
+    "hit_at_3": 0.9705882352941176,
+    "source_recall_at_5": 0.9705882352941176,
+    "mrr": 0.9558823529411765,
+    "negative_empty_rate": 1,
+    "passed": 37
+  },
+  "splits": {
+    "dev": {
+      "cases": 18,
+      "answerable": 16,
+      "negative": 2,
+      "hit_at_1": 0.9375,
+      "hit_at_3": 1,
+      "source_recall_at_5": 1,
+      "mrr": 0.96875,
+      "negative_empty_rate": 1,
+      "passed": 18
+    },
+    "test": {
+      "cases": 20,
+      "answerable": 18,
+      "negative": 2,
+      "hit_at_1": 0.9444444444444444,
+      "hit_at_3": 0.9444444444444444,
+      "source_recall_at_5": 0.9444444444444444,
+      "mrr": 0.9444444444444444,
+      "negative_empty_rate": 1,
+      "passed": 19
+    }
+  },
+  "categories": {
+    "ocr_vietnamese_text": {
+      "cases": 5,
+      "answerable": 5,
+      "negative": 0,
+      "hit_at_1": 1,
+      "hit_at_3": 1,
+      "source_recall_at_5": 1,
+      "mrr": 1,
+      "negative_empty_rate": null,
+      "passed": 5
+    },
+    "ocr_table": {
+      "cases": 5,
+      "answerable": 5,
+      "negative": 0,
+      "hit_at_1": 0.8,
+      "hit_at_3": 1,
+      "source_recall_at_5": 1,
+      "mrr": 0.9,
+      "negative_empty_rate": null,
+      "passed": 5
+    },
+    "ocr_math": {
+      "cases": 7,
+      "answerable": 7,
+      "negative": 0,
+      "hit_at_1": 0.8571428571428571,
+      "hit_at_3": 0.8571428571428571,
+      "source_recall_at_5": 0.8571428571428571,
+      "mrr": 0.8571428571428571,
+      "negative_empty_rate": null,
+      "passed": 6
+    },
+    "ocr_mixed": {
+      "cases": 2,
+      "answerable": 2,
+      "negative": 0,
+      "hit_at_1": 1,
+      "hit_at_3": 1,
+      "source_recall_at_5": 1,
+      "mrr": 1,
+      "negative_empty_rate": null,
+      "passed": 2
+    },
+    "ocr_injection": {
+      "cases": 1,
+      "answerable": 1,
+      "negative": 0,
+      "hit_at_1": 1,
+      "hit_at_3": 1,
+      "source_recall_at_5": 1,
+      "mrr": 1,
+      "negative_empty_rate": null,
+      "passed": 1
+    },
+    "unaccented": {
+      "cases": 4,
+      "answerable": 4,
+      "negative": 0,
+      "hit_at_1": 1,
+      "hit_at_3": 1,
+      "source_recall_at_5": 1,
+      "mrr": 1,
+      "negative_empty_rate": null,
+      "passed": 4
+    },
+    "phrase_ranking": {
+      "cases": 2,
+      "answerable": 2,
+      "negative": 0,
+      "hit_at_1": 1,
+      "hit_at_3": 1,
+      "source_recall_at_5": 1,
+      "mrr": 1,
+      "negative_empty_rate": null,
+      "passed": 2
+    },
+    "table_identifier": {
+      "cases": 3,
+      "answerable": 3,
+      "negative": 0,
+      "hit_at_1": 1,
+      "hit_at_3": 1,
+      "source_recall_at_5": 1,
+      "mrr": 1,
+      "negative_empty_rate": null,
+      "passed": 3
+    },
+    "math_identifier": {
+      "cases": 3,
+      "answerable": 3,
+      "negative": 0,
+      "hit_at_1": 1,
+      "hit_at_3": 1,
+      "source_recall_at_5": 1,
+      "mrr": 1,
+      "negative_empty_rate": null,
+      "passed": 3
+    },
+    "negative": {
+      "cases": 4,
+      "answerable": 0,
+      "negative": 4,
+      "hit_at_1": null,
+      "hit_at_3": null,
+      "source_recall_at_5": null,
+      "mrr": null,
+      "negative_empty_rate": 1,
+      "passed": 4
+    },
+    "unicode": {
+      "cases": 1,
+      "answerable": 1,
+      "negative": 0,
+      "hit_at_1": 1,
+      "hit_at_3": 1,
+      "source_recall_at_5": 1,
+      "mrr": 1,
+      "negative_empty_rate": null,
+      "passed": 1
+    },
+    "unicode_nfd": {
+      "cases": 1,
+      "answerable": 1,
+      "negative": 0,
+      "hit_at_1": 1,
+      "hit_at_3": 1,
+      "source_recall_at_5": 1,
+      "mrr": 1,
+      "negative_empty_rate": null,
+      "passed": 1
+    }
+  },
+  "cases": [
+    {
+      "id": "VI-R-001",
+      "split": "dev",
+      "category": "ocr_vietnamese_text",
+      "book": "ocr",
+      "question": "Mỗi tuần cần dành bao nhiêu phút để ôn tập?",
+      "expected_pages": [
+        "OCR-VI-001"
+      ],
+      "retrieved": [
+        {
+          "page": "OCR-VI-001",
+          "page_number": 1,
+          "chunk_index": 0,
+          "score": 14.635630892745942
+        }
+      ],
+      "latency_ms": 8.340125,
+      "passed": true
+    },
+    {
+      "id": "VI-R-002",
+      "split": "test",
+      "category": "ocr_vietnamese_text",
+      "book": "ocr",
+      "question": "Tỷ lệ dữ liệu xác thực là bao nhiêu?",
+      "expected_pages": [
+        "OCR-VI-002"
+      ],
+      "retrieved": [
+        {
+          "page": "OCR-VI-002",
+          "page_number": 2,
+          "chunk_index": 1,
+          "score": 4.957733217267696
+        },
+        {
+          "page": "OCR-VI-019",
+          "page_number": 19,
+          "chunk_index": 18,
+          "score": 3.593520786032965
+        },
+        {
+          "page": "OCR-VI-015",
+          "page_number": 15,
+          "chunk_index": 14,
+          "score": 2.579235071747251
+        },
+        {
+          "page": "OCR-VI-017",
+          "page_number": 17,
+          "chunk_index": 16,
+          "score": 2.477110434188554
+        },
+        {
+          "page": "OCR-VI-003",
+          "page_number": 3,
+          "chunk_index": 2,
+          "score": 2.46282471990284
+        },
+        {
+          "page": "OCR-VI-004",
+          "page_number": 4,
+          "chunk_index": 3,
+          "score": 2.46282471990284
+        }
+      ],
+      "latency_ms": 1.0184579999999954,
+      "passed": true
+    },
+    {
+      "id": "VI-R-003",
+      "split": "dev",
+      "category": "ocr_vietnamese_text",
+      "book": "ocr",
+      "question": "Buổi thảo luận ở phòng nào?",
+      "expected_pages": [
+        "OCR-VI-003"
+      ],
+      "retrieved": [
+        {
+          "page": "OCR-VI-003",
+          "page_number": 3,
+          "chunk_index": 2,
+          "score": 11.330567745656152
+        }
+      ],
+      "latency_ms": 0.8633749999999978,
+      "passed": true
+    },
+    {
+      "id": "VI-R-004",
+      "split": "test",
+      "category": "ocr_vietnamese_text",
+      "book": "ocr",
+      "question": "Cần ghi lại ít nhất bao nhiêu câu hỏi?",
+      "expected_pages": [
+        "OCR-VI-004"
+      ],
+      "retrieved": [
+        {
+          "page": "OCR-VI-004",
+          "page_number": 4,
+          "chunk_index": 3,
+          "score": 14.97310299404653
+        },
+        {
+          "page": "OCR-VI-017",
+          "page_number": 17,
+          "chunk_index": 16,
+          "score": 6.504992460653785
+        }
+      ],
+      "latency_ms": 0.8036669999999972,
+      "passed": true
+    },
+    {
+      "id": "VI-R-005",
+      "split": "dev",
+      "category": "ocr_table",
+      "book": "ocr",
+      "question": "Môn Cơ sở dữ liệu có thời lượng bao nhiêu phút?",
+      "expected_pages": [
+        "OCR-VI-005"
+      ],
+      "retrieved": [
+        {
+          "page": "OCR-VI-005",
+          "page_number": 5,
+          "chunk_index": 4,
+          "score": 7.513893838900344
+        },
+        {
+          "page": "OCR-VI-004",
+          "page_number": 4,
+          "chunk_index": 3,
+          "score": 5.310489252916757
+        },
+        {
+          "page": "OCR-VI-001",
+          "page_number": 1,
+          "chunk_index": 0,
+          "score": 2.9729418329894206
+        },
+        {
+          "page": "OCR-VI-002",
+          "page_number": 2,
+          "chunk_index": 1,
+          "score": 2.279794652429475
+        },
+        {
+          "page": "OCR-VI-015",
+          "page_number": 15,
+          "chunk_index": 14,
+          "score": 2.268683541318364
+        }
+      ],
+      "latency_ms": 0.8477090000000018,
+      "passed": true
+    },
+    {
+      "id": "VI-R-006",
+      "split": "test",
+      "category": "ocr_table",
+      "book": "ocr",
+      "question": "Recall của mô hình B là bao nhiêu?",
+      "expected_pages": [
+        "OCR-VI-006"
+      ],
+      "retrieved": [
+        {
+          "page": "OCR-VI-006",
+          "page_number": 6,
+          "chunk_index": 5,
+          "score": 8.99799619611388
+        },
+        {
+          "page": "OCR-VI-015",
+          "page_number": 15,
+          "chunk_index": 14,
+          "score": 5.11376385452208
+        }
+      ],
+      "latency_ms": 0.8491250000000008,
+      "passed": true
+    },
+    {
+      "id": "VI-R-007",
+      "split": "dev",
+      "category": "ocr_table",
+      "book": "ocr",
+      "question": "Thời gian thực tế đọc tài liệu là bao nhiêu?",
+      "expected_pages": [
+        "OCR-VI-007"
+      ],
+      "retrieved": [
+        {
+          "page": "OCR-VI-004",
+          "page_number": 4,
+          "chunk_index": 3,
+          "score": 9.239742046949655
+        },
+        {
+          "page": "OCR-VI-007",
+          "page_number": 7,
+          "chunk_index": 6,
+          "score": 7.4665477143282395
+        },
+        {
+          "page": "OCR-VI-017",
+          "page_number": 17,
+          "chunk_index": 16,
+          "score": 4.415380072781485
+        }
+      ],
+      "latency_ms": 0.775749999999995,
+      "passed": true
+    },
+    {
+      "id": "VI-R-008",
+      "split": "test",
+      "category": "ocr_table",
+      "book": "ocr",
+      "question": "Máy B sử dụng cổng nào?",
+      "expected_pages": [
+        "OCR-VI-008"
+      ],
+      "retrieved": [
+        {
+          "page": "OCR-VI-008",
+          "page_number": 8,
+          "chunk_index": 7,
+          "score": 5.344978465282522
+        },
+        {
+          "page": "OCR-VI-006",
+          "page_number": 6,
+          "chunk_index": 5,
+          "score": 1.4663370687934272
+        },
+        {
+          "page": "OCR-VI-010",
+          "page_number": 10,
+          "chunk_index": 9,
+          "score": 1.4663370687934272
+        },
+        {
+          "page": "OCR-VI-016",
+          "page_number": 16,
+          "chunk_index": 15,
+          "score": 1.4663370687934272
+        },
+        {
+          "page": "OCR-VI-018",
+          "page_number": 18,
+          "chunk_index": 17,
+          "score": 1.4663370687934272
+        }
+      ],
+      "latency_ms": 0.7881660000000039,
+      "passed": true
+    },
+    {
+      "id": "VI-R-009",
+      "split": "dev",
+      "category": "ocr_math",
+      "book": "ocr",
+      "question": "Mẫu số trong công thức trung bình là bao nhiêu?",
+      "expected_pages": [
+        "OCR-VI-009"
+      ],
+      "retrieved": [
+        {
+          "page": "OCR-VI-009",
+          "page_number": 9,
+          "chunk_index": 8,
+          "score": 6.654848452709666
+        },
+        {
+          "page": "OCR-VI-013",
+          "page_number": 13,
+          "chunk_index": 12,
+          "score": 3.240286513244628
+        }
+      ],
+      "latency_ms": 0.824542000000001,
+      "passed": true
+    },
+    {
+      "id": "VI-R-010",
+      "split": "test",
+      "category": "ocr_math",
+      "book": "ocr",
+      "question": "Mẫu số trong công thức Bayes là gì?",
+      "expected_pages": [
+        "OCR-VI-010"
+      ],
+      "retrieved": [
+        {
+          "page": "OCR-VI-010",
+          "page_number": 10,
+          "chunk_index": 9,
+          "score": 2.431228606131704
+        },
+        {
+          "page": "OCR-VI-001",
+          "page_number": 1,
+          "chunk_index": 0,
+          "score": 1.203404585983588
+        },
+        {
+          "page": "OCR-VI-002",
+          "page_number": 2,
+          "chunk_index": 1,
+          "score": 1.203404585983588
+        },
+        {
+          "page": "OCR-VI-005",
+          "page_number": 5,
+          "chunk_index": 4,
+          "score": 1.203404585983588
+        },
+        {
+          "page": "OCR-VI-009",
+          "page_number": 9,
+          "chunk_index": 8,
+          "score": 1.203404585983588
+        },
+        {
+          "page": "OCR-VI-011",
+          "page_number": 11,
+          "chunk_index": 10,
+          "score": 1.203404585983588
+        }
+      ],
+      "latency_ms": 0.7013749999999987,
+      "passed": true
+    },
+    {
+      "id": "VI-R-011",
+      "split": "dev",
+      "category": "ocr_math",
+      "book": "ocr",
+      "question": "Đạo hàm được ghi trong tài liệu là gì?",
+      "expected_pages": [
+        "OCR-VI-011"
+      ],
+      "retrieved": [
+        {
+          "page": "OCR-VI-011",
+          "page_number": 11,
+          "chunk_index": 10,
+          "score": 5.501443866726078
+        },
+        {
+          "page": "OCR-VI-013",
+          "page_number": 13,
+          "chunk_index": 12,
+          "score": 2.0702152605943733
+        }
+      ],
+      "latency_ms": 0.6691250000000011,
+      "passed": true
+    },
+    {
+      "id": "VI-R-012",
+      "split": "test",
+      "category": "ocr_math",
+      "book": "ocr",
+      "question": "Giá trị tích phân được ghi là bao nhiêu?",
+      "expected_pages": [
+        "OCR-VI-012"
+      ],
+      "retrieved": [
+        {
+          "page": "OCR-VI-012",
+          "page_number": 12,
+          "chunk_index": 11,
+          "score": 2.426466701369799
+        },
+        {
+          "page": "OCR-VI-003",
+          "page_number": 3,
+          "chunk_index": 2,
+          "score": 2.03688192726104
+        },
+        {
+          "page": "OCR-VI-006",
+          "page_number": 6,
+          "chunk_index": 5,
+          "score": 2.03688192726104
+        }
+      ],
+      "latency_ms": 0.9208750000000023,
+      "passed": true
+    },
+    {
+      "id": "VI-R-013",
+      "split": "dev",
+      "category": "ocr_math",
+      "book": "ocr",
+      "question": "Sai số trong công thức được nâng lên lũy thừa bao nhiêu?",
+      "expected_pages": [
+        "OCR-VI-013"
+      ],
+      "retrieved": [
+        {
+          "page": "OCR-VI-013",
+          "page_number": 13,
+          "chunk_index": 12,
+          "score": 4.592966525448626
+        }
+      ],
+      "latency_ms": 0.7728340000000031,
+      "passed": true
+    },
+    {
+      "id": "VI-R-014",
+      "split": "test",
+      "category": "ocr_math",
+      "book": "ocr",
+      "question": "Ký hiệu tốc độ học trong công thức là gì?",
+      "expected_pages": [
+        "OCR-VI-014"
+      ],
+      "retrieved": [],
+      "latency_ms": 0.6987909999999999,
+      "passed": false
+    },
+    {
+      "id": "VI-R-015",
+      "split": "dev",
+      "category": "ocr_mixed",
+      "book": "ocr",
+      "question": "Mô hình dự đoán đúng bao nhiêu mẫu?",
+      "expected_pages": [
+        "OCR-VI-015"
+      ],
+      "retrieved": [
+        {
+          "page": "OCR-VI-015",
+          "page_number": 15,
+          "chunk_index": 14,
+          "score": 6.20987614319019
+        },
+        {
+          "page": "OCR-VI-006",
+          "page_number": 6,
+          "chunk_index": 5,
+          "score": 5.098763854522081
+        }
+      ],
+      "latency_ms": 0.7784170000000046,
+      "passed": true
+    },
+    {
+      "id": "VI-R-016",
+      "split": "test",
+      "category": "ocr_mixed",
+      "book": "ocr",
+      "question": "Khoảng cách giữa A và B được ghi là bao nhiêu?",
+      "expected_pages": [
+        "OCR-VI-016"
+      ],
+      "retrieved": [
+        {
+          "page": "OCR-VI-016",
+          "page_number": 16,
+          "chunk_index": 15,
+          "score": 7.295460947723502
+        },
+        {
+          "page": "OCR-VI-006",
+          "page_number": 6,
+          "chunk_index": 5,
+          "score": 1.4663370687934272
+        },
+        {
+          "page": "OCR-VI-008",
+          "page_number": 8,
+          "chunk_index": 7,
+          "score": 1.4663370687934272
+        },
+        {
+          "page": "OCR-VI-010",
+          "page_number": 10,
+          "chunk_index": 9,
+          "score": 1.4663370687934272
+        },
+        {
+          "page": "OCR-VI-018",
+          "page_number": 18,
+          "chunk_index": 17,
+          "score": 1.4663370687934272
+        }
+      ],
+      "latency_ms": 0.7067089999999965,
+      "passed": true
+    },
+    {
+      "id": "VI-R-017",
+      "split": "dev",
+      "category": "ocr_injection",
+      "book": "ocr",
+      "question": "Mã tài liệu thực tế là gì?",
+      "expected_pages": [
+        "OCR-VI-017"
+      ],
+      "retrieved": [
+        {
+          "page": "OCR-VI-017",
+          "page_number": 17,
+          "chunk_index": 16,
+          "score": 7.523690571471096
+        },
+        {
+          "page": "OCR-VI-007",
+          "page_number": 7,
+          "chunk_index": 6,
+          "score": 4.453475310876723
+        },
+        {
+          "page": "OCR-VI-019",
+          "page_number": 19,
+          "chunk_index": 18,
+          "score": 2.0702152605943733
+        },
+        {
+          "page": "OCR-VI-002",
+          "page_number": 2,
+          "chunk_index": 1,
+          "score": 1.3832600502823493
+        },
+        {
+          "page": "OCR-VI-004",
+          "page_number": 4,
+          "chunk_index": 3,
+          "score": 1.3832600502823493
+        },
+        {
+          "page": "OCR-VI-008",
+          "page_number": 8,
+          "chunk_index": 7,
+          "score": 1.3832600502823493
+        }
+      ],
+      "latency_ms": 0.7079170000000019,
+      "passed": true
+    },
+    {
+      "id": "VI-R-018",
+      "split": "test",
+      "category": "ocr_table",
+      "book": "ocr",
+      "question": "Giá trị tuần 2 của nhóm B là bao nhiêu?",
+      "expected_pages": [
+        "OCR-VI-018"
+      ],
+      "retrieved": [
+        {
+          "page": "OCR-VI-018",
+          "page_number": 18,
+          "chunk_index": 17,
+          "score": 5.689325144153186
+        },
+        {
+          "page": "OCR-VI-006",
+          "page_number": 6,
+          "chunk_index": 5,
+          "score": 3.5032189960544673
+        },
+        {
+          "page": "OCR-VI-008",
+          "page_number": 8,
+          "chunk_index": 7,
+          "score": 1.4663370687934272
+        },
+        {
+          "page": "OCR-VI-010",
+          "page_number": 10,
+          "chunk_index": 9,
+          "score": 1.4663370687934272
+        },
+        {
+          "page": "OCR-VI-016",
+          "page_number": 16,
+          "chunk_index": 15,
+          "score": 1.4663370687934272
+        }
+      ],
+      "latency_ms": 0.8126660000000001,
+      "passed": true
+    },
+    {
+      "id": "VI-R-019",
+      "split": "dev",
+      "category": "ocr_vietnamese_text",
+      "book": "ocr",
+      "question": "Mã kiểm chứng được ghi là gì?",
+      "expected_pages": [
+        "OCR-VI-019"
+      ],
+      "retrieved": [
+        {
+          "page": "OCR-VI-019",
+          "page_number": 19,
+          "chunk_index": 18,
+          "score": 8.11921511249351
+        },
+        {
+          "page": "OCR-VI-017",
+          "page_number": 17,
+          "chunk_index": 16,
+          "score": 2.06188192726104
+        },
+        {
+          "page": "OCR-VI-002",
+          "page_number": 2,
+          "chunk_index": 1,
+          "score": 1.6344379124341002
+        },
+        {
+          "page": "OCR-VI-006",
+          "page_number": 6,
+          "chunk_index": 5,
+          "score": 1.6344379124341002
+        },
+        {
+          "page": "OCR-VI-007",
+          "page_number": 7,
+          "chunk_index": 6,
+          "score": 1.6344379124341002
+        }
+      ],
+      "latency_ms": 0.6766670000000019,
+      "passed": true
+    },
+    {
+      "id": "VI-R-020",
+      "split": "test",
+      "category": "ocr_math",
+      "book": "ocr",
+      "question": "Giá trị của phần tử a chỉ số 12 là bao nhiêu?",
+      "expected_pages": [
+        "OCR-VI-020"
+      ],
+      "retrieved": [
+        {
+          "page": "OCR-VI-020",
+          "page_number": 20,
+          "chunk_index": 19,
+          "score": 4.244453179911295
+        }
+      ],
+      "latency_ms": 0.7055410000000037,
+      "passed": true
+    },
+    {
+      "id": "VI-R-021",
+      "split": "dev",
+      "category": "unaccented",
+      "book": "ocr",
+      "question": "Phong nao dien ra buoi thao luan?",
+      "expected_pages": [
+        "OCR-VI-003"
+      ],
+      "retrieved": [
+        {
+          "page": "OCR-VI-003",
+          "page_number": 3,
+          "chunk_index": 2,
+          "score": 16.67963066000128
+        }
+      ],
+      "latency_ms": 0.9444999999999979,
+      "passed": true
+    },
+    {
+      "id": "VI-R-022",
+      "split": "test",
+      "category": "unaccented",
+      "book": "ocr",
+      "question": "Ty le du lieu xac thuc?",
+      "expected_pages": [
+        "OCR-VI-002"
+      ],
+      "retrieved": [
+        {
+          "page": "OCR-VI-002",
+          "page_number": 2,
+          "chunk_index": 1,
+          "score": 4.914876074410553
+        },
+        {
+          "page": "OCR-VI-019",
+          "page_number": 19,
+          "chunk_index": 18,
+          "score": 3.5649493574615367
+        },
+        {
+          "page": "OCR-VI-015",
+          "page_number": 15,
+          "chunk_index": 14,
+          "score": 2.5649493574615367
+        },
+        {
+          "page": "OCR-VI-003",
+          "page_number": 3,
+          "chunk_index": 2,
+          "score": 2.4485390056171257
+        },
+        {
+          "page": "OCR-VI-004",
+          "page_number": 4,
+          "chunk_index": 3,
+          "score": 2.4485390056171257
+        },
+        {
+          "page": "OCR-VI-007",
+          "page_number": 7,
+          "chunk_index": 6,
+          "score": 2.4485390056171257
+        }
+      ],
+      "latency_ms": 0.6969169999999991,
+      "passed": true
+    },
+    {
+      "id": "VI-R-023",
+      "split": "dev",
+      "category": "unaccented",
+      "book": "ocr",
+      "question": "Ma kiem chung la gi?",
+      "expected_pages": [
+        "OCR-VI-019"
+      ],
+      "retrieved": [
+        {
+          "page": "OCR-VI-019",
+          "page_number": 19,
+          "chunk_index": 18,
+          "score": 8.04421511249351
+        },
+        {
+          "page": "OCR-VI-017",
+          "page_number": 17,
+          "chunk_index": 16,
+          "score": 2.03688192726104
+        },
+        {
+          "page": "OCR-VI-002",
+          "page_number": 2,
+          "chunk_index": 1,
+          "score": 1.6094379124341003
+        },
+        {
+          "page": "OCR-VI-006",
+          "page_number": 6,
+          "chunk_index": 5,
+          "score": 1.6094379124341003
+        },
+        {
+          "page": "OCR-VI-007",
+          "page_number": 7,
+          "chunk_index": 6,
+          "score": 1.6094379124341003
+        }
+      ],
+      "latency_ms": 0.6779159999999962,
+      "passed": true
+    },
+    {
+      "id": "VI-R-024",
+      "split": "test",
+      "category": "unaccented",
+      "book": "technical",
+      "question": "Bo nho dem luu du lieu nhu the nao?",
+      "expected_pages": [
+        "cache"
+      ],
+      "retrieved": [
+        {
+          "page": "cache",
+          "page_number": 2,
+          "chunk_index": 1,
+          "score": 9.598421958998374
+        },
+        {
+          "page": "cache-distractor",
+          "page_number": 1,
+          "chunk_index": 0,
+          "score": 5.212127597878483
+        }
+      ],
+      "latency_ms": 0.3218339999999955,
+      "passed": true
+    },
+    {
+      "id": "VI-R-025",
+      "split": "dev",
+      "category": "phrase_ranking",
+      "book": "technical",
+      "question": "Bộ nhớ đệm là gì?",
+      "expected_pages": [
+        "cache"
+      ],
+      "retrieved": [
+        {
+          "page": "cache",
+          "page_number": 2,
+          "chunk_index": 1,
+          "score": 5.213515309210374
+        },
+        {
+          "page": "cache-distractor",
+          "page_number": 1,
+          "chunk_index": 0,
+          "score": 4.213515309210374
+        },
+        {
+          "page": "control-distractor",
+          "page_number": 3,
+          "chunk_index": 2,
+          "score": 0.9496240652074884
+        }
+      ],
+      "latency_ms": 0.22604199999999963,
+      "passed": true
+    },
+    {
+      "id": "VI-R-026",
+      "split": "test",
+      "category": "phrase_ranking",
+      "book": "technical",
+      "question": "Điều khiển phản hồi là gì?",
+      "expected_pages": [
+        "feedback-control"
+      ],
+      "retrieved": [
+        {
+          "page": "feedback-control",
+          "page_number": 4,
+          "chunk_index": 3,
+          "score": 5.395836866004329
+        },
+        {
+          "page": "control-distractor",
+          "page_number": 3,
+          "chunk_index": 2,
+          "score": 4.395836866004329
+        }
+      ],
+      "latency_ms": 0.2184999999999988,
+      "passed": true
+    },
+    {
+      "id": "VI-R-027",
+      "split": "dev",
+      "category": "table_identifier",
+      "book": "tables",
+      "question": "Recall của mô hình B là bao nhiêu?",
+      "expected_pages": [
+        "model-B"
+      ],
+      "retrieved": [
+        {
+          "page": "model-B",
+          "page_number": 2,
+          "chunk_index": 1,
+          "score": 3.655138095680423
+        },
+        {
+          "page": "model-A",
+          "page_number": 1,
+          "chunk_index": 0,
+          "score": 2.738847363806268
+        },
+        {
+          "page": "model-C",
+          "page_number": 3,
+          "chunk_index": 2,
+          "score": 2.738847363806268
+        }
+      ],
+      "latency_ms": 0.15595799999999826,
+      "passed": true
+    },
+    {
+      "id": "VI-R-028",
+      "split": "test",
+      "category": "table_identifier",
+      "book": "tables",
+      "question": "Precision mô hình C?",
+      "expected_pages": [
+        "model-C"
+      ],
+      "retrieved": [
+        {
+          "page": "model-C",
+          "page_number": 3,
+          "chunk_index": 2,
+          "score": 3.695138095680423
+        },
+        {
+          "page": "model-A",
+          "page_number": 1,
+          "chunk_index": 0,
+          "score": 2.778847363806268
+        },
+        {
+          "page": "model-B",
+          "page_number": 2,
+          "chunk_index": 1,
+          "score": 2.778847363806268
+        }
+      ],
+      "latency_ms": 0.08237499999999898,
+      "passed": true
+    },
+    {
+      "id": "VI-R-029",
+      "split": "test",
+      "category": "table_identifier",
+      "book": "tables",
+      "question": "Recall của mô hình A?",
+      "expected_pages": [
+        "model-A"
+      ],
+      "retrieved": [
+        {
+          "page": "model-A",
+          "page_number": 1,
+          "chunk_index": 0,
+          "score": 3.695138095680423
+        },
+        {
+          "page": "model-B",
+          "page_number": 2,
+          "chunk_index": 1,
+          "score": 2.778847363806268
+        },
+        {
+          "page": "model-C",
+          "page_number": 3,
+          "chunk_index": 2,
+          "score": 2.778847363806268
+        }
+      ],
+      "latency_ms": 0.07679199999999753,
+      "passed": true
+    },
+    {
+      "id": "VI-R-030",
+      "split": "dev",
+      "category": "math_identifier",
+      "book": "math",
+      "question": "Giá trị a_{12} là gì?",
+      "expected_pages": [
+        "a12"
+      ],
+      "retrieved": [
+        {
+          "page": "a12",
+          "page_number": 2,
+          "chunk_index": 1,
+          "score": 0.9662907318741552
+        }
+      ],
+      "latency_ms": 0.057332999999999856,
+      "passed": true
+    },
+    {
+      "id": "VI-R-031",
+      "split": "test",
+      "category": "math_identifier",
+      "book": "math",
+      "question": "Giá trị a_13?",
+      "expected_pages": [
+        "a13"
+      ],
+      "retrieved": [
+        {
+          "page": "a13",
+          "page_number": 3,
+          "chunk_index": 2,
+          "score": 0.9162907318741551
+        }
+      ],
+      "latency_ms": 0.04537499999999994,
+      "passed": true
+    },
+    {
+      "id": "VI-R-032",
+      "split": "test",
+      "category": "math_identifier",
+      "book": "math",
+      "question": "a_{21} bằng bao nhiêu?",
+      "expected_pages": [
+        "a21"
+      ],
+      "retrieved": [
+        {
+          "page": "a21",
+          "page_number": 1,
+          "chunk_index": 0,
+          "score": 0.9562907318741551
+        }
+      ],
+      "latency_ms": 0.045457999999996446,
+      "passed": true
+    },
+    {
+      "id": "VI-R-033",
+      "split": "dev",
+      "category": "negative",
+      "book": "tables",
+      "question": "Recall mô hình D?",
+      "expected_pages": [],
+      "retrieved": [],
+      "latency_ms": 0.034749999999995396,
+      "passed": true
+    },
+    {
+      "id": "VI-R-034",
+      "split": "test",
+      "category": "negative",
+      "book": "math",
+      "question": "Giá trị a_{99}?",
+      "expected_pages": [],
+      "retrieved": [],
+      "latency_ms": 0.02266699999999844,
+      "passed": true
+    },
+    {
+      "id": "VI-R-035",
+      "split": "dev",
+      "category": "negative",
+      "book": "tables",
+      "question": "Transformer architecture là gì?",
+      "expected_pages": [],
+      "retrieved": [],
+      "latency_ms": 0.034874999999999545,
+      "passed": true
+    },
+    {
+      "id": "VI-R-036",
+      "split": "test",
+      "category": "negative",
+      "book": "technical",
+      "question": "Kubernetes deployment hoạt động thế nào?",
+      "expected_pages": [],
+      "retrieved": [],
+      "latency_ms": 0.10812500000000114,
+      "passed": true
+    },
+    {
+      "id": "VI-R-037",
+      "split": "test",
+      "category": "unicode",
+      "book": "technical",
+      "question": "Mã kiểm chứng ĐỎ-815?",
+      "expected_pages": [
+        "accented"
+      ],
+      "retrieved": [
+        {
+          "page": "accented",
+          "page_number": 5,
+          "chunk_index": 4,
+          "score": 7.645177444479562
+        }
+      ],
+      "latency_ms": 0.20854199999999423,
+      "passed": true
+    },
+    {
+      "id": "VI-R-038",
+      "split": "dev",
+      "category": "unicode_nfd",
+      "book": "technical",
+      "question": "Mã kiểm chứng là gì?",
+      "expected_pages": [
+        "accented"
+      ],
+      "retrieved": [
+        {
+          "page": "accented",
+          "page_number": 5,
+          "chunk_index": 4,
+          "score": 6.258883083359671
+        }
+      ],
+      "latency_ms": 0.2033750000000012,
+      "passed": true
+    }
+  ],
+  "comparison": {
+    "baseline_ranker_sha256": "776bc9c5dadd32e16770694a24149bf794bf5ea7f7c3b7a96d7021c9ad300aad",
+    "before": {
+      "cases": 38,
+      "answerable": 34,
+      "negative": 4,
+      "hit_at_1": 0.6176470588235294,
+      "hit_at_3": 0.7647058823529411,
+      "source_recall_at_5": 0.7647058823529411,
+      "mrr": 0.6862745098039216,
+      "negative_empty_rate": 0.75,
+      "passed": 29
+    },
+    "after": {
+      "cases": 38,
+      "answerable": 34,
+      "negative": 4,
+      "hit_at_1": 0.9411764705882353,
+      "hit_at_3": 0.9705882352941176,
+      "source_recall_at_5": 0.9705882352941176,
+      "mrr": 0.9558823529411765,
+      "negative_empty_rate": 1,
+      "passed": 37
+    },
+    "delta": {
+      "hit_at_1": 0.32352941176470584,
+      "hit_at_3": 0.20588235294117652,
+      "source_recall_at_5": 0.20588235294117652,
+      "mrr": 0.26960784313725494,
+      "negative_empty_rate": 0.25
+    },
+    "fixed": [
+      "VI-R-012",
+      "VI-R-013",
+      "VI-R-021",
+      "VI-R-022",
+      "VI-R-023",
+      "VI-R-024",
+      "VI-R-031",
+      "VI-R-033"
+    ],
+    "regressions": []
+  }
+}

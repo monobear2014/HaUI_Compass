@@ -2,6 +2,8 @@ export type RankableChunk = {
   content: string;
   chunk_index: number;
   heading: string | null;
+  document_id?: string;
+  page_number?: number | null;
 };
 
 export type RankedChunk<T extends RankableChunk> = {
