@@ -11,7 +11,7 @@
     "prebuild": "node scripts/check-production-environment.mjs",
     "build": "next build",
     "start": "next start --hostname 127.0.0.1",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "next typegen && tsc --noEmit",
     "lint": "eslint .",
     "test": "playwright test",
     "test:config": "node --experimental-strip-types --test tests/*.test.mjs ../../scripts/test-staging-evidence.mjs",
