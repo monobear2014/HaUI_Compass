@@ -1,4 +1,4 @@
-import { test, expect, navigate, openPreferences } from "./fixtures";
+import { test, expect, navigate } from "./fixtures";
 import { scope, dayKey, type Context, type Plan } from "../src/lib/api";
 import { studyStatistics } from "../src/lib/study-statistics";
 
@@ -52,9 +52,7 @@ test("statistics renders real workspace aggregates and links into the learning l
     expect(suggestion.width).toBeGreaterThan(190);
     expect(action.y + action.height).toBeLessThan(suggestion.y);
   }
-  await expect(
-    page.getByText("Not actual recorded study time.", { exact: false }),
-  ).toBeVisible();
+
   await expect(
     page.locator("main details").filter({
       has: page.getByText("How are these numbers calculated?", {
@@ -65,6 +63,11 @@ test("statistics renders real workspace aggregates and links into the learning l
   await page
     .getByText("How are these numbers calculated?", { exact: true })
     .click();
+  await expect(
+    page.getByText(
+      /Today's sessions and weekly hours come from the latest saved plan/,
+    ),
+  ).toBeVisible();
   await expect(
     page.getByText(/Transcript, GPA and credit data are not connected/),
   ).toBeVisible();
@@ -170,8 +173,7 @@ test("statistics is readable in Vietnamese, dark mode and mobile navigation", as
   page,
 }, info) => {
   await page.goto("/dashboard");
-  await openPreferences(page);
-  await page.getByRole("button", { name: "VI", exact: true }).click();
+  await page.getByRole("button", { name: "Tiếng Việt", exact: true }).click();
   await expect(
     page.getByRole("heading", { name: "Việc học của bạn, rõ ràng hơn." }),
   ).toBeVisible();

@@ -127,3 +127,23 @@ test("English A/I are not false named anchors and limits remain bounded", () => 
   for (const limit of [NaN, Infinity, 100, -1, 2.8])
     assert.ok(rankDocumentChunks("softmax", rows, limit).length <= 6);
 });
+
+test("unified assistant quick actions retrieve document-wide evidence in both languages", () => {
+  const rows = [
+    row("Softmax normalizes logits.", 0),
+    row("Cross entropy compares probabilities.", 1),
+  ];
+  for (const prompt of [
+    "Tóm tắt các ý chính trong tài liệu này.",
+    "Summarize the main ideas in this material.",
+    "Giải thích các khái niệm chính trong tài liệu bằng ví dụ dễ hiểu.",
+    "Explain this material's main concepts with simple examples.",
+    "Hãy đặt một câu hỏi để tôi tự kiểm tra kiến thức trong tài liệu này.",
+    "Ask me one question to check my understanding of this material.",
+  ])
+    assert.equal(rankDocumentChunks(prompt, rows).length, 2, prompt);
+  assert.deepEqual(
+    rankDocumentChunks("Explain Transformer attention", rows),
+    [],
+  );
+});

@@ -47,7 +47,7 @@ test("sample upload creates the three-panel ready page, survives reload and open
   );
   const readyUrl = page.url();
   await expect(
-    page.getByRole("heading", { name: "Let's start learning!" }),
+    page.getByRole("heading", { name: "Your learning roadmap" }),
   ).toBeVisible();
   await expect(
     page.getByRole("link", { name: "nhap-mon-ai.md", exact: true }),
@@ -90,11 +90,11 @@ test("sample upload creates the three-panel ready page, survives reload and open
   });
   await page.reload();
   await expect(
-    page.getByRole("heading", { name: "Let's start learning!" }),
+    page.getByRole("heading", { name: "Your learning roadmap" }),
   ).toBeVisible();
   await page.getByRole("radio", { name: "VI", exact: true }).click();
   await expect(
-    page.getByRole("heading", { name: "Cùng bắt đầu học nhé!" }),
+    page.getByRole("heading", { name: "Lộ trình học của bạn" }),
   ).toBeVisible();
   await page.getByRole("switch", { name: "Switch to dark mode" }).click();
   await expect(page.locator("main[data-theme=dark]")).toBeVisible();
@@ -117,7 +117,9 @@ test("sample upload creates the three-panel ready page, survives reload and open
     page.getByRole("heading", { name: "Bộ học tập của bạn", exact: true }),
   ).toBeVisible();
   await page.goto(readyUrl);
-  await page.getByRole("link", { name: "Tiếp tục", exact: true }).click();
+  await page
+    .getByRole("link", { name: "Bắt đầu học tài liệu này", exact: true })
+    .click();
   await expect(page).toHaveURL(/\/study-set\/[a-f0-9-]{36}$/);
 });
 
@@ -132,7 +134,9 @@ test("selection validates formats and limits, and a failed upload keeps files fo
     mimeType: "application/octet-stream",
     buffer: Buffer.from("not supported"),
   });
-  await expect(alert).toContainText("Only PDF, TXT and Markdown");
+  await expect(alert).toContainText(
+    "PDF, TXT, Markdown and PNG/JPG/WebP images are supported.",
+  );
   await input.setInputFiles({
     name: "empty.md",
     mimeType: "text/markdown",
@@ -140,7 +144,9 @@ test("selection validates formats and limits, and a failed upload keeps files fo
   });
   await expect(alert).toContainText("empty.md (0 bytes)");
   await expect(alert).toContainText("The file is empty");
-  await expect(page.getByRole("button", { name: "Upload & continue" })).toBeDisabled();
+  await expect(
+    page.getByRole("button", { name: "Upload & continue" }),
+  ).toBeDisabled();
   await input.setInputFiles({
     name: "large.txt",
     mimeType: "text/plain",
@@ -186,13 +192,17 @@ test("selection validates formats and limits, and a failed upload keeps files fo
   await page.unroute("**/api/documents");
   await page.getByRole("button", { name: "Upload & continue" }).click();
   await expect(
-    page.getByRole("heading", { name: "Let's start learning!" }),
+    page.getByRole("heading", { name: "Your learning roadmap" }),
   ).toBeVisible();
-  await page.getByRole("link", { name: "Continue", exact: true }).click();
+  await page
+    .getByRole("link", { name: "Start studying this material", exact: true })
+    .click();
   await expect(page).toHaveURL(/\/study-set\/[a-f0-9-]{36}$/);
 });
 
-test("upload intent uses canonical MIME types for Markdown files", async ({ page }) => {
+test("upload intent uses canonical MIME types for Markdown files", async ({
+  page,
+}) => {
   await page.goto("/documents/upload?next=%2Fplan");
   await page.locator('input[type="file"]').setInputFiles({
     name: "notes.md",
@@ -406,9 +416,15 @@ test("text PDF uploads reopen byte-for-byte without claiming OCR or AI planning"
   expect(original.headers()["x-content-type-options"]).toBe("nosniff");
   expect(await original.body()).toEqual(bytes);
   await page.goto(`/onboarding/ready?next=%2Fknowledge&ids=${doc.id}`);
-  await expect(page.locator("main")).toContainText(
-    "The assistant supports text-based PDF, without OCR or AI planning",
-  );
+  await expect(
+    page.getByRole("link", { name: "Recall quiz", exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole("link", { name: "Flashcards", exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole("link", { name: "Plan my week", exact: true }),
+  ).toHaveAttribute("href", "/plan");
   await page.getByRole("link", { name: "Read", exact: true }).click();
   await expect(
     page.getByRole("heading", { name: "compass-preview.pdf", exact: true }),

@@ -24,6 +24,7 @@ test.beforeEach(async ({ request, baseURL }) => {
 
 test("sinh viên hoàn thành một tuần học và kế hoạch tuần sau dùng kết quả phản tư", async ({
   page,
+  context,
 }) => {
   test.setTimeout(120000);
   const nextDay = () =>
@@ -59,16 +60,33 @@ test("sinh viên hoàn thành một tuần học và kế hoạch tuần sau dù
   await page.getByRole("link", { name: "Bắt đầu hôm nay" }).click();
 
   // DO
-  const card = page.locator(".next-action");
-  await card.getByRole("button", { name: "Bắt đầu", exact: true }).click();
-  await expect(card.getByText("ĐANG LÀM")).toBeVisible();
-  await card.getByRole("button", { name: "Hoàn thành" }).click();
+  const card = page
+    .getByRole("region", { name: "Chọn thêm công việc", exact: true })
+    .getByRole("article")
+    .first();
+  const title = await card.getByRole("button").first().innerText();
+  await card.getByRole("button").first().click();
+  const details = page.getByRole("dialog");
+  await details.getByRole("button", { name: "Bắt đầu", exact: true }).click();
+  await expect(
+    details.getByRole("button", { name: "Tạm dừng", exact: true }),
+  ).toBeEnabled();
+  await details
+    .getByRole("button", { name: "Hoàn thành", exact: true })
+    .click();
   await page.getByLabel("Bạn đã học bao nhiêu phút?").fill("80");
   await page.getByRole("button", { name: "Lưu", exact: true }).click();
-  await expect(page.getByText(/Đã hoàn thành:/)).toBeVisible();
-  await expect(page.locator(".compact-progress strong")).toContainText("1/");
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  const saved = await (
+    await context.request.get("/compass-api/demo/context")
+  ).json();
+  expect(
+    saved.tasks.find((task: { title: string }) => task.title === title).status,
+  ).toBe("completed");
   await expect(
-    page.getByRole("link", { name: /Tài liệu & Trợ lý Compass/ }),
+    page
+      .getByRole("region", { name: "Danh sách hôm nay", exact: true })
+      .getByRole("article", { name: title, exact: true }),
   ).toBeVisible();
 
   // ADAPT

@@ -147,12 +147,28 @@ test("real PDF ingestion, page citation navigation, original bytes, dedup and ow
     expect((await other.request.get(path)).status()).toBe(404);
   await other.close();
   await page.goto(`/study-set/${document.id}?session=${session.id}`);
-  if ((page.viewportSize()?.width ?? 1280) < 600)
-    await page.getByRole("button", { name: "✦ Hỏi trợ lý" }).click();
+  await expect(
+    page.getByRole("button", {
+      name: /^(Open chatbot|Mở chatbot|Close chatbot|Đóng chatbot)$/,
+    }),
+  ).toBeEnabled();
+  const launcher = page.getByRole("button", {
+    name: /^(Open chatbot|Mở chatbot)$/,
+  });
+  if (await launcher.isVisible()) await launcher.click();
+  const assistant = page.locator("#compass-chat-panel");
+  await expect(
+    assistant.getByRole("textbox", { name: "Message Compass", exact: true }),
+  ).toBeEnabled();
   // Unified Compass keeps sources collapsed and opens citations in a new tab.
-  await page.locator("summary").filter({ hasText: /Sources|Nguồn tham khảo/ }).click();
+  await assistant
+    .locator("summary")
+    .filter({ hasText: /Sources|Nguồn tham khảo/ })
+    .click();
   const opened = page.waitForEvent("popup");
-  await page.getByRole("link", { name: /ml-pages.pdf · (page|trang) 2/ }).click();
+  await assistant
+    .getByRole("link", { name: /ml-pages.pdf · (page|trang) 2/ })
+    .click();
   const reader = await opened;
   await expect(reader).toHaveURL(
     new RegExp(`/documents/${document.id}\\?page=2$`),

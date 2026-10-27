@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { openPreferences } from "./fixtures";
 
 test("protected screens and learning API reject anonymous or forged sessions", async ({
   page,
@@ -67,7 +68,7 @@ test("demo login validates credentials, remembers the session and revokes it on 
   await expect(
     page.getByRole("heading", { name: /Your weekly plan\.|Plan your week/ }),
   ).toBeVisible();
-  await page.getByLabel("Settings", { exact: true }).click();
+  await openPreferences(page);
   await page.getByRole("button", { name: "Sign out", exact: true }).click();
   await expect(page).toHaveURL(/\/login$/);
   expect((await request.get("/compass-api/demo/context")).status()).toBe(401);
@@ -99,12 +100,8 @@ test("registration checks matching passwords, creates a persistent account and p
   await expect(
     page.getByRole("heading", { name: "What will you learn today?" }),
   ).toBeVisible();
-  await expect(
-    page.getByText(
-      "Hi Test student. Plan your week, take action and reflect on your learning.",
-    ),
-  ).toBeVisible();
-  await page.getByLabel("Settings", { exact: true }).click();
+  await expect(page.getByTestId("account-menu")).toContainText("Test student");
+  await openPreferences(page);
   await page.getByRole("button", { name: "Sign out", exact: true }).click();
   const login = await request.post("/api/auth/login", {
     headers: { Origin: baseURL! },
@@ -186,7 +183,7 @@ test("login ignores external return URLs and Vietnamese forms remain responsive"
   await page.getByRole("button", { name: "Điền tài khoản demo" }).click();
   await page.getByRole("button", { name: "Đăng nhập", exact: true }).click();
   await expect(page).toHaveURL(/\/learn$/);
-  await page.getByLabel("Tuỳ chọn", { exact: true }).click();
+  await openPreferences(page);
   await page.getByRole("button", { name: "Đăng xuất", exact: true }).click();
   await page.getByRole("link", { name: "Đăng ký", exact: true }).click();
   await expect(page).toHaveURL(/\/register\?next=%2Flearn$/);

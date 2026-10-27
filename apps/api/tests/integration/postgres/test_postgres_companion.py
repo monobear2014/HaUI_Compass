@@ -29,7 +29,7 @@ def test_confirmed_memory_and_conversation_survive_fresh_instances_and_workspace
     key = "postgres-companion-key"
     monkeypatch.setenv("COMPASS_SERVICE_KEY", key)
 
-    def client(owner: str):
+    def client(owner: str) -> TestClient:
         clock = FixedClock(datetime(2026, 10, 19, 2, tzinfo=UTC))
         container = build_postgres_container(
             settings=DatabaseSettings(url=os.environ["HAUI_COMPASS_TEST_DATABASE_URL"]),

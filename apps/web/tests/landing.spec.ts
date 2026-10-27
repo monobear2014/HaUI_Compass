@@ -1,6 +1,9 @@
 import { test, expect } from "./fixtures";
 
-test("the root URL opens the login page directly", async ({ page, context }) => {
+test("the root URL opens the login page directly", async ({
+  page,
+  context,
+}) => {
   await context.clearCookies();
   await page.goto("/");
   await expect(page).toHaveURL(/\/login$/);
@@ -42,7 +45,7 @@ test("Vietnamese preferences and student-first entry lead to the working workspa
     .click();
   await expect(page).toHaveURL(/\/today$/);
   await expect(
-    page.getByRole("heading", { name: "Tôi nên làm gì ngay bây giờ?" }),
+    page.getByRole("heading", { name: "Hôm nay, từng việc một" }),
   ).toBeVisible();
   expect(
     await page.evaluate(

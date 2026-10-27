@@ -5,6 +5,14 @@ import type { Page } from "@playwright/test";
 
 export async function openPreferences(page: Page) {
   const settings = page.getByTestId("account-menu");
+  const toggle = page.getByRole("button", {
+    name: /Toggle navigation|Mở điều hướng/,
+  });
+  if (
+    (await toggle.isVisible()) &&
+    (await toggle.getAttribute("aria-expanded")) === "false"
+  )
+    await toggle.click();
   if ((await settings.getAttribute("open")) === null)
     await settings.locator("summary").first().click();
 }
@@ -48,3 +56,38 @@ export const test = base.extend<{ authenticated: undefined }>({
     { auto: true },
   ],
 });
+
+// Execution actions now live in ticket details on the Today screen.
+export async function openExecution(
+  page: Page,
+  title?: string,
+  outcome: "partial" | "completed" = "partial",
+) {
+  const toggle = page.getByRole("button", {
+    name: /Toggle navigation|Mở điều hướng/,
+  });
+  if (
+    (await toggle.isVisible()) &&
+    (await toggle.getAttribute("aria-expanded")) === "true"
+  )
+    await toggle.click();
+  const ticket = title
+    ? page.getByRole("article", { name: title, exact: true })
+    : page
+        .getByRole("region", { name: "Choose more tasks", exact: true })
+        .getByRole("article")
+        .first();
+  await ticket.getByRole("button").first().click();
+  const details = page.getByRole("dialog");
+  const pause = details.getByRole("button", { name: "Pause", exact: true });
+  if (!(await pause.isVisible()))
+    await details.getByRole("button", { name: "Start", exact: true }).click();
+  await expect(pause).toBeEnabled();
+  await details
+    .getByRole("button", {
+      name: outcome === "completed" ? "Complete" : "Pause",
+      exact: true,
+    })
+    .click();
+  await expect(page.getByRole("dialog").getByRole("spinbutton")).toBeVisible();
+}

@@ -38,9 +38,11 @@ test("upload → ready → study set → reader → study set → library stays 
   await page.getByRole("button", { name: "Try a sample document" }).click();
   await page.getByRole("button", { name: "Upload & continue" }).click();
   await expect(
-    page.getByRole("heading", { name: "Let's start learning!" }),
+    page.getByRole("heading", { name: "Your learning roadmap" }),
   ).toBeVisible();
-  await page.getByRole("link", { name: "Continue", exact: true }).click();
+  await page
+    .getByRole("link", { name: "Start studying this material", exact: true })
+    .click();
   await expect(page).toHaveURL(/\/study-set\/[a-f0-9-]{36}$/);
   const setUrl = page.url();
   await expect(
@@ -105,7 +107,12 @@ test("progress persists; failed saving does not skip the topic; Markdown excerpt
     "# First\nFirst body.\n\n## Second\nSecond body.",
   );
   await page.goto(`/study-set/${doc.id}`);
-  await expect(page.locator("pre")).toHaveText("First body.");
+  await expect(page.locator("main section[aria-live=polite]")).toContainText(
+    "First body.",
+  );
+  await expect(
+    page.locator("main section[aria-live=polite]"),
+  ).not.toContainText("Second body.");
   const modes = page.getByRole("group", { name: "Study mode" });
   await modes.getByRole("button", { name: /^Flashcards/ }).click();
   await page.getByRole("button", { name: "Flip card · reveal notes" }).click();
@@ -146,7 +153,9 @@ test("plain text is one topic and documents remain available when the demo plann
   ).toBeVisible();
   await expect(page.locator("main").getByRole("alert")).toHaveCount(0);
   await page.goto(`/study-set/${doc.id}`);
-  await expect(page.locator("pre")).toContainText("# This is plain text");
+  await expect(page.locator("main section[aria-live=polite]")).toContainText(
+    "This is plain text",
+  );
   await expect(page.getByText("Topic 1 of 1", { exact: true })).toBeVisible();
 });
 

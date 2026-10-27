@@ -1,0 +1,83 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  api:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: haui
+          POSTGRES_PASSWORD: test-only
+          POSTGRES_DB: haui_compass_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U haui -d haui_compass_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    defaults:
+      run:
+        working-directory: apps/api
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv sync --locked --extra dev --python 3.12
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .
+      - run: uv run mypy
+      # This database is an isolated CI service: the integration fixtures truncate it.
+      - run: uv run pytest
+        env:
+          HAUI_COMPASS_TEST_DATABASE_URL: postgresql+psycopg://haui:test-only@localhost:5432/haui_compass_test
+
+  web:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: haui
+          POSTGRES_PASSWORD: test-only
+          POSTGRES_DB: haui_compass_web_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U haui -d haui_compass_web_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv sync --locked --extra dev --python 3.12
+        working-directory: apps/api
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+      - run: npm ci
+      - run: npm run test:config
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:postgres
+        env:
+          CI: "true"
+          HAUI_COMPASS_WEB_DATABASE_URL: postgresql://haui:test-only@localhost:5432/haui_compass_web_test
+      - run: npm test
+        env:
+          CI: "true"

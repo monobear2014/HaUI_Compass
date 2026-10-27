@@ -104,9 +104,7 @@ test("PostgreSQL profile, password rotation and single-assistant navigation", as
       name: "Compass chatbot",
       exact: true,
     });
-    await expect(
-      chat.getByLabel("Chatbot course", { exact: true }),
-    ).toHaveValue("stats");
+    await expect(chat.locator("summary[title='Probability']")).toBeVisible();
     await page
       .getByRole("button", { name: "Close chatbot", exact: true })
       .click();

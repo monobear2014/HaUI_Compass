@@ -1,4 +1,5 @@
 import json
+from collections.abc import Callable
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from uuid import uuid4
@@ -32,7 +33,7 @@ class Provider:
         return "Gợi ý chỉ đọc: xem lại thời gian học và chọn một bước nhỏ phù hợp."
 
 
-def instance(monkeypatch: pytest.MonkeyPatch):
+def instance(monkeypatch: pytest.MonkeyPatch) -> tuple[Callable[[str], TestClient], Provider]:
     monkeypatch.setenv("COMPASS_SERVICE_KEY", KEY)
     monkeypatch.setenv("COMPASS_LECTURER_GRANTS", json.dumps({"teacher": ["class"]}))
     clock = FixedClock(datetime(2026, 10, 19, 2, tzinfo=UTC))
@@ -51,7 +52,7 @@ def instance(monkeypatch: pytest.MonkeyPatch):
         container=container, workspaces=workspaces, service_key=KEY
     )
 
-    def client(owner: str):
+    def client(owner: str) -> TestClient:
         return TestClient(app, headers={"X-Compass-Service-Key": KEY, "X-Compass-User": owner})
 
     return client, provider
@@ -209,7 +210,9 @@ def test_ticket_order_is_owned_unique_and_versioned(monkeypatch: pytest.MonkeyPa
     )
 
 
-def test_manual_tickets_many_in_each_column_and_owned_persistence(monkeypatch):
+def test_manual_tickets_many_in_each_column_and_owned_persistence(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     client, _ = instance(monkeypatch)
     a, b = client("manual-a"), client("manual-b")
     path = "/api/v1/ticket-board"

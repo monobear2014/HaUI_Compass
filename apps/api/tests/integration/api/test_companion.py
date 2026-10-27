@@ -1,13 +1,16 @@
 import json
+from collections.abc import Callable
 from dataclasses import replace
 from datetime import UTC, datetime
+from typing import cast
 from uuid import uuid4
 
 import pytest
 from fastapi.testclient import TestClient
 
 from haui_compass.api.app_factory import create_app
-from haui_compass.api.dependencies import build_container
+from haui_compass.api.compass_chat import GenerateDTO
+from haui_compass.api.dependencies import AppContainer, build_container
 from haui_compass.api.simulated_workspaces import create_simulated_workspace_app
 from haui_compass.application.ports.companion import AgentAdviceInput
 from haui_compass.infrastructure.demo.simulated_workspaces import (
@@ -79,7 +82,7 @@ class Provider:
         return "Gợi ý chỉ đọc: xem lại thời gian học và chọn một bước nhỏ phù hợp."
 
 
-def instance(monkeypatch: pytest.MonkeyPatch):
+def instance(monkeypatch: pytest.MonkeyPatch) -> tuple[Callable[[str], TestClient], Provider]:
     monkeypatch.setenv("COMPASS_SERVICE_KEY", KEY)
     monkeypatch.setenv("COMPASS_LECTURER_GRANTS", json.dumps({"teacher": ["class"]}))
     clock = FixedClock(datetime(2026, 10, 19, 2, tzinfo=UTC))
@@ -98,7 +101,7 @@ def instance(monkeypatch: pytest.MonkeyPatch):
         container=container, workspaces=workspaces, service_key=KEY
     )
 
-    def client(owner: str):
+    def client(owner: str) -> TestClient:
         return TestClient(app, headers={"X-Compass-Service-Key": KEY, "X-Compass-User": owner})
 
     return client, provider
@@ -130,7 +133,7 @@ def test_specialist_handoff_confirmed_memory_and_idempotent_account_owned_histor
     assert result["agents"] == ["supervisor", "memory", "reflector", "planner", "validation"]
     assert result["action"]["href"] == "/plan"
     assert [c.role for c in provider.calls] == ["reflector", "planner"]
-    assert memory["content"] in provider.calls[0].memory[0]
+    assert cast(str, memory["content"]) in provider.calls[0].memory[0]
     assert provider.calls[1].handoff
     assert a.post(PATH + "/messages", json=message).json() == response.json()
     assert len(provider.calls) == 2
@@ -266,7 +269,7 @@ def test_conversations_isolate_context_and_ownership_and_retries(
         ).status_code
         == 200
     )
-    recent = provider.calls[-1].recent_conversation
+    recent = cast(tuple[dict[str, str], ...], provider.calls[-1].recent_conversation)
     assert any(row["content"] == body["text"] for row in recent)
     assert not any(row["content"] == second_body["text"] for row in recent)
     first_page = a.get(PATH + "/conversations/" + first).json()
@@ -315,15 +318,19 @@ def test_conversation_history_paginates_without_dropping_older_messages(
     assert len(remaining["conversations"]) == 2 and remaining["next_offset"] is None
 
 
-def test_uploaded_document_uses_shared_history_and_keeps_sources_scoped(monkeypatch):
+def test_uploaded_document_uses_shared_history_and_keeps_sources_scoped(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     client, _ = instance(monkeypatch)
     a, b = client("a"), client("b")
     conversation = str(uuid4())
     document = str(uuid4())
     chunk = str(uuid4())
-    calls = []
+    calls: list[GenerateDTO] = []
 
-    async def grounded(request, container, request_id=None):
+    async def grounded(
+        request: GenerateDTO, container: AppContainer, request_id: str | None = None
+    ) -> dict[str, object]:
         calls.append(request)
         return {
             "answer": "Học có giám sát dùng dữ liệu có nhãn.",
@@ -384,7 +391,9 @@ def test_uploaded_document_uses_shared_history_and_keeps_sources_scoped(monkeypa
     assert len(calls) == 2
 
 
-def test_legacy_document_chat_import_is_idempotent_and_account_owned(monkeypatch):
+def test_legacy_document_chat_import_is_idempotent_and_account_owned(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     client, _ = instance(monkeypatch)
     a, b = client("a"), client("b")
     conversation, document, message = str(uuid4()), str(uuid4()), str(uuid4())

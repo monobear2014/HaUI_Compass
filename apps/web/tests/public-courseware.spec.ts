@@ -6,7 +6,11 @@ test("real Markdown/PDF courseware can be read, paged and cited without mixing c
   await page.goto("/knowledge");
   await expect(page).toHaveURL(/\/learn\?assistant=1/);
   await page.getByRole("button", { name: "Materials", exact: true }).click();
-  await page.getByLabel("Materials course", { exact: true }).selectOption("la");
+  const assistant = page.locator("#compass-chat-panel");
+  await assistant.locator("summary").first().click();
+  await assistant
+    .getByRole("button", { name: "Linear algebra", exact: true })
+    .click();
   await page
     .getByText("Read public courseware · PDF / Markdown", { exact: true })
     .click();
@@ -23,9 +27,10 @@ test("real Markdown/PDF courseware can be read, paged and cited without mixing c
     "href",
     /raw\.githubusercontent\.com\/d2l-ai\/d2l-en\/[a-f0-9]{40}\//,
   );
-  await page
-    .getByLabel("Materials course", { exact: true })
-    .selectOption("automation");
+  await assistant.locator("summary").first().click();
+  await assistant
+    .getByRole("button", { name: "Automatic control", exact: true })
+    .click();
   await expect(page.locator(".public-material-text")).toHaveCount(0);
   await page
     .getByText("Read public courseware · PDF / Markdown", { exact: true })
@@ -67,8 +72,8 @@ test("course links and catalog filtering keep original provenance", async ({
   await expect(page).toHaveURL(/\/learn\?assistant=1/);
   await page.getByRole("button", { name: "Materials", exact: true }).click();
   await expect(
-    page.getByLabel("Materials course", { exact: true }),
-  ).toHaveValue("automation");
+    page.locator("#compass-chat-panel summary").first(),
+  ).toContainText("Automatic control");
   await page
     .getByText("Read public courseware · PDF / Markdown", { exact: true })
     .click();
@@ -92,6 +97,6 @@ test("course links and catalog filtering keep original provenance", async ({
   await expect(page).toHaveURL(/\/learn\?assistant=1/);
   await page.getByRole("button", { name: "Materials", exact: true }).click();
   await expect(
-    page.getByLabel("Materials course", { exact: true }),
-  ).toHaveValue("ai");
+    page.locator("#compass-chat-panel summary").first(),
+  ).toContainText("AI");
 });

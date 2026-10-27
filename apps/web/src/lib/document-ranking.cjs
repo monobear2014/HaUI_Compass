@@ -123,8 +123,19 @@ function tableContexts(rows) {
   return contexts;
 }
 
+// Match the document-wide prompts emitted by the unified assistant in both languages.
+// Exact templates keep named-topic questions subject to the normal anchor checks.
+const documentPrompts = new Set([
+  "tóm tắt các ý chính trong tài liệu này.",
+  "summarize the main ideas in this material.",
+  "giải thích các khái niệm chính trong tài liệu bằng ví dụ dễ hiểu.",
+  "explain this material's main concepts with simple examples.",
+  "hãy đặt một câu hỏi để tôi tự kiểm tra kiến thức trong tài liệu này.",
+  "ask me one question to check my understanding of this material.",
+]);
 function documentIntent(query) {
   return (
+    documentPrompts.has(query.normalize("NFC").trim().toLowerCase()) ||
     /^(hãy )?(tóm tắt|summarize) (tài liệu|document)/i.test(query) ||
     /^(hãy )?giải thích (các ý chính|chủ đề đang học)/i.test(query) ||
     /^(hãy )?(đặt|tạo) (một |1 )?câu hỏi.*(kiểm tra|tài liệu)/i.test(query)
