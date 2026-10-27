@@ -1,5 +1,6 @@
 import json
 from datetime import UTC, datetime
+from typing import Any
 
 import pytest
 from fastapi.testclient import TestClient
@@ -8,7 +9,7 @@ from haui_compass.api.app_factory import create_app
 from haui_compass.api.dependencies import build_container
 from support.clocks import FixedClock
 
-PROFILE = {
+PROFILE: dict[str, Any] = {
     "timezone": "Asia/Ho_Chi_Minh",
     "weekly_target_minutes": 240,
     "sessions": [

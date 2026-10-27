@@ -1,7 +1,7 @@
 """Daily organization metadata; task completion remains an execution fact."""
 
 from datetime import datetime, time, timedelta
-from typing import Annotated, Literal
+from typing import Annotated, Literal, cast
 from uuid import UUID
 from zoneinfo import ZoneInfo
 
@@ -140,9 +140,9 @@ def create_ticket(
         )
         key = detail_scope(scope)
         details = container.ticket_boards.get(owner, key) or {"version": 0, "edits": {}}
-        edits = dict(details["edits"])
+        edits = dict(cast(dict[str, object], details["edits"]))
         edits[str(body.task_id)] = {"title": title, "description": body.description.strip()}
-        version = details["version"]
+        version = cast(int, details["version"])
         if not container.ticket_boards.save(
             owner, key, {"version": version + 1, "edits": edits}, version
         ):
@@ -169,7 +169,7 @@ def save_details(
         if body.scope != key:
             raise HTTPException(409, "The workspace changed; reload before editing")
         old = container.ticket_boards.get(owner, key) or {"version": 0, "edits": {}}
-        edits = dict(old["edits"])
+        edits = dict(cast(dict[str, object], old["edits"]))
         edits[str(body.task_id)] = {"title": title, "description": body.description.strip()}
         value = {"version": body.version + 1, "edits": edits}
         if not container.ticket_boards.save(owner, key, value, body.version):

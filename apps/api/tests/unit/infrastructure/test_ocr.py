@@ -36,7 +36,7 @@ def image_bytes(kind: str = "PNG") -> bytes:
     return stream.getvalue()
 
 
-def response(value: object) -> dict:
+def response(value: object) -> dict[str, object]:
     return {
         "status": "completed",
         "output": [
@@ -53,7 +53,7 @@ def response(value: object) -> dict:
 def test_table_empty_cells_diacritics_and_math_are_preserved() -> None:
     value = render_ocr_markdown(GOLD)
     assert "Điện trở" in value and "| Đại số |  |" in value
-    assert "$$\n" + GOLD["formulas"][0] + "\n$$" in value
+    assert "$$\n" + r"x=\frac{a_1+b^2}{3}" + "\n$$" in value
 
 
 @pytest.mark.parametrize(
@@ -67,7 +67,7 @@ def test_table_empty_cells_diacritics_and_math_are_preserved() -> None:
         {"tables": [{"headers": [], "rows": []}]},
     ],
 )
-def test_invalid_or_misaligned_output_fails_closed(change: dict) -> None:
+def test_invalid_or_misaligned_output_fails_closed(change: dict[str, object]) -> None:
     with pytest.raises(PdfExtractionError, match="ocr_invalid_output"):
         render_ocr_markdown({**GOLD, **change})
 
@@ -175,7 +175,9 @@ def test_mixed_pdf_does_not_drop_scan_page(monkeypatch: pytest.MonkeyPatch) -> N
     transport.post_json.return_value = response(GOLD)
     ocr = VisionOCR(LLMSettings(api_key="synthetic"), OCRSettings(True, "vision-test"), transport)
     extractor = HybridPdfExtractor(ocr)
-    extractor.native.extract = AsyncMock(return_value=(ExtractedPage(1, "Native page"),))
+    monkeypatch.setattr(
+        extractor.native, "extract", AsyncMock(return_value=(ExtractedPage(1, "Native page"),))
+    )
     result = asyncio.run(extractor.extract(b"synthetic"))
     assert [page.page_number for page in result] == [1, 2]
     assert result[0].text == "Native page" and "Điện trở" in result[1].text

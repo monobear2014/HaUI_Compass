@@ -28,7 +28,7 @@ def test_daily_ticket_order_and_focus_survive_new_instances(
     key = "postgres-companion-key"
     monkeypatch.setenv("COMPASS_SERVICE_KEY", key)
 
-    def client(owner: str):
+    def client(owner: str) -> TestClient:
         clock = FixedClock(datetime(2026, 10, 19, 2, tzinfo=UTC))
         container = build_postgres_container(
             settings=DatabaseSettings(url=os.environ["HAUI_COMPASS_TEST_DATABASE_URL"]),

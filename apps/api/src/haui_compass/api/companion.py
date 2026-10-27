@@ -383,14 +383,15 @@ async def send_message(
                 message=body.text,
                 evidence=body.document_evidence,
                 history=[
-                    TurnDTO(role=turn["role"], content=turn["content"][:4000])
+                    TurnDTO.model_validate({**turn, "content": turn["content"][:4000]})
                     for turn in document_history[-8:]
                 ],
             ),
             container,
             str(body.request_id),
         )
-        cited_ids = generated.get("citations", [])
+        raw_citations = generated.get("citations", [])
+        cited_ids = raw_citations if isinstance(raw_citations, list) else []
         result = {
             "answer": generated["answer"],
             "citations": [
