@@ -184,8 +184,8 @@ test("upload is optional and opens from the learning home", async ({
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
   await expect(page).toHaveURL(/\/learn$/);
   await page
-    .getByRole("link", { name: "Add materials", exact: true })
-    .first()
+    .locator("main")
+    .locator('a[href="/documents/upload?next=%2Flearn"]')
     .click();
   await expect(page).toHaveURL(/\/documents\/upload\?next=%2Flearn$/);
   await expect(

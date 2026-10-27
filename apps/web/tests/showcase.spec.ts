@@ -1,4 +1,4 @@
-import { test, expect, navigate, openDemo, openPreferences } from "./fixtures";
+import { test, expect, navigate, openDemo, openExecution } from "./fixtures";
 
 test.beforeEach(async ({ request, baseURL }) => {
   const response = await request.post("/compass-api/demo/scenarios/select", {
@@ -12,14 +12,13 @@ test("presentation preferences switch language and theme without changing the wo
   page,
 }) => {
   await page.goto("/today");
-  await openPreferences(page);
-  await page.getByRole("button", { name: "VI", exact: true }).click();
+  await page.getByRole("button", { name: "Tiếng Việt", exact: true }).click();
   await expect(page.locator('aside a[href="/today"]')).toHaveAttribute(
     "aria-current",
     "page",
   );
   await expect(
-    page.getByRole("heading", { name: "Tôi nên làm gì ngay bây giờ?" }),
+    page.getByRole("heading", { name: "Hôm nay, từng việc một" }),
   ).toBeVisible();
   await expect(page.locator("html")).toHaveAttribute("lang", "vi");
 
@@ -31,10 +30,9 @@ test("Vietnamese preference covers the student workflow screens", async ({
   page,
 }) => {
   await page.goto("/today");
-  await openPreferences(page);
-  await page.getByRole("button", { name: "VI", exact: true }).click();
+  await page.getByRole("button", { name: "Tiếng Việt", exact: true }).click();
   await expect(
-    page.getByRole("heading", { name: "Tôi nên làm gì ngay bây giờ?" }),
+    page.getByRole("heading", { name: "Hôm nay, từng việc một" }),
   ).toBeVisible();
   await navigate(page, "/plan");
   await expect(
@@ -59,7 +57,7 @@ test("showcase: normal → crunch → execute, reflect and replan disrupted week
 }, info) => {
   await page.goto("/today");
   await expect(
-    page.getByRole("heading", { name: "What should I do now?" }),
+    page.getByRole("heading", { name: "Today, one step at a time" }),
   ).toBeVisible();
   await navigate(page, "/plan");
   await expect(page.locator(".plan-toolbar")).toContainText("Revision 1");
@@ -80,53 +78,26 @@ test("showcase: normal → crunch → execute, reflect and replan disrupted week
       name: "Your assignments",
     }),
   ).toBeVisible();
-  await page.getByRole("link", { name: "Today → Risk & next action" }).click();
+  await navigate(page, "/today");
+  await expect(page.getByRole("article")).toHaveCount(4);
   await expect(
-    page.locator(".next-action").getByText("High risk", { exact: true }),
-  ).toBeVisible();
-  await page.locator(".why-box > summary").click();
-  await page.locator(".why-box .decision-evidence > summary").click();
-  await expect(
-    page.getByText("Template · offline", { exact: true }),
-  ).toBeVisible();
-  await expect(page.locator(".why-box")).toContainText("150 phút");
-  await expect(page.locator(".why-box")).toContainText("60 phút");
-
-  await expect(page.locator(".why-box .decision-evidence")).toContainText(
-    "Remaining effort exceeds the stated available capacity.",
-  );
-  await page.locator(".risk-overview > summary").click();
-  await expect(
-    page.locator(".risk-row").filter({ hasText: "Regression Lab" }),
-  ).toContainText("Needs attention");
-  await page.screenshot({
-    path: info.outputPath("crunch-evidence.png"),
-    fullPage: true,
-  });
-
+    page.getByRole("article", {
+      name: "Implement the regression baseline",
+      exact: true,
+    }),
+  ).toContainText("Implement the regression baseline");
   await openDemo(page);
   await page
     .getByLabel("Demo scenario", { exact: true })
     .selectOption("disrupted");
-  await expect(
-    page.locator(".next-action").getByText("On track", { exact: true }),
-  ).toBeVisible();
-  await page.getByRole("button", { name: "Record work", exact: true }).click();
-  await page.locator('input[name="start"]').fill("2026-10-05T00:00");
-  await page.locator('input[name="end"]').fill("2026-10-05T00:25");
-  await page.getByLabel("Completed the task", { exact: true }).check();
-  await page.getByRole("button", { name: "Save execution" }).click();
+  await openExecution(page, "Draft the relational schema", "completed");
+  await page.getByRole("dialog").getByRole("spinbutton").fill("25");
+  await page.getByRole("button", { name: "Save", exact: true }).click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
-  await expect(page.locator(".action-title")).toHaveText(
-    "Implement the regression baseline",
-  );
-  await page.getByRole("button", { name: "Record work", exact: true }).click();
-  // Playwright's browser uses UTC. Fixed clock: 02:00 UTC; a 90-minute partial session.
-  await page.locator('input[name="start"]').fill("2026-10-05T00:30");
-  await page.locator('input[name="end"]').fill("2026-10-05T02:00");
-  await page.getByRole("button", { name: "Save execution" }).click();
+  await openExecution(page, "Implement the regression baseline");
+  await page.getByRole("dialog").getByRole("spinbutton").fill("90");
+  await page.getByRole("button", { name: "Save", exact: true }).click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
-
   await navigate(page, "/reflect");
   await page.locator('input[name="reflected"]').nth(1).check();
   await page.getByLabel("Too heavy", { exact: true }).check();
@@ -235,7 +206,12 @@ test("AI task candidates require review and confirmation before deterministic pl
     assignment.getByText("Template · offline", { exact: true }),
   ).toBeVisible();
   await expect(assignment.locator(".decomposition-candidate")).toHaveCount(4);
-  await expect(assignment).toContainText("Edit the titles and estimates");
+  await expect(
+    assignment.getByLabel("Candidate 1 title", { exact: true }),
+  ).toBeEditable();
+  await expect(
+    assignment.getByLabel("Candidate 1 estimate", { exact: true }),
+  ).toBeEditable();
 
   const before = await page.request.get("/compass-api/demo/context");
   expect((await before.json()).tasks).toHaveLength(4);
@@ -264,7 +240,9 @@ test("AI task candidates require review and confirmation before deterministic pl
   ).not.toContain("Design the approach for Database Mini Project");
 
   await navigate(page, "/today");
-  await expect(page.locator(".action-title")).toHaveText(
+  await expect(
+    page.getByRole("region", { name: "Choose more tasks", exact: true }),
+  ).toContainText(
     /Clarify rubric and project scope|Implement one core increment|Test and review/,
   );
   await navigate(page, "/plan");

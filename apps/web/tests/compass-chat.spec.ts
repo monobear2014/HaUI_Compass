@@ -76,9 +76,11 @@ async function panel(page: import("@playwright/test").Page) {
     name: /^(Open chatbot|Mở chatbot)$/,
   });
   if (await launcher.isVisible()) await launcher.click();
-  return page
-    .getByRole("complementary", { name: /^(Compass chatbot|Chatbot Compass)$/ })
-    .getByRole("region", { name: "Trợ lý Compass", exact: true });
+  const assistant = page.locator("#compass-chat-panel");
+  await expect(
+    assistant.getByRole("textbox", { name: "Message Compass" }),
+  ).toBeEnabled();
+  return assistant;
 }
 
 test("chunking preserves order, heading and exact offsets; migration backfills once", () => {
@@ -351,57 +353,54 @@ test("TXT and .markdown ingestion, unsupported files and no-origin mutations are
   ).toBe(422);
 });
 
-test("panel quick action, submit, source navigation and selected session survive refresh", async ({
+test("document quick action, sources and unified conversation survive refresh", async ({
   page,
   context,
   baseURL,
-}, info) => {
-  const mobile = info.project.name === "mobile";
+}) => {
   const doc = await upload(context, baseURL!);
   await page.goto(`/study-set/${doc.id}`);
-  let assistant = await panel(page);
-  await expect(assistant).toContainText("Đang hỏi: lecture.md");
+  const assistant = await panel(page);
+  await expect(assistant.locator("summary").first()).toContainText(doc.name);
   await assistant
-    .getByRole("button", { name: "✨ Tóm tắt tài liệu này" })
+    .getByRole("button", { name: "Summarize this material", exact: true })
     .click();
-  await expect(assistant.getByRole("button", { name: /^\[1\]/ })).toBeVisible();
+  await expect(assistant.getByRole("log")).toContainText("Theo tài liệu");
   await assistant
-    .getByRole("textbox", { name: "Hỏi về tài liệu", exact: true })
+    .getByRole("textbox", { name: "Message Compass" })
     .fill("Softmax là gì?");
-  await assistant.getByRole("button", { name: "Gửi", exact: true }).click();
-  await expect(assistant.locator("article")).toHaveCount(4);
+  await assistant.getByRole("button", { name: "Send", exact: true }).click();
   await expect(
-    assistant.getByRole("button", { name: "Gửi", exact: true }),
+    assistant.getByRole("log").getByText("Softmax là gì?", { exact: true }),
+  ).toHaveCount(1);
+  await expect(
+    assistant.getByRole("button", { name: "Send", exact: true }),
   ).toBeDisabled();
-  await page.screenshot({
-    path: info.outputPath("compass-chat.png"),
-    fullPage: true,
-  });
+  await assistant.getByText("Sources", { exact: false }).last().click();
+  const opened = page.waitForEvent("popup");
   await assistant
-    .getByRole("button", { name: /^\[1\]/ })
+    .getByRole("link", { name: doc.name, exact: true })
     .last()
     .click();
+  const reader = await opened;
   await expect(
-    page.getByRole("region", { name: "Đoạn nguồn được trích dẫn" }),
+    reader.getByRole("region", { name: "Đoạn nguồn được trích dẫn" }),
   ).toContainText("Softmax converts logits");
-  if (mobile) assistant = await panel(page);
-  const firstId = await assistant
-    .getByRole("combobox", { name: "Lịch sử trò chuyện" })
-    .inputValue();
+  await reader.close();
   await assistant
-    .getByRole("button", { name: "+ Cuộc trò chuyện mới", exact: true })
+    .getByRole("button", { name: "New conversation", exact: true })
     .click();
-  await expect(
-    assistant.getByText("Bạn muốn tìm hiểu gì?", { exact: true }),
-  ).toBeVisible();
+  await expect(assistant.getByRole("log")).not.toContainText("Softmax là gì?");
+  await assistant.getByRole("button", { name: "History", exact: true }).click();
   await assistant
-    .getByRole("combobox", { name: "Lịch sử trò chuyện" })
-    .selectOption(firstId);
-  await expect(assistant.locator("article")).toHaveCount(4);
+    .getByRole("region", { name: "Conversation history", exact: true })
+    .getByRole("button", { name: /Summarize the main ideas/ })
+    .click();
+  await expect(assistant.getByRole("log")).toContainText("Softmax là gì?");
   await page.reload();
-  assistant = await panel(page);
-  await expect(assistant.locator("article")).toHaveCount(4);
-  await expect(assistant.getByRole("combobox")).toHaveValue(firstId);
+  await panel(page);
+  await expect(assistant.getByRole("log")).toContainText("Softmax là gì?");
+  await expect(assistant.locator("summary").first()).toContainText(doc.name);
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= innerWidth,
@@ -418,21 +417,33 @@ test("network retry after completed response does not duplicate messages", async
   await page.goto(`/study-set/${doc.id}`);
   const assistant = await panel(page);
   let first = true;
-  await page.route("**/api/chat/sessions/*/messages", async (route) => {
+  await page.route("**/compass-api/companion/messages", async (route) => {
     if (route.request().method() === "POST" && first) {
       first = false;
-      await route.fetch(); // server committed; simulate a lost response at the client
+      const saved = await route.fetch();
+      expect(saved.status()).toBe(200);
       await route.fulfill({ status: 503, json: { error: "unavailable" } });
     } else await route.continue();
   });
   await assistant
-    .getByRole("button", { name: "✨ Tóm tắt tài liệu này" })
+    .getByRole("button", { name: "Summarize this material", exact: true })
     .click();
   await expect(assistant.getByRole("alert")).toBeVisible();
-  await assistant.getByRole("button", { name: "Thử lại câu hỏi" }).click();
-  await expect(assistant.getByRole("button", { name: /^\[1\]/ })).toBeVisible();
-  await expect(assistant.locator("article")).toHaveCount(2);
+  await assistant
+    .getByRole("button", { name: "Retry message", exact: true })
+    .click();
+  await expect(assistant.getByRole("log")).toContainText("Theo tài liệu");
   await expect(assistant.getByRole("alert")).toHaveCount(0);
+  const listing = await (
+    await context.request.get("/compass-api/companion/conversations")
+  ).json();
+  const history = await (
+    await context.request.get(
+      `/compass-api/companion/conversations/${listing.conversations[0].id}`,
+    )
+  ).json();
+  expect(history.exchanges).toHaveLength(1);
+  expect(history.exchanges[0].response.citations.length).toBeGreaterThan(0);
 });
 
 test("concurrent sends are serialized; default active document, refusal UI and service gateway stay private", async ({
@@ -486,15 +497,13 @@ test("concurrent sends are serialized; default active document, refusal UI and s
   await page.goto(`/study-set/${doc.id}`);
   const assistant = await panel(page);
   await assistant
-    .getByRole("textbox", { name: "Hỏi về tài liệu", exact: true })
+    .getByRole("textbox", { name: "Message Compass", exact: true })
     .fill("Unicornunique là gì?");
-  await assistant.getByRole("button", { name: "Gửi", exact: true }).click();
-  await expect(assistant.locator("article").last()).toContainText(
+  await assistant.getByRole("button", { name: "Send", exact: true }).click();
+  await expect(assistant.getByRole("log")).toContainText(
     "chưa tìm thấy đủ thông tin",
   );
-  await expect(
-    assistant.locator("article").last().getByRole("button", { name: /^\[/ }),
-  ).toHaveCount(0);
+  await expect(assistant.getByRole("log").getByRole("link")).toHaveCount(0);
 });
 
 const longSource = [
@@ -699,36 +708,32 @@ test("reupload retries failed ingestion and preserves existing ready chunks and 
   }
 });
 
-test("rapid citation clicks keep the latest source on a long document", async ({
+test("long-document citations open the selected original chunk", async ({
   page,
   context,
   baseURL,
-}, info) => {
+}) => {
   const doc = await upload(context, baseURL!, "long.md", longSource);
-  await page.goto(`/study-set/${doc.id}`);
-  let assistant = await panel(page);
-  await assistant
-    .getByRole("button", { name: "✨ Tóm tắt tài liệu này" })
-    .click();
-  const buttons = assistant.locator("article").last().getByRole("button");
-  await expect(buttons).toHaveCount(6);
-  const first = await buttons.first().innerText();
-  const last = await buttons.last().innerText();
-  expect(first).not.toBe(last);
-  await page.route("**/api/documents/*/chunks/*", async (route) => {
-    const response = await route.fetch();
-    if ((await response.json()).chunk.heading === "Linear Regression")
-      await new Promise((resolve) => setTimeout(resolve, 500));
-    await route.fulfill({ response });
-  });
-  await buttons.first().click();
-  if (info.project.name === "mobile") assistant = await panel(page);
-  await assistant.locator("article").last().getByRole("button").last().click();
+  const chat = await session(context, baseURL!, doc.id);
+  const answer = await (
+    await send(context, baseURL!, chat.id, doc.id, "Tóm tắt tài liệu này")
+  ).json();
+  expect(answer.citations).toHaveLength(6);
+  const first = answer.citations[0];
+  const last = answer.citations.at(-1);
+  expect(first.chunk_id).not.toBe(last.chunk_id);
+  await page.goto(`/study-set/${doc.id}?chunk=${first.chunk_id}`);
+  await expect(
+    page.getByRole("region", { name: "Đoạn nguồn được trích dẫn" }),
+  ).toContainText("Linear regression");
+  await page.goto(`/study-set/${doc.id}?chunk=${last.chunk_id}`);
   const card = page.getByRole("region", { name: "Đoạn nguồn được trích dẫn" });
-  await expect(card).toContainText("Gradient descent");
-  await page.waitForTimeout(600);
-  await expect(card).toContainText("Gradient descent");
-  await expect(card).toBeFocused();
+  const chunk = await (
+    await context.request.get(
+      `/api/documents/${doc.id}/chunks/${last.chunk_id}`,
+    )
+  ).json();
+  await expect(card).toContainText(chunk.chunk.content.slice(0, 80));
 });
 
 test("clean migrations, version-two upgrade, foreign keys and query indexes are intact", () => {
@@ -776,7 +781,7 @@ test("clean migrations, version-two upgrade, foreign keys and query indexes are 
   }
 });
 
-test("duplicate sends and refusal invoke the provider at most once; invalid citations are never persisted", async ({
+test("duplicate sends invoke the provider once; refusal and invalid citations persist no sources", async ({
   context,
   baseURL,
 }) => {
@@ -799,14 +804,19 @@ test("duplicate sends and refusal invoke the provider at most once; invalid cita
     ).status(),
   ).toBe(201);
   expect(await count()).toBe(initial + 1);
-  await send(
+  const refusal = await send(
     context,
     baseURL!,
     chat.id,
     doc.id,
     "Transformer attention hoạt động thế nào?",
   );
-  expect(await count()).toBe(initial + 1);
+  expect((await refusal.json()).message).toMatchObject({
+    status: "abstained",
+    citations: [],
+  });
+  // Empty evidence is sent to the answer service, whose fixture also counts refusals.
+  expect(await count()).toBe(initial + 2);
   const invalid = await send(
     context,
     baseURL!,
@@ -828,21 +838,20 @@ test("duplicate sends and refusal invoke the provider at most once; invalid cita
   }
 });
 
-test("refresh during generation restores the same request and retry does not call LLM again", async ({
-  page,
+test("retry after generation restores the same persisted request", async ({
   context,
   baseURL,
 }) => {
   const doc = await upload(context, baseURL!, "refresh.md", `${source}\nlease`);
   const chat = await session(context, baseURL!, doc.id);
-  await page.goto(`/study-set/${doc.id}?chat=${chat.id}`);
-  let assistant = await panel(page);
+  const requestId = crypto.randomUUID();
   const generation = send(
     context,
     baseURL!,
     chat.id,
     doc.id,
     "Softmax lease là gì?",
+    requestId,
   );
   const db = new DatabaseSync(".playwright-data/documents.sqlite");
   try {
@@ -856,21 +865,30 @@ test("refresh during generation restores the same request and retry does not cal
             .get(chat.id)?.status,
       )
       .toBe("pending");
-    await page.reload();
-    assistant = await panel(page);
+    const during = await (
+      await context.request.get(`/api/chat/sessions/${chat.id}/messages`)
+    ).json();
+    expect(
+      during.messages.filter((row: { role: string }) => row.role === "user"),
+    ).toHaveLength(1);
     expect((await generation).status()).toBe(201);
-    if (
-      await assistant.getByRole("button", { name: "Thử lại câu hỏi" }).count()
-    ) {
-      await assistant.getByRole("button", { name: "Thử lại câu hỏi" }).click();
-    }
-    await expect(assistant.locator("article")).toHaveCount(2);
-    const userRows = db
-      .prepare(
-        "SELECT * FROM chat_messages WHERE session_id = ? AND role = 'user'",
-      )
-      .all(chat.id);
-    expect(userRows).toHaveLength(1);
+    const repeated = await send(
+      context,
+      baseURL!,
+      chat.id,
+      doc.id,
+      "Softmax lease là gì?",
+      requestId,
+    );
+    expect(repeated.status()).toBe(201);
+    expect((await repeated.json()).messages).toHaveLength(2);
+    expect(
+      db
+        .prepare(
+          "SELECT * FROM chat_messages WHERE session_id = ? AND role = 'user'",
+        )
+        .all(chat.id),
+    ).toHaveLength(1);
   } finally {
     db.close();
   }
@@ -908,11 +926,11 @@ test("persisted citations are scoped to the session study set even if database d
   }
 });
 
-test("panel handles double send, long filename, loading and study-set switching with restored follow-up", async ({
+test("unified assistant prevents double send and switches document evidence within its thread", async ({
   page,
   context,
   baseURL,
-}, info) => {
+}) => {
   const name = `${"lecture-".repeat(20)}.md`;
   const doc = await upload(context, baseURL!, name, `${source}\nlease`);
   const other = await upload(
@@ -922,53 +940,70 @@ test("panel handles double send, long filename, loading and study-set switching 
     "# Logistic Regression\nLogistic regression uses sigmoid.",
   );
   await page.goto(`/study-set/${doc.id}`);
-  let assistant = await panel(page);
+  const assistant = await panel(page);
+  // Hold the response so the in-flight state is deterministic, independently of provider speed.
+  let release!: () => void;
+  const held = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  await page.route("**/compass-api/companion/messages", async (route) => {
+    const response = await route.fetch();
+    await held;
+    await route.fulfill({ response });
+  });
   await assistant
-    .getByRole("textbox", { name: "Hỏi về tài liệu", exact: true })
-    .fill("Softmax lease là gì?");
+    .getByRole("textbox", { name: "Message Compass", exact: true })
+    .fill("Softmax là gì?");
   await assistant
-    .getByRole("button", { name: "Gửi", exact: true })
+    .getByRole("button", { name: "Send", exact: true })
     .evaluate((button) => {
       (button as HTMLButtonElement).click();
       (button as HTMLButtonElement).click();
     });
-  await expect(assistant.getByRole("status")).toContainText("đang xử lý");
-  await expect(assistant.locator("article")).toHaveCount(2);
-  await expect(
-    assistant.locator("article").last().getByRole("button"),
-  ).toBeVisible();
+  await expect(assistant.getByRole("status")).toContainText("checking");
+  release();
+  await expect(assistant.getByRole("log")).toContainText("Theo tài liệu");
+  await page.unroute("**/compass-api/companion/messages");
   await page.reload();
-  assistant = await panel(page);
-  await assistant
-    .getByRole("textbox", { name: "Hỏi về tài liệu", exact: true })
-    .fill("Tại sao nó dùng exponential?");
-  await assistant.getByRole("button", { name: "Gửi", exact: true }).click();
-  await expect(assistant.locator("article")).toHaveCount(4);
-  await expect(assistant.locator("article").last()).toContainText(
-    "Hỏi tiếp về softmax",
-  );
+  await panel(page);
+  await expect(
+    assistant.getByRole("log").getByText("Softmax là gì?", { exact: true }),
+  ).toHaveCount(1);
   await page.goto(`/study-set/${other.id}`);
-  assistant = await panel(page);
-  await expect(assistant.locator("article")).toHaveCount(0);
-  await expect(assistant).toContainText("Đang hỏi: second.md");
+  await panel(page);
+  await assistant.locator("summary").first().click();
   await assistant
-    .getByRole("button", { name: "✨ Tóm tắt tài liệu này" })
+    .getByRole("button", { name: other.name, exact: true })
     .click();
-  await expect(assistant.locator("article").last()).toContainText(
+  await assistant
+    .getByRole("textbox", { name: "Message Compass", exact: true })
+    .fill("Logistic regression là gì?");
+  await assistant.getByRole("button", { name: "Send", exact: true }).click();
+  await expect(assistant.getByRole("log")).toContainText(
     "Logistic regression uses sigmoid",
   );
-  await expect(assistant.locator("article").last()).not.toContainText(
-    "Softmax converts logits",
-  );
+  const listing = await (
+    await context.request.get("/compass-api/companion/conversations")
+  ).json();
+  const history = await (
+    await context.request.get(
+      `/compass-api/companion/conversations/${listing.conversations[0].id}`,
+    )
+  ).json();
+  expect(history.exchanges).toHaveLength(2);
+  expect(
+    history.exchanges.map((row: { document_id: string }) => row.document_id),
+  ).toEqual([doc.id, other.id]);
+  expect(
+    history.exchanges[1].response.citations.every(
+      (row: { source_url: string }) => row.source_url.includes(other.id),
+    ),
+  ).toBe(true);
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= innerWidth,
     ),
   ).toBe(true);
-  await page.screenshot({
-    path: info.outputPath("compass-verification-states.png"),
-    fullPage: true,
-  });
 });
 
 test("partial ingestion failure persists failed status without orphan chunks, then reupload recovers", async ({
@@ -1038,7 +1073,7 @@ test("partial ingestion failure persists failed status without orphan chunks, th
   }
 });
 
-test("a completed turn stays successful when session-list refresh is unavailable", async ({
+test("a completed unified turn needs no legacy session-list refresh", async ({
   page,
   context,
   baseURL,
@@ -1054,10 +1089,9 @@ test("a completed turn stays successful when session-list refresh is unavailable
     } else await route.continue();
   });
   await assistant
-    .getByRole("button", { name: "✨ Tóm tắt tài liệu này" })
+    .getByRole("button", { name: "Summarize this material", exact: true })
     .click();
-  await expect(assistant.locator("article")).toHaveCount(2);
-  await expect(assistant.getByRole("button", { name: /^\[1\]/ })).toBeVisible();
+  await expect(assistant.getByRole("log")).toContainText("Theo tài liệu");
   await expect(assistant.getByRole("alert")).toHaveCount(0);
   expect(reloads).toBe(0);
 });

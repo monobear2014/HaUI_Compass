@@ -65,7 +65,13 @@ test("preview actions stay reachable, match the proposal and approve only once",
     exact: true,
   });
   await expect(approve).toHaveCount(1);
-  await page.evaluate(() => window.scrollTo(0, 0));
+  // The weekly ticket board now precedes the editor. Test sticky actions while
+  // reading the proposal, rather than scrolling back above the entire editor.
+  await page
+    .getByRole("region", { name: "Kế hoạch đề xuất", exact: true })
+    .evaluate((element) =>
+      element.scrollIntoView({ block: "start", behavior: "instant" }),
+    );
   await expect(bar).toBeInViewport({ ratio: 1 });
   await expect(approve).toBeInViewport({ ratio: 1 });
   expect(

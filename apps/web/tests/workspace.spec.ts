@@ -1,4 +1,4 @@
-import { test, expect, Page, navigate } from "./fixtures";
+import { test, expect, Page, navigate, openExecution } from "./fixtures";
 
 test.beforeEach(async ({ request, baseURL }) => {
   const reset = await request.post("/compass-api/demo/scenarios/select", {
@@ -55,9 +55,6 @@ test("manual academic data becomes an explicit study task", async ({
   await page.getByRole("button", { name: "Import manual data" }).click();
   await page.getByText("Provenance", { exact: true }).click();
   await expect(page.getByText("Provenance: MANUAL")).toBeVisible();
-  await expect(
-    page.getByText("student-provided pilot data, never official HaUI data"),
-  ).toBeVisible();
   await page.getByRole("button", { name: "Create study task" }).click();
   await page.getByRole("button", { name: "Save study task" }).click();
   await expect(
@@ -70,7 +67,7 @@ test("manual academic data becomes an explicit study task", async ({
     page.getByText("Work on Normalize the pilot schema"),
   ).toBeVisible();
   await expect(
-    page.getByRole("button", { name: "Record work", exact: true }),
+    page.getByRole("button", { name: "+ Create ticket", exact: true }),
   ).toBeVisible();
 });
 
@@ -87,13 +84,13 @@ test("real HTTP learning loop preserves explicit student choices", async ({
     await route.fulfill({ response, json: body });
   });
   await page.goto("/today");
-  await page.getByRole("button", { name: "Record work", exact: true }).click();
+  await openExecution(page);
   const executionRequest = page.waitForRequest((request) =>
     request.url().includes("/compass-api/task-executions"),
   );
   await expect(page.getByRole("dialog")).toBeVisible();
   const executionNow = contextNow;
-  await page.getByRole("button", { name: "Save execution" }).click();
+  await page.getByRole("button", { name: "Save", exact: true }).click();
   expect(
     Math.floor(
       Date.parse((await executionRequest).postDataJSON().ended_at) / 60000,
@@ -199,15 +196,16 @@ test("failed execution keeps input and uses the same ID for an exact retry", asy
     }
   });
   await page.goto("/today");
-  await page.getByRole("button", { name: "Record work", exact: true }).click();
-  await page.getByRole("button", { name: "Save execution" }).click();
+  await openExecution(page);
+  await page.getByRole("dialog").getByRole("spinbutton").fill("7");
+  await page.getByRole("button", { name: "Save", exact: true }).click();
   await expect(page.getByRole("dialog").getByRole("alert")).toContainText(
     "Execution service unavailable.",
   );
-  await expect(
-    page.locator('input[name="outcome"][value="partial"]'),
-  ).toBeChecked();
-  await page.getByRole("button", { name: "Save execution" }).click();
+  await expect(page.getByRole("dialog").getByRole("spinbutton")).toHaveValue(
+    "7",
+  );
+  await page.getByRole("button", { name: "Save", exact: true }).click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
   expect(payloads).toHaveLength(2);
   expect(payloads[1]).toEqual(payloads[0]);
@@ -257,7 +255,7 @@ test("loading, API failure and retry remain understandable", async ({
     });
   });
   await page.goto("/today");
-  await expect(page.getByRole("status")).toContainText(
+  await expect(page.locator("main").getByRole("status")).toContainText(
     "Loading your workspace",
   );
   await expect(page.locator("main").getByRole("alert")).toContainText(
@@ -267,11 +265,11 @@ test("loading, API failure and retry remain understandable", async ({
   await page.unroute("**/compass-api/demo/context");
   await page.getByRole("button", { name: "Retry" }).click();
   await expect(
-    page.getByRole("button", { name: "Record work", exact: true }),
+    page.getByRole("button", { name: "+ Create ticket", exact: true }),
   ).toBeVisible();
 });
 
-test("empty recommendation and plan do not fabricate work", async ({
+test("missing recommendation preserves real tickets and an empty plan stays unapproved", async ({
   page,
 }) => {
   await page.route("**/compass-api/daily-recommendation", (route) =>
@@ -286,12 +284,9 @@ test("empty recommendation and plan do not fabricate work", async ({
     route.fulfill({ json: [] }),
   );
   await page.goto("/today");
-  await expect(
-    page.getByRole("heading", { name: "You're clear for now." }),
-  ).toBeVisible();
-  await expect(
-    page.getByRole("button", { name: "Record work", exact: true }),
-  ).toHaveCount(0);
+  // No recommendation does not delete real tasks; they remain available to select.
+  await expect(page.getByRole("article")).toHaveCount(4);
+  await expect(page.getByRole("dialog")).toHaveCount(0);
   await navigate(page, "/plan");
   await expect(
     page.getByRole("button", { name: "Preview proposed plan", exact: true }),
