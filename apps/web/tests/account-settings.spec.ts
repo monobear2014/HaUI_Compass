@@ -216,13 +216,9 @@ test("document Q&A redirects to the single assistant with its course", async ({
     exact: true,
   });
   await expect(chat).toBeVisible();
-  await expect(chat.getByLabel("Chatbot course", { exact: true })).toHaveValue(
-    "ml",
-  );
+  await expect(chat.locator("summary[title='Machine Learning']")).toBeVisible();
   await chat.getByRole("button", { name: "Materials", exact: true }).click();
-  await expect(
-    chat.getByLabel("Materials course", { exact: true }),
-  ).toHaveValue("ml");
+  await expect(chat.locator("summary[title='Machine Learning']")).toBeVisible();
 });
 
 test("avatar raster uploads persist, reject fake images and can reset", async ({

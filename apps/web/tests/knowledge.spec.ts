@@ -9,9 +9,7 @@ test("old Q&A routes resolve to the assistant instead of a duplicate question fo
     name: "Compass chatbot",
     exact: true,
   });
-  await expect(chat.getByLabel("Chatbot course", { exact: true })).toHaveValue(
-    "db",
-  );
+  await expect(chat.locator("summary[title='Databases · demo']")).toBeVisible();
   await expect(
     page.getByRole("button", { name: "Ask documents", exact: true }),
   ).toHaveCount(0);
@@ -25,7 +23,5 @@ test("a tampered course cannot choose an unsupported assistant source", async ({
 }) => {
   await page.goto("/knowledge?course=unknown");
   await expect(page).toHaveURL(/\/learn\?assistant=1$/);
-  await expect(page.getByLabel("Chatbot course", { exact: true })).toHaveValue(
-    "ai",
-  );
+  await expect(page.locator("summary[title='AI']")).toBeVisible();
 });

@@ -95,9 +95,17 @@ test("global assistant uses specialist handoff and explicit long-term memory", a
   await expect(
     chat.getByRole("link", { name: "Review and approve a plan", exact: true }),
   ).toBeVisible();
-  await chat.getByText("How this was supported", { exact: true }).click();
-  await expect(chat).toContainText("Reflector → Planner");
-  await expect(chat).toContainText("confirmed self-reports consulted");
+  const exchanges = await (
+    await page.request.get("/compass-api/companion")
+  ).json();
+  expect(exchanges.exchanges.at(-1).response.agents).toEqual([
+    "supervisor",
+    "memory",
+    "reflector",
+    "planner",
+    "validation",
+  ]);
+  expect(exchanges.exchanges.at(-1).response.memory_used).toBeGreaterThan(0);
   await page.reload();
   await openChat(page);
   await expect(chat.getByRole("log")).toContainText("Dựa vào tuần trước");
@@ -128,9 +136,10 @@ test("side tutor shows real sources and redirects graded outsourcing to guidance
   await expect(page).toHaveURL(/\/learn\?assistant=1/);
   const chat = await openChat(page);
   await chat.getByLabel("Support mode", { exact: true }).selectOption("tutor");
+  await chat.locator("summary[title]").click();
   await chat
-    .getByLabel("Chatbot course", { exact: true })
-    .selectOption("automation");
+    .getByRole("button", { name: "Automatic control", exact: true })
+    .click();
   await chat
     .getByRole("textbox", { name: "Message Compass", exact: true })
     .fill("PID control gồm những thành phần nào?");
